@@ -1,10 +1,15 @@
+# JaguarID Edge Monitoring Node + MiewID
 streamlit
-pandas
-matplotlib
-torch
-PytorchWildlife
-soundfile
-librosa
-setuptools<81
 opencv-python-headless
+matplotlib
+numpy
+pandas
+requests
+torch
+torchvision
+Pillow
+transformers
+safetensors
+timm
 reportlab
+PytorchWildlife
