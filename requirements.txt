@@ -1,4 +1,3 @@
-# JaguarID Edge Monitoring Node + MiewID
 streamlit
 opencv-python-headless
 matplotlib
@@ -13,3 +12,4 @@ safetensors
 timm
 reportlab
 PytorchWildlife
+soundfile
