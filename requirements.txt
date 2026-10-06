@@ -13,3 +13,6 @@ timm
 reportlab
 PytorchWildlife
 soundfile
+librosa
+scipy
+scikit-learn
