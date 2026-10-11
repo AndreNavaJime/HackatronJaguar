@@ -324,14 +324,39 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
       let offset = 0;
       while (offset < file.size) {
         const next = Math.min(offset + chunkSize, file.size);
-        const reply = await fetchJson(await fetch(
-          '/api/videos/uploads/' + uploadId + '/chunks?offset=' + offset,
-          { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' },
-            body: file.slice(offset, next) }
-        )) as { received_bytes?: number };
-        if (reply.received_bytes !== next) {
-          throw new Error('La cantidad de datos recibidos no coincide con el bloque enviado.');
+        let uploaded = false;
+        for (let attempt = 0; attempt < 3 && !uploaded; attempt++) {
+          try {
+            const reply = await fetchJson(await fetch(
+              '/api/videos/uploads/' + uploadId + '/chunks?offset=' + offset,
+              { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' },
+                body: file.slice(offset, next) }
+            )) as { received_bytes?: number };
+            uploaded = reply.received_bytes === next;
+            if (!uploaded) throw new Error('El servidor devolvió un desplazamiento de carga inesperado.');
+          } catch (cause) {
+            // The server may have committed the block even if its reply was lost.
+            // Check the saved offset to prevent uploading duplicate bytes.
+            let serverOffset: number | undefined;
+            try {
+              const progress = await fetchJson(await fetch('/api/videos/jobs/' + uploadId,
+                { cache: 'no-store' })) as { state?: string; received_bytes?: number };
+              if (progress.state !== 'uploading') {
+                throw new Error('La sesión de carga expiró o dejó de estar disponible.');
+              }
+              serverOffset = progress.received_bytes;
+            } catch (checkError) {
+              if (checkError instanceof Error && checkError.message.includes('expiró')) throw checkError;
+              if (attempt === 2) throw cause;
+            }
+            if (serverOffset === next) uploaded = true;
+            else if (serverOffset !== undefined && serverOffset !== offset) {
+              throw new Error('El avance informado por Python no coincide con la carga local.');
+            } else if (attempt === 2) throw cause;
+            else await new Promise<void>(resolve => window.setTimeout(resolve, 500 * (attempt + 1)));
+          }
         }
+        if (!uploaded) throw new Error('No se pudo confirmar el bloque de video.');
         offset = next;
         setUploadedBytes(offset);
       }
@@ -393,7 +418,8 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
           <strong>Preparación del servidor de análisis</strong>
           {checkingPrerequisites && <p>Comprobando OpenCV, PyTorch y MegaDetector…</p>}
           {preflight && <><p className={preflight.ready_for_attempt ? 'video-ready' : 'upload-error'}>
-            {preflight.ready_for_attempt ? '✓ Bibliotecas disponibles para intentar el análisis' : 'Faltan componentes para procesar videos'}
+            {preflight.ready_for_attempt ? '✓ Servidor preparado para intentar el análisis' :
+              preflight.storage && !preflight.storage.can_accept ? 'Espacio de disco insuficiente para este video' : 'Faltan componentes para procesar videos'}
           </p><div className="video-dependency-list">
             {([['OpenCV (decodificación)', preflight.modules.opencv],
               ['PyTorchWildlife / MegaDetector', preflight.modules.pytorchwildlife],
