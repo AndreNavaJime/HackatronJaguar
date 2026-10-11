@@ -120,7 +120,8 @@ function App() {
       <div hidden={section !== 'PantheraID' && section !== 'PantheraEDGE'}>
       <section className="panel upload-panel">
         <div className="panel-heading">
-          <div><h2>PantheraID · Multimedia de cámaras trampa</h2><p>Fotografías, detección animal y análisis de videos con revisión científica.</p></div>
+          <div><h2>{section === 'PantheraEDGE' ? 'PantheraEDGE · Multimedia científica' : 'PantheraID · Multimedia de cámaras trampa'}</h2>
+          <p>Fotografías y videos, detecciones de animales, recortes candidatos, tablas por frame, gráficos y descargas para revisión científica.</p></div>
           <span className="tag">IMAGEN + VIDEO</span>
         </div>
         <div className="upload-layout">
@@ -163,11 +164,15 @@ function App() {
         onOpenResearch={() => setSection('Investigación')} />}
       {section === 'Resumen' && <>
         <div className="cards">
-          <article><span>Identificación individual</span><strong>En migración</strong><p>Los modelos y la validación se integrarán desde el backend Python.</p></article>
-          <article><span>Eventos de campo</span><strong>Sin datos conectados</strong><p>Preparado para integrar PantheraEDGE y el nodo VIGÍA.</p></article>
-          <article><span>Revisión científica</span><strong>Pendiente</strong><p>Conservaremos cuadros de imágenes, métricas y exportaciones.</p></article>
+          <article><span>PantheraID · Imágenes y videos</span><strong>MegaDetector V6</strong><p>Detección de animales, personas y vehículos con API Python. La identificación individual continúa pendiente.</p>
+            <button className="action-button" onClick={() => setSection('PantheraID')}>Abrir análisis multimedia</button></article>
+          <article><span>PantheraEDGE · Ciencia</span><strong>14 módulos migrados</strong><p>Captura científica, IA, gráficos, ubicación, eventos, Sentinel, simulación 5G y reportes.</p>
+            <button className="action-button" onClick={() => setSection('PantheraEDGE')}>Abrir PantheraEDGE</button></article>
+          <article><span>PantheraMONITORING</span><strong>{scientificRecords.length} registros locales</strong><p>Dashboard de observaciones de esta sesión. Sin conexión automática a Supabase.</p>
+            <button className="action-button" onClick={() => setSection('PantheraMONITORING')}>Abrir monitoreo</button></article>
         </div>
-        <section className="panel"><h2>{section} · Espacio de trabajo</h2><p>Esta pantalla es una primera base responsive. El módulo PantheraID ya permite comprobar la recepción de fotografías, pero la detección, la identificación individual y las integraciones de campo continúan en migración.</p></section>
+        <section className="panel"><h2>PantheraLAB · Flujo de investigación</h2><p>Ingresá una cámara o video, procesá los fotogramas con MegaDetector, documentá su procedencia científica en PantheraEDGE y exportá el registro desde Investigación. Una PWA instalada sigue necesitando conexión con el servidor Python para inferencia, informes PDF y Sentinel.</p>
+        <p className="scientific-note">Estado del prototipo: la detección exige bibliotecas y pesos de IA instalados en FastAPI; el nodo VIGÍA y la persistencia real en Supabase requieren configuración e integración adicionales.</p></section>
       </>}
     </main>
   </div>;
