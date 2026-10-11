@@ -60,15 +60,17 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
           throw new Error(description);
         }
       }
-      const isObject = typeof payload === 'object' && payload !== null;
       if (!response.ok) {
-        const detail = isObject && 'detail' in payload && typeof payload.detail === 'string'
+        const detail = typeof payload === 'object' && payload !== null
+          && 'detail' in payload && typeof payload.detail === 'string'
           ? payload.detail : null;
         throw new Error(detail ?? ('Python no completó la solicitud (HTTP ' + response.status +
           '). Puede haberse interrumpido por falta de memoria; revisá la terminal de FastAPI.'));
       }
-      if (!isObject || !('counts' in payload) || !('annotated_image' in payload)
-        || typeof payload.annotated_image !== 'string' || !payload.annotated_image.startsWith('data:image/')) {
+      if (typeof payload !== 'object' || payload === null
+        || !('counts' in payload) || !('annotated_image' in payload)
+        || typeof payload.annotated_image !== 'string'
+        || !payload.annotated_image.startsWith('data:image/')) {
         throw new Error('El servidor respondió sin datos completos. Revisá la terminal de Python y su memoria disponible.');
       }
       setResult(payload as DetectionResult);
