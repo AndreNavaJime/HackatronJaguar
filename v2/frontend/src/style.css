@@ -124,3 +124,50 @@ body{overscroll-behavior-y:contain}
   .app-header-actions .tag{display:none}
   .install-help{right:auto;left:0}
 }
+
+/* PantheraLAB mobile — researcher workspace (no change to PantheraID layout) */
+.science-workspace{margin-top:30px}
+.science-workspace h3{margin:26px 0 14px;font-size:18px}
+.science-workspace .panel-heading h2{margin-bottom:8px}
+.science-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:14px 0 22px}
+.science-field{display:flex;flex-direction:column;gap:8px;min-width:0;font-size:13px;color:#c1d8c9;font-weight:600}
+.science-field-wide{grid-column:1/-1}
+.science-field input,.science-field select,.science-field textarea{width:100%;min-height:44px;
+  border:1px solid #4e795d;border-radius:10px;background:#0b2118;color:#eaf5ed;
+  padding:12px;font:inherit;font-weight:400;outline-offset:2px}
+.science-field input:focus-visible,.science-field select:focus-visible,
+.science-field textarea:focus-visible{outline:2px solid #7ec89b}
+.science-field textarea{resize:vertical}
+.science-field input::placeholder,.science-field textarea::placeholder{color:#839f8b}
+.science-field select option{background:#0b2118;color:#eaf5ed}
+.science-actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.science-actions button{border:1px solid #448660;background:#1e5138;color:#e3f7e9;
+  min-height:44px;text-align:center;font-weight:600}
+.science-actions button:hover{background:#2c704d}
+.science-hint{font-size:13px;color:#b7d5be}
+.science-edge-link{border:1px solid #315e42;background:#10291c;padding:16px;border-radius:12px}
+.science-edge-link p{margin:0 0 13px}
+.science-edge-link small{color:#a8bfae;display:block;margin-top:10px}
+.science-check{display:flex;align-items:flex-start;gap:10px;line-height:1.5;cursor:pointer}
+.science-check input{height:20px;width:20px;accent-color:#70c795}
+.science-satellite{margin-top:30px;border-top:1px solid #42674e;padding-top:12px}
+.science-satellite-results{border:1px solid #3b6e4e;border-radius:12px;padding:16px;margin-top:16px;background:#0b2118;overflow-wrap:anywhere}
+.science-satellite-results p{font-size:12px;margin:9px 0;overflow-wrap:anywhere}
+.science-metrics{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:15px}
+.science-metrics span{padding:10px;border:1px solid #416d53;border-radius:9px}
+.science-registry{border-top:1px solid #43654d;margin-top:34px;padding-top:13px}
+.science-records{display:grid;gap:12px;margin-top:20px}
+.science-record{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border:1px solid #355742;background:#0b2118;border-radius:10px;padding:16px}
+.science-record>div:first-child{display:flex;flex-direction:column;gap:7px;min-width:0;overflow-wrap:anywhere}
+.science-record small{color:#aac5b2}
+.science-record .science-actions{margin:0}
+.science-success{color:#a0e2b4;border:1px solid #387c50;padding:13px;border-radius:9px;background:#153326}
+@media(max-width:760px){
+  .science-workspace{padding:15px}
+  .science-grid{grid-template-columns:1fr}
+  .science-field-wide{grid-column:auto}
+  .science-record{align-items:stretch}
+  .science-actions button{flex:1 1 auto}
+  .science-record .science-actions{width:100%}
+}
