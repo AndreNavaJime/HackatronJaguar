@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 import DetectionPanel from './DetectionPanel';
+import VideoPanel from './VideoPanel';
 
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'Investigación'];
 type ApiState = 'checking' | 'connected' | 'disconnected';
@@ -110,8 +111,8 @@ function App() {
       </section>
       {section === 'PantheraID' ? <section className="panel upload-panel">
         <div className="panel-heading">
-          <div><h2>Recepción de fotografías</h2><p>Primer módulo operativo: comprobar que Python recibe una imagen.</p></div>
-          <span className="tag">ETAPA 1</span>
+          <div><h2>PantheraID · Multimedia de cámaras trampa</h2><p>Fotografías, detección animal y análisis de videos con revisión científica.</p></div>
+          <span className="tag">IMAGEN + VIDEO</span>
         </div>
         <div className="upload-layout">
           <div className="upload-controls">
@@ -133,14 +134,15 @@ function App() {
           </div>
         </div>
         <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />
-        <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. El módulo de detección requiere la dependencia opcional de IA. Las imágenes no se guardan ni se envían a Supabase.</p>
+        <VideoPanel enabled={apiState === 'connected'} />
+        <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en Codespaces y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.</p>
       </section> : <>
         <div className="cards">
           <article><span>Identificación individual</span><strong>En migración</strong><p>Los modelos y la validación se integrarán desde el backend Python.</p></article>
           <article><span>Eventos de campo</span><strong>Sin datos conectados</strong><p>Preparado para integrar PantheraEDGE y el nodo VIGÍA.</p></article>
           <article><span>Revisión científica</span><strong>Pendiente</strong><p>Conservaremos cuadros de imágenes, métricas y exportaciones.</p></article>
         </div>
-        <section className="panel"><h2>{section} · Espacio de trabajo</h2><p>Esta pantalla es una primera base responsive. El módulo PantheraID ya permite comprobar la recepción de fotografías, pero la detección, el análisis de video y la identificación individual continúan en migración.</p></section>
+        <section className="panel"><h2>{section} · Espacio de trabajo</h2><p>Esta pantalla es una primera base responsive. El módulo PantheraID ya permite comprobar la recepción de fotografías, pero la detección, la identificación individual y las integraciones de campo continúan en migración.</p></section>
       </>}
     </main>
   </div>;
