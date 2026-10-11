@@ -4,6 +4,7 @@ import './style.css';
 import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
 import InstallControl from './InstallControl';
+import ScientificWorkspace, { emptyObservation, type EdgeSummary, type ScientificObservation } from './ScientificWorkspace';
 import { registerPantheraPwa } from './registerPwa';
 
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'Investigación'];
@@ -30,6 +31,9 @@ function App() {
   const [imageResult, setImageResult] = React.useState<ImageResult | null>(null);
   const [imageError, setImageError] = React.useState('');
   const [uploading, setUploading] = React.useState(false);
+  const [scientificDraft, setScientificDraft] = React.useState<ScientificObservation>(emptyObservation);
+  const [scientificRecords, setScientificRecords] = React.useState<ScientificObservation[]>([]);
+  const [latestEdge, setLatestEdge] = React.useState<EdgeSummary | null>(null);
 
   const checkApi = React.useCallback(async () => {
     setApiState('checking');
@@ -135,10 +139,14 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-        <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />
-        <VideoPanel enabled={apiState === 'connected'} />
+        <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading}
+          onAnalysisComplete={setLatestEdge} />
+        <VideoPanel enabled={apiState === 'connected'} onAnalysisComplete={setLatestEdge} />
         <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en Codespaces y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.</p>
-      </section> : <>
+      </section> : section === 'PantheraEDGE' || section === 'Investigación' ?
+        <ScientificWorkspace view={section} enabled={apiState === 'connected'}
+          draft={scientificDraft} setDraft={setScientificDraft}
+          records={scientificRecords} setRecords={setScientificRecords} latestEdge={latestEdge} /> : <>
         <div className="cards">
           <article><span>Identificación individual</span><strong>En migración</strong><p>Los modelos y la validación se integrarán desde el backend Python.</p></article>
           <article><span>Eventos de campo</span><strong>Sin datos conectados</strong><p>Preparado para integrar PantheraEDGE y el nodo VIGÍA.</p></article>
