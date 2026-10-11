@@ -1,0 +1,36 @@
+name: PantheraLAB mobile scientific integration
+
+on:
+  push:
+    branches:
+      - feature/pantheralab-mobile-science-20261011
+  pull_request:
+    paths:
+      - 'v2/backend/**'
+      - 'v2/frontend/**'
+      - '.github/workflows/validate-mobile-science.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Python syntax
+        run: python -m py_compile v2/backend/main.py v2/backend/research_api.py
+      - name: Scientific validation tests
+        working-directory: v2/backend
+        run: |
+          python -m pip install -r requirements.txt
+          python -m unittest discover -p 'test_research_api.py' -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Frontend install
+        working-directory: v2/frontend
+        run: npm install --no-audit --no-fund
+      - name: TypeScript and mobile production build
+        working-directory: v2/frontend
+        run: npm run build
