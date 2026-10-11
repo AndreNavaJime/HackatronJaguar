@@ -85,3 +85,42 @@
 
 /* Evitar reglas globales de tarjetas sobre el texto de resultados de video. */
 .video-frame-details strong{margin:0;font-size:14px}
+
+/* PantheraID 2.0 PWA — install control, touch sizing and phone safe areas */
+body{overscroll-behavior-y:contain}
+.app-header{flex-wrap:wrap}
+.app-header-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pwa-install{position:relative}
+.install-button{display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 16px;min-height:44px;border:1px solid #69b78a;
+  color:#e5f7e9;background:#205a3c;border-radius:11px;font-weight:650}
+.install-button:hover,.install-button:focus-visible{background:#2d8053;color:white}
+.installed-indicator{color:#adf1c7;font-size:13px;font-weight:650}
+.install-help{position:absolute;right:0;top:calc(100% + 10px);z-index:20;
+  width:min(330px,calc(100vw - 36px));border:1px solid #72ac83;
+  background:#102c20;border-radius:14px;box-shadow:0 15px 50px #0009;
+  padding:18px;color:#ebf6eb}
+.install-help strong{font-size:15px}
+.install-help p{font-size:13px;line-height:1.6;color:#c5ddcc}
+.install-dismiss{background:#23513d;color:white;border:1px solid #4f8d66;padding:9px 14px}
+@media(max-width:760px){
+  .shell{min-width:0}
+  main{min-width:0;padding-bottom:calc(25px + env(safe-area-inset-bottom,0px))}
+  aside{padding-top:calc(14px + env(safe-area-inset-top,0px))}
+  nav{max-width:100%;scrollbar-width:thin}
+  nav button{min-height:44px}
+  .api-status{align-items:stretch}
+  .api-status button{min-height:44px}
+  .app-header{align-items:flex-start;gap:14px}
+  .app-header-actions{width:100%;justify-content:space-between}
+  .upload-panel{padding:15px}
+  .install-button{font-size:14px}
+  input[type=file],button{font-size:max(14px,1rem)}
+  .cards article{min-width:0}
+  .image-frame{min-height:180px}
+  .video-analytics{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:360px){
+  .app-header-actions .tag{display:none}
+  .install-help{right:auto;left:0}
+}
