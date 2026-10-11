@@ -154,7 +154,7 @@ function Download({ href, children, filename }: { href: string; children: React.
   return <a className="download-link" href={href} download={filename}>{children}</a>;
 }
 
-export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: boolean; onAnalysisComplete?: (summary: EdgeSummary) => void }) {
+export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: boolean; onAnalysisComplete?: (summary: EdgeSummary | null) => void }) {
   const [file, setFile] = React.useState<File | null>(null);
   const [videoUrl, setVideoUrl] = React.useState<string | null>(null);
   const [threshold, setThreshold] = React.useState(0.25);
@@ -191,6 +191,15 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
           setResult(data.result);
           onAnalysisComplete?.({
             source: 'video', filename: data.result.metadata.filename, model: data.result.metadata.model,
+            threshold: data.result.metadata.threshold,
+            mean_confidence: data.result.totals.mean_confidence,
+            input_jpeg_bytes: data.result.totals.input_jpeg_bytes,
+            retained_jpeg_bytes: data.result.totals.retained_jpeg_bytes,
+            rows: data.result.rows.map(row => ({
+              time_seconds: row.video_time_seconds,
+              confidence: row.max_animal_confidence,
+              retained: row.edge_decision === 'RETAIN',
+            })),
             sampled: data.result.totals.sampled, retained: data.result.totals.retained,
             animals: data.result.totals.animals, persons: data.result.totals.persons,
             vehicles: data.result.totals.vehicles, max_confidence: data.result.totals.max_confidence,
@@ -222,6 +231,7 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
     setResult(null);
     setError('');
     setUploadedBytes(0);
+    onAnalysisComplete?.(null);
   }
 
   async function analyze() {
