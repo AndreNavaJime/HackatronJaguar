@@ -2,6 +2,9 @@ import React from 'react';
 
 export type EdgeSummary = {
   source: 'video' | 'image';
+  threshold: number; mean_confidence: number;
+  input_jpeg_bytes: number | null; retained_jpeg_bytes: number | null;
+  rows?: { time_seconds: number; confidence: number; retained: boolean }[];
   filename: string;
   model: string;
   sampled: number;
@@ -25,6 +28,8 @@ export type ScientificObservation = {
   sex: string; age_class: string; viewpoint: string; behavior: string;
   habitat_type: string; notes: string; limitations: string;
   media_reference: string; edge_analysis: EdgeSummary | null;
+  edge_event_id: string; edge_event_timestamp: string;
+  edge_transport: string; edge_hmac_status: string;
 };
 
 export function emptyObservation(): ScientificObservation {
@@ -39,7 +44,8 @@ export function emptyObservation(): ScientificObservation {
     evidence_quality: 'sin_evaluar', validation_status: 'pendiente',
     sex: 'desconocido', age_class: 'desconocida', viewpoint: 'desconocido',
     behavior: '', habitat_type: '', notes: '', limitations: '', media_reference: '',
-    edge_analysis: null,
+    edge_analysis: null, edge_event_id: '', edge_event_timestamp: '',
+    edge_transport: '', edge_hmac_status: '',
   };
 }
 const textColumns: (keyof ScientificObservation)[] = [
@@ -47,6 +53,7 @@ const textColumns: (keyof ScientificObservation)[] = [
   'camera_id', 'study_site', 'species', 'individual_id', 'event_datetime_utc',
   'latitude', 'longitude', 'coordinate_provenance', 'camera_trap_nights',
   'temperature_c', 'humidity_percent', 'altitude_m', 'validation_status',
+  'edge_event_id', 'edge_event_timestamp',
 ];
 function saveBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -233,7 +240,7 @@ export default function ScientificWorkspace({ view, enabled, draft, setDraft, re
     {view === 'PantheraEDGE' && <>
       <p className="scientific-note">Las especies y los individuos son anotaciones del investigador, no predicciones de MegaDetector.
         Dejá vacíos los valores ambientales que no se midieron; no se emplean coordenadas inventadas.</p>
-      <form onSubmit={event => void register(event)}>
+      <form onSubmit={event => void register(event)} id="science-observation-form">
         <h3>1. Campaña y estación</h3>
         <div className="science-grid">
           {field('Nombre de observación', 'observation_name', 'Ej. Jaguar en sendero CT-07')}
@@ -267,6 +274,10 @@ export default function ScientificWorkspace({ view, enabled, draft, setDraft, re
           {field('Comportamiento', 'behavior')}
           {field('Tipo de hábitat', 'habitat_type')}
           {field('Referencia de foto/video', 'media_reference', 'Nombre de archivo o URL')}
+          {field('ID de evento PantheraEDGE', 'edge_event_id', 'Opcional, desde la pestaña de eventos')}
+          {field('Hora del evento Edge', 'edge_event_timestamp')}
+          {field('Transporte informado del evento', 'edge_transport')}
+          {field('Verificación HMAC del evento', 'edge_hmac_status')}
           {area('Notas de campo', 'notes', 'Contexto, condiciones, observaciones...')}
           {area('Sesgos y limitaciones', 'limitations', 'Visibilidad, muestreo, identificación incierta...')}
         </div>
@@ -329,5 +340,13 @@ export default function ScientificWorkspace({ view, enabled, draft, setDraft, re
     {feedback && <p role="status" className="science-success">{feedback}</p>}
     {error && <p role="alert" className="upload-error">{error}</p>}
     {registry}
+    {records.length > 0 && <section className="science-individual-history">
+      <h3>Historial de encuentros por individuo anotado</h3>
+      <p>Conteos de registros manuales, no estimaciones de población ni reidentificación automatizada.</p>
+      <div className="edge-metrics-grid">{Object.entries(records.reduce<Record<string, number>>((acc, r) => {
+        if (r.individual_id.trim()) acc[r.individual_id] = (acc[r.individual_id] ?? 0) + 1;
+        return acc;
+      }, {})).map(([id, n]) => <div key={id} className="edge-metric"><span>Individuo anotado</span><strong>{id}</strong><small>{n} registro(s)</small></div>)}</div>
+    </section>}
   </section>;
 }
