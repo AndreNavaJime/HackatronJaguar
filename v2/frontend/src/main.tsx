@@ -1,4 +1,6 @@
 import React from 'react';
+import MobileNavigation from './MobileNavigation';
+import { Button } from './components/ui/button';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 import DetectionPanel from './DetectionPanel';
@@ -119,7 +121,14 @@ function App() {
       <small>PantheraID 2.0 · Vista preliminar</small>
     </aside>
     <main>
-      <header className="app-header"><span>Plataforma científica de monitoreo</span><div className="app-header-actions"><InstallControl /><span className="tag">PROTOTIPO UI</span></div></header>
+      <header className="app-header">
+        <div className="mobile-brand" aria-label="PantheraLAB, conservación inteligente">
+          <span className="mobile-brand-icon" aria-hidden="true">🐆</span>
+          <span className="mobile-brand-name">PANTHERA<strong>LAB</strong><small>Conservación inteligente</small></span>
+        </div>
+        <span className="desktop-header-label">Plataforma científica de monitoreo</span>
+        <div className="app-header-actions"><InstallControl /><span className="tag">PROTOTIPO UI</span></div>
+      </header>
       <h1>{section}</h1>
       <p className="lead">Sistema de apoyo para monitoreo de fauna y revisión científica de evidencia.</p>
       <section className={'api-status ' + apiState} aria-live="polite" aria-label="Estado de la API">
@@ -179,16 +188,17 @@ function App() {
       {section === 'Resumen' && <>
         <div className="cards">
           <article><span>PantheraID · Imágenes y videos</span><strong>MegaDetector V6</strong><p>Detección de animales, personas y vehículos con API Python. La identificación individual continúa pendiente.</p>
-            <button className="action-button" onClick={() => setSection('PantheraID')}>Abrir análisis multimedia</button></article>
+            <Button type="button" onClick={() => setSection('PantheraID')}>Abrir análisis multimedia</Button></article>
           <article><span>PantheraEDGE · Ciencia</span ><strong>Módulos científicos</strong><p>Captura científica, IA, gráficos, ubicación, eventos, Sentinel, simulación 5G y reportes.</p>
-            <button className="action-button" onClick={() => setSection('PantheraEDGE')}>Abrir PantheraEDGE</button></article>
+            <Button type="button" onClick={() => setSection('PantheraEDGE')}>Abrir PantheraEDGE</Button></article>
           <article><span>PantheraMONITORING</span><strong>{scientificRecords.length} registros locales</strong><p>Dashboard de observaciones de esta sesión. Sin conexión automática a Supabase.</p>
-            <button className="action-button" onClick={() => setSection('PantheraMONITORING')}>Abrir monitoreo</button></article>
+            <Button type="button" onClick={() => setSection('PantheraMONITORING')}>Abrir monitoreo</Button></article>
         </div>
         <section className="panel"><h2>PantheraLAB · Flujo de investigación</h2><p>Ingresá una cámara o video, procesá los fotogramas con MegaDetector, documentá su procedencia científica en PantheraEDGE y exportá el registro desde Investigación. Una PWA instalada sigue necesitando conexión con el servidor Python para inferencia, informes PDF y Sentinel.</p>
         <p className="scientific-note">Estado del prototipo: la detección exige bibliotecas y pesos de IA instalados en FastAPI; el nodo VIGÍA y la persistencia real en Supabase requieren configuración e integración adicionales.</p></section>
       </>}
     </main>
+    <MobileNavigation currentSection={section} onSelect={setSection} />
   </div>;
 }
 
