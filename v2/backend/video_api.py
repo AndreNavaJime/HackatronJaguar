@@ -31,7 +31,7 @@ from detection import DetectorUnavailable, detect_image
 logger = logging.getLogger("pantheraid.video")
 router = APIRouter(prefix="/api/videos", tags=["Video"])
 
-MAX_VIDEO_BYTES = 60 * 1024 * 1024
+MAX_VIDEO_BYTES = 250 * 1024 * 1024
 MAX_DURATION_SECONDS = 600
 MAX_FRAME_PIXELS = 3840 * 2160
 MAX_SAMPLES = 24
@@ -425,7 +425,7 @@ async def create_video_job(
     if length:
         try:
             if int(length) > MAX_VIDEO_BYTES:
-                raise HTTPException(status_code=413, detail="El video supera 60 MB.")
+                raise HTTPException(status_code=413, detail="El video supera 250 MB.")
         except ValueError:
             raise HTTPException(status_code=400, detail="Tamaño de solicitud inválido.")
 
@@ -448,7 +448,7 @@ async def create_video_job(
             async for block in request.stream():
                 size += len(block)
                 if size > MAX_VIDEO_BYTES:
-                    raise HTTPException(status_code=413, detail="El video supera 60 MB.")
+                    raise HTTPException(status_code=413, detail="El video supera 250 MB.")
                 sink.write(block)
         if not size:
             raise HTTPException(status_code=400, detail="El archivo está vacío.")
