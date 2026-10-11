@@ -33,10 +33,13 @@ from detection import DetectorUnavailable, detect_image
 logger = logging.getLogger("pantheraid.video")
 router = APIRouter(prefix="/api/videos", tags=["Video"])
 
-MAX_VIDEO_BYTES = 250 * 1024 * 1024
+# Large uploads remain on disk; only one upload or job runs at a time.
+MAX_VIDEO_BYTES = 1024 * 1024 * 1024  # 1 GiB
+MIN_FREE_AFTER_UPLOAD_BYTES = 1024 * 1024 * 1024  # keep 1 GiB for the system
+VIDEO_WORKSPACE_MARGIN_BYTES = 512 * 1024 * 1024  # generated results
 MAX_UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024
 UPLOAD_TTL_SECONDS = 1800
-MAX_DURATION_SECONDS = 600
+MAX_DURATION_SECONDS = 3600  # one hour, bounded sampled frames
 MAX_FRAME_PIXELS = 3840 * 2160
 MAX_SAMPLES = 24
 MODEL_FRAME_MAX_SIDE = 960
@@ -89,18 +92,50 @@ def _video_prerequisites() -> dict:
     }
 
 
+def _disk_capacity_for_upload(expected_bytes: int) -> dict:
+    """Estimate room for the file, reports and safety reserve, without allocating it."""
+    required = expected_bytes + MIN_FREE_AFTER_UPLOAD_BYTES + VIDEO_WORKSPACE_MARGIN_BYTES
+    try:
+        free = shutil.disk_usage(tempfile.gettempdir()).free
+    except OSError:
+        return {
+            "can_accept": False, "free_bytes": None, "required_bytes": required,
+            "message": "No se pudo comprobar el espacio libre del almacenamiento temporal.",
+        }
+    allowed = free >= required
+    return {
+        "can_accept": allowed, "free_bytes": free, "required_bytes": required,
+        "message": ("Hay espacio para iniciar la carga; no se garantiza durante el procesamiento."
+                    if allowed else
+                    "Espacio insuficiente: se necesita capacidad para el video, "
+                    "los resultados y una reserva. Liberá espacio antes de subirlo."),
+    }
+
+
 @router.get("/preflight")
-def video_preflight():
-    return _video_prerequisites()
+def video_preflight(expected_bytes: int = Query(0, ge=0, le=MAX_VIDEO_BYTES)):
+    result = _video_prerequisites()
+    result["max_video_bytes"] = MAX_VIDEO_BYTES
+    result["max_duration_seconds"] = MAX_DURATION_SECONDS
+    if expected_bytes:
+        result["storage"] = _disk_capacity_for_upload(expected_bytes)
+        if not result["storage"]["can_accept"]:
+            result["ready_for_attempt"] = False
+            result["message"] = result["storage"]["message"]
+    return result
 
 
-def _require_video_prerequisites():
+def _require_video_prerequisites(expected_bytes: int):
     report = _video_prerequisites()
     if not report["ready_for_attempt"]:
         raise HTTPException(
             status_code=503,
             detail=report["message"] + " " + " | ".join(report["instructions"]),
         )
+    storage = _disk_capacity_for_upload(expected_bytes)
+    if not storage["can_accept"]:
+        raise HTTPException(status_code=507, detail=storage["message"])
+
 
 
 def _prune():
@@ -136,6 +171,8 @@ def _snapshot(identifier):
         return {
             "job_id": identifier,
             "state": job["state"],
+            "received_bytes": job.get("received_bytes", 0),
+            "expected_bytes": job.get("expected_size", 0),
             "stage": job.get("stage", ""),
             "processed": job.get("processed", 0),
             "total": job.get("total", 0),
@@ -288,7 +325,7 @@ def _process(identifier):
                 raise VideoError("La resolución supera el límite de 3840 x 2160 píxeles.")
             duration = frame_count / fps
             if duration > MAX_DURATION_SECONDS:
-                raise VideoError("El video supera 10 minutos. Para el prototipo usá un fragmento más corto.")
+                raise VideoError("El video supera el límite de 60 minutos del prototipo. Usá un fragmento más corto.")
 
             # Frames are selected by nominal presentation time. For variable-frame-rate
             # video the reported positions are estimates, not per-frame timestamps.
@@ -497,10 +534,9 @@ async def begin_chunked_upload(
     sample_seconds: float = Query(1.0, ge=0.5, le=5.0),
     max_samples: int = Query(8, ge=1, le=MAX_SAMPLES),
 ):
-    """Reserve an upload session without transmitting the video in one big request.
+    """Reserve a file-backed upload without posting the entire 1-GiB body.
 
-    The browser subsequently PUTs sequential <=8-MiB chunks. Unlike a single
-    250-MB POST, this also works through proxies with a per-request body limit.
+    Browser PUTs sequential <=8-MiB blocks. No storage in Supabase.
     """
     _prune()
     filename, extension = _upload_name(request)
@@ -511,9 +547,9 @@ async def begin_chunked_upload(
     if expected <= 0:
         raise HTTPException(status_code=400, detail="El video está vacío o no se indicó su tamaño.")
     if expected > MAX_VIDEO_BYTES:
-        raise HTTPException(status_code=413, detail="El video supera 250 MB.")
+        raise HTTPException(status_code=413, detail="El video supera el límite de 1 GB (1024 MB).")
 
-    _require_video_prerequisites()
+    _require_video_prerequisites(expected)
     with _LOCK:
         if any(job["state"] in ("uploading", "processing") for job in _JOBS.values()):
             raise HTTPException(status_code=429, detail="Ya hay un video en proceso. Esperá a que termine.")
@@ -646,12 +682,15 @@ async def create_video_job(
     length = request.headers.get("content-length")
     if length:
         try:
-            if int(length) > MAX_VIDEO_BYTES:
-                raise HTTPException(status_code=413, detail="El video supera 250 MB.")
+            declared = int(length)
+            if declared > MAX_VIDEO_BYTES:
+                raise HTTPException(status_code=413, detail="El video supera el límite de 1 GB (1024 MB).")
+            if declared > MAX_UPLOAD_CHUNK_BYTES:
+                raise HTTPException(status_code=413, detail="Para videos grandes usá la carga por bloques de hasta 8 MB.")
         except ValueError:
             raise HTTPException(status_code=400, detail="Tamaño de solicitud inválido.")
 
-    _require_video_prerequisites()
+    _require_video_prerequisites(min(MAX_UPLOAD_CHUNK_BYTES, max(1, int(length or MAX_UPLOAD_CHUNK_BYTES))))
     with _LOCK:
         if any(job["state"] in ("uploading", "processing") for job in _JOBS.values()):
             raise HTTPException(status_code=429, detail="Ya hay un video en proceso. Esperá a que termine.")
@@ -670,8 +709,8 @@ async def create_video_job(
         with source.open("wb") as sink:
             async for block in request.stream():
                 size += len(block)
-                if size > MAX_VIDEO_BYTES:
-                    raise HTTPException(status_code=413, detail="El video supera 250 MB.")
+                if size > MAX_UPLOAD_CHUNK_BYTES:
+                    raise HTTPException(status_code=413, detail="La carga directa admite hasta 8 MB; usá la carga por bloques para archivos grandes.")
                 sink.write(block)
         if not size:
             raise HTTPException(status_code=400, detail="El archivo está vacío.")
