@@ -1,6 +1,7 @@
 """PantheraID v2 API — photo intake and optional MegaDetector V6."""
 import hashlib
 import io
+import logging
 from importlib.util import find_spec
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -9,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from detection import DetectorUnavailable, detect_image
+
+logger = logging.getLogger('pantheraid.api')
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 Image.MAX_IMAGE_PIXELS = 40_000_000
@@ -88,6 +91,8 @@ async def detect(request: Request, threshold: float = Query(0.25, ge=0.1, le=0.9
     try:
         return await run_in_threadpool(detect_image, image, threshold)
     except DetectorUnavailable as error:
+        logger.warning('MegaDetector no disponible: %s', error)
         raise HTTPException(status_code=503, detail=str(error)) from error
     except Exception as error:
+        logger.exception('Falló la inferencia de MegaDetector')
         raise HTTPException(status_code=500, detail=f'Falló la inferencia de MegaDetector ({type(error).__name__}). Revisá la terminal de Python.') from error
