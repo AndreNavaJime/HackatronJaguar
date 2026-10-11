@@ -247,3 +247,40 @@ normalmente detecta cambios de frontend al actualizar el worktree. Si la
 interfaz del teléfono conserva recursos anteriores, refrescar con conexión.
 No fusionar PR #3 hasta terminar pruebas funcionales.
 
+
+### Si falla un video AVI: comprobación previa (PR #3)
+
+Se agregó `GET /api/videos/preflight` y un indicador en el formulario
+de video. Comprueba que el proceso **actual** de FastAPI encuentre OpenCV,
+PyTorchWildlife/PyTorch y ReportLab **antes de recibir hasta 250 MB**. No carga
+pesos de IA, no verifica códec concreto y no promete detecciones.
+
+Un fallo de Python antes de ejecutar inferencia puede mostrarse como
+"Faltan bibliotecas" en lugar del antiguo mensaje genérico. Los trabajos
+asíncronos ahora indican su fase (lectura del video, carga de modelo,
+fotograma N o informe) y un `error_code` no sensible. Los rastros completos
+quedan **solo en la terminal** de FastAPI.
+
+**Instalación de IA sin mezclar entornos:** primero, verificar que la terminal
+está en `/workspaces/PantheraLAB-ciencia/v2/backend` y con el mismo Python
+`(.venv)` usado para iniciar Uvicorn. Luego ejecutar solo si el preflight
+reporta que faltan componentes:
+
+```bash
+python -m pip install -r requirements-ai.txt
+```
+
+PyTorchWildlife y PyTorch pueden descargar varios GB. Esperar y
+verificar espacio libre y memoria; no lanzar una segunda instalación
+en paralelo. Si **todavía** figura OpenCV ausente, ejecutar:
+
+```bash
+python -m pip install opencv-python-headless
+```
+
+Reiniciar FastAPI y pulsar **Comprobar dependencias otra vez** en la PWA.
+Si pasa la comprobación, comenzar con un video de prueba corto y
+`max_samples=1` antes de volver a subir 117 MB. Las pruebas en Actions
+ejercitan AVI/MJPEG y un detector **simulado**; no prueban pesos reales
+de MegaDetector ni códecs específicos de cámaras trampa. No afirmar
+que un archivo `.avi` es decodificable por extensión solamente.
