@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './style.css';
 import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
+import InstallControl from './InstallControl';
+import { registerPantheraPwa } from './registerPwa';
 
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'Investigación'];
 type ApiState = 'checking' | 'connected' | 'disconnected';
@@ -102,7 +104,7 @@ function App() {
       <small>PantheraID 2.0 · Vista preliminar</small>
     </aside>
     <main>
-      <header><span>Plataforma científica de monitoreo</span><span className="tag">PROTOTIPO UI</span></header>
+      <header className="app-header"><span>Plataforma científica de monitoreo</span><div className="app-header-actions"><InstallControl /><span className="tag">PROTOTIPO UI</span></div></header>
       <h1>{section}</h1>
       <p className="lead">Sistema de apoyo para monitoreo de fauna y revisión científica de evidencia.</p>
       <section className={'api-status ' + apiState} aria-live="polite" aria-label="Estado de la API">
@@ -149,3 +151,4 @@ function App() {
 }
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+registerPantheraPwa();
