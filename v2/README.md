@@ -168,3 +168,82 @@ debe ser `null`. Confirmar error si se introduce temperatura sin fuente.
 Vincular una detección de video solo si corresponde a la misma observación,
 guardar, exportar PDF y probar la consulta Sentinel con coordenadas **reales**.
 No activar persistencia en nube en esta prueba.
+
+## Ampliación móvil de módulos de `app.py` Streamlit (rama PR #3)
+
+**PantheraEDGE** contiene ahora la interfaz de análisis de imagen/video (única
+instancia persistente entre pestañas), visualización de fotogramas anotados,
+recortes y descargas científicas ya implementadas por la API de video,
+el dashboard de resultados con perfil temporal de confianza, distribución de
+muestras positivas y reducción JPEG estimada. Se agregaron el flujo conceptual
+PantheraCAM→Edge→5G→Nube→Investigadores, visualización opcional del mapa OSM,
+simulación local de evento y recepción optativa del puente HTTP, así como
+estimaciones de transferencia para 5G y respaldo 4G.
+
+**Investigación** ofrece los registros temporales, salida por observación
+PDF/GeoJSON, respaldo CSV/JSON/GeoJSON del registro, protocolos, investigador,
+ONG, calidad y metodología, fuentes ambientales, sesgos, y encuentros anotados
+por individuo.
+
+**PantheraMONITORING** muestra un dashboard **de los registros de esta sesión**:
+conteo total, validados, estaciones, sitios, ubicación, estados y especies
+anotadas. Todavía no es el dashboard externo de nube.
+
+### Puente HTTP opcional del nodo
+
+El modo local funciona sin conectividad con nodo real. Para consultar un
+endpoint configurado por el operador de FastAPI, definir en el entorno del
+servidor (no en React ni en el repositorio):
+
+```bash
+export PANTHERA_EDGE_BRIDGE_URL="https://ENDPOINT-REAL-DEL-NODO/evento"
+# Opcional, solo si el emisor firma con el mismo contrato JSON canónico:
+export PANTHERA_HMAC_SECRET="SECRETO-COMPARTIDO"
+```
+
+El botón **Consultar puente HTTP configurado** llama a
+`GET /api/edge/bridge`. No admite URLs arbitrarias desde el navegador.
+El backend normaliza evento/ubicación/detección y valida HMAC cuando hay
+secreto. La asociación con el formulario es **explícita** y solo copia ID,
+marca temporal y transporte, no coordenadas ni sensores como datos verificados.
+Sin variable, muestra "no configurado" y sigue disponible el simulador.
+Conectar un endpoint requiere configuración segura del servidor, políticas de
+red y autenticación antes de exponerlo fuera de desarrollo.
+
+### Alcance y límites
+
+- El esquema de datos y los formularios científicos se han migrado, pero **no
+  se ha embebido Streamlit dentro de React**: es una implementación web móvil
+  compatible con FastAPI.
+- El modo de detección depende de que `PytorchWildlife`, OpenCV, pesos y
+  variantes de MegaDetector estén operativos en FastAPI. Las dependencias
+  mínimas de formulario/PDF **no instalan** esas librerías.
+- La consulta Sentinel usa metadatos reales del catálogo STAC pero no extrae
+  NDVI, hábitat, temperatura terrestre ni pérdida forestal.
+- 5G/4G usa tiempos **estimados** con tasas y latencias ingresadas. Marcar
+  "medidos" solo indica procedencia declarada del input; no mide la red.
+- La ubicación precisa en el mapa se envía a OpenStreetMap **solo si la
+  persona pulsa "Mostrar mapa"**. Para ubicaciones de especies sensibles,
+  omitir el mapa o generalizar la posición según el protocolo.
+- No se transmite ni almacena automáticamente ningún registro a Supabase.
+  No se implementa una plataforma de alertas de guardaparques/SINAC o
+  identificación individual validada. Exportar registros **antes de cerrar
+  o recargar**. Los botones existentes de registro no guardan en disco.
+- La PWA puede instalarse en móvil, pero **MegaDetector, PDFs y Sentinel
+  requieren conexión a FastAPI**. Codespaces no es un despliegue estable.
+
+### Actualizar la copia de pruebas
+
+Una vez que las comprobaciones automáticas se completen, desde la carpeta
+`/workspaces/PantheraLAB-ciencia` (worktree detached de esta rama):
+
+```bash
+git -C /workspaces/PantheraLAB-ciencia fetch origin
+git -C /workspaces/PantheraLAB-ciencia switch --detach origin/feature/pantheralab-mobile-science-20261011
+```
+
+Reiniciar FastAPI para cargar `edge_bridge.py` y el nuevo esquema de API; Vite
+normalmente detecta cambios de frontend al actualizar el worktree. Si la
+interfaz del teléfono conserva recursos anteriores, refrescar con conexión.
+No fusionar PR #3 hasta terminar pruebas funcionales.
+
