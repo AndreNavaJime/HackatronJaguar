@@ -10,13 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from detection import DetectorUnavailable, detect_image
+from video_api import router as video_router
 
 logger = logging.getLogger('pantheraid.api')
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 Image.MAX_IMAGE_PIXELS = 40_000_000
 
-app = FastAPI(title='PantheraID API', version='0.3.0')
+app = FastAPI(title='PantheraID API', version='0.4.0')
+app.include_router(video_router)
 # Same-origin Vite proxy serves /api calls in Codespaces; restrict external CORS.
 app.add_middleware(
     CORSMiddleware,
@@ -29,7 +31,7 @@ app.add_middleware(
 
 @app.get('/api/health')
 def health():
-    return {'status': 'ok', 'service': 'PantheraID API', 'version': '0.3.0'}
+    return {'status': 'ok', 'service': 'PantheraID API', 'version': '0.4.0'}
 
 
 @app.get('/api/capabilities')
@@ -39,7 +41,9 @@ def capabilities():
         'image_intake': 'available',
         'animal_detection': 'optional_dependencies_installed' if find_spec('PytorchWildlife') else 'requires_pytorchwildlife',
         'individual_identification': 'not_validated',
-        'video_analysis': 'not_migrated',
+        'video_analysis': 'available_with_cv2_and_pytorchwildlife',
+        'video_exports': ['csv', 'zip', 'pdf'],
+        'video_job_storage': 'temporary_one_hour',
         'supabase': 'not_configured',
         'edge_ingestion': 'not_migrated',
     }
