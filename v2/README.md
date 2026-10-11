@@ -11,6 +11,28 @@ Desarrollo experimental en la rama `pantheraid-v2`. **No se modifica** la versi�
 - Detección real requiere instalar PyTorchWildlife y cargar sus pesos; **no está operativa automáticamente** por el mero hecho de descargar esta rama.
 - No hay todavía identificación validada de especies o individuos, registros Supabase ni ingesta de VIGÍA en v2. La migración de análisis de video está implementada como primera etapa y aún requiere pruebas con videos reales en Codespaces.
 
+## App instalable PWA (Android / iPhone)
+
+Se preparó la interfaz de **PantheraID 2.0 como PWA**: `manifest.webmanifest`, ícono de jaguar, versiones PNG 180/192/512 y maskable 512, pantalla de inicio independiente (`display: standalone`), botón «Instalar app», vista móvil y service worker.
+
+**No se necesita otra herramienta de desarrollo.** En el frontend, `npm run dev` y `npm run build` ejecutan automáticamente el script de Node `scripts/generate-pwa-icons.mjs` antes de arrancar o compilar. No requiere dependencias npm extra. Los PNG generados se ignoran en Git, pero se incluyen en `dist/` al compilar. Si Vite ya estaba iniciado antes de actualizar el repositorio, **parar Vite y arrancarlo nuevamente** para generar los íconos y servir los archivos nuevos.
+
+Para comprobar la instalación desde el celular:
+- Android: abrir la PWA por **HTTPS** en Chrome; utilizar «Instalar app» o el menú ⋮ → «Instalar aplicación» / «Agregar a pantalla de inicio».
+- iPhone: abrirla por **HTTPS en Safari**; tocar **Compartir → Agregar a pantalla de inicio**. iOS normalmente no presenta el diálogo nativo `beforeinstallprompt`; el botón de la app muestra instrucciones.
+- El navegador decide si ofrece instalación según sus requisitos; la configuración del repositorio por sí sola no garantiza que aparezca el botón nativo en todos los dispositivos.
+
+**Precauciones:** Codespaces ofrece una URL HTTPS de desarrollo cuya disponibilidad, permisos y nombre pueden variar. No es un despliegue estable para usuarios científicos; aún falta desplegar un frontend HTTPS estable junto con una API Python segura (mismo origen o proxy configurado), autenticación y pruebas en teléfonos reales.
+
+**Sin conexión:** el service worker solo conserva recursos públicos del frontend y una página explicativa para cuando no haya red. **Nunca almacena** peticiones o respuestas de `/api/`, datos de análisis, fotografías de investigación o videos. **MegaDetector, análisis y descargas requieren conexión con FastAPI**. En el servidor de desarrollo de Vite, los módulos dinámicos del frontend no se guardan para modo sin conexión. Una PWA **no ejecuta PyTorch directamente en el teléfono**.
+
+### Comprobaciones recomendadas
+```bash
+cd /workspaces/HackatronJaguar/v2/frontend
+npm run build
+```
+Confirmar que `dist/manifest.webmanifest`, `dist/sw.js` y `dist/icons/icon-192.png` existen. El backend sigue funcionando en el puerto 8000 durante las pruebas de fotografías y videos; el frontend de desarrollo continúa en 5173.
+
 ## Ejecutar en Codespaces (tres terminales)
 
 Terminal A — interfaz:
