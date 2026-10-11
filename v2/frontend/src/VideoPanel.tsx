@@ -76,6 +76,15 @@ type JobSnapshot = {
   result: VideoAnalysis | null;
 };
 type LocalStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed';
+type VideoPreflight = {
+  ready_for_attempt: boolean;
+  modules: { opencv: boolean; pytorchwildlife: boolean; torch: boolean; reportlab: boolean };
+  missing: string[];
+  message: string;
+  instructions: string[];
+  model_weights_checked: boolean;
+  codec_checked: boolean;
+};
 
 const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
 const UPLOAD_CHUNK_BYTES = 5 * 1024 * 1024;
@@ -166,6 +175,33 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
   const [result, setResult] = React.useState<VideoAnalysis | null>(null);
   const [error, setError] = React.useState('');
   const [uploadedBytes, setUploadedBytes] = React.useState(0);
+  const [preflight, setPreflight] = React.useState<VideoPreflight | null>(null);
+  const [preflightError, setPreflightError] = React.useState('');
+  const [checkingPrerequisites, setCheckingPrerequisites] = React.useState(false);
+
+  const checkVideoPrerequisites = React.useCallback(async (): Promise<VideoPreflight | null> => {
+    setCheckingPrerequisites(true);
+    setPreflightError('');
+    try {
+      const data = await fetchJson(await fetch('/api/videos/preflight', { cache: 'no-store' })) as VideoPreflight;
+      if (typeof data.ready_for_attempt !== 'boolean' || !data.modules) {
+        throw new Error('La API devolvió un diagnóstico incompleto.');
+      }
+      setPreflight(data);
+      return data;
+    } catch (cause) {
+      setPreflight(null);
+      setPreflightError(cause instanceof Error ? cause.message : 'No se pudo comprobar el servidor.');
+      return null;
+    } finally {
+      setCheckingPrerequisites(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (enabled) void checkVideoPrerequisites();
+    else setPreflight(null);
+  }, [enabled, checkVideoPrerequisites]);
 
   React.useEffect(() => {
     if (!file) {
@@ -245,11 +281,22 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
       setError('Formato no admitido. Usá MP4, MOV, AVI o MKV.');
       return;
     }
-    setStatus('uploading');
-    setUploadedBytes(0);
     setError('');
     setResult(null);
     setJob(null);
+    // Verify prerequisites immediately before uploading a possibly 250-MB video.
+    // A file can remain selected while FastAPI has been restarted or updated.
+    const check = await checkVideoPrerequisites();
+    if (!check) {
+      setError('No se pudo verificar que el servidor pueda analizar el video. Revisá el diagnóstico de dependencias.');
+      return;
+    }
+    if (!check.ready_for_attempt) {
+      setError(check.message + ' ' + check.instructions.join(' · '));
+      return;
+    }
+    setStatus('uploading');
+    setUploadedBytes(0);
     let uploadId: string | null = null;
     try {
       const params = new URLSearchParams({
@@ -332,11 +379,30 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
         <label htmlFor="video-samples">Máximo de fotogramas: {maxSamples}</label>
         <input id="video-samples" type="range" min={1} max={24} step={1} value={maxSamples}
           disabled={busy} onChange={e => setMaxSamples(Number(e.target.value))} />
-        <button className="action-button" type="button" disabled={!file || !enabled || busy}
+        <button className="action-button" type="button" disabled={!file || !enabled || busy || checkingPrerequisites || !preflight?.ready_for_attempt}
           onClick={() => void analyze()}>
           {status === 'uploading' ? 'Enviando video…' : busy ? 'Analizando video…' : 'Analizar video con IA'}
         </button>
         <small>Los archivos grandes se transfieren en bloques de 5 MB para evitar límites de la conexión. Después se analizan los fotogramas muestreados.</small>
+        <div className="video-preflight" role="status" aria-live="polite">
+          <strong>Preparación del servidor de análisis</strong>
+          {checkingPrerequisites && <p>Comprobando OpenCV, PyTorch y MegaDetector…</p>}
+          {preflight && <><p className={preflight.ready_for_attempt ? 'video-ready' : 'upload-error'}>
+            {preflight.ready_for_attempt ? '✓ Bibliotecas disponibles para intentar el análisis' : 'Faltan componentes para procesar videos'}
+          </p><div className="video-dependency-list">
+            {([['OpenCV (decodificación)', preflight.modules.opencv],
+              ['PyTorchWildlife / MegaDetector', preflight.modules.pytorchwildlife],
+              ['PyTorch', preflight.modules.torch],
+              ['ReportLab (PDF)', preflight.modules.reportlab]] as [string, boolean][]).map(([label, ok]) =>
+                <span key={label}>{ok ? '✓' : '✕'} {label}</span>)}
+          </div>{!preflight.ready_for_attempt && preflight.instructions.map(item =>
+            <p key={item} className="science-hint">{item}</p>)}
+            {preflight.ready_for_attempt && <small>Los pesos del modelo y el códec del video se verificarán al procesarlo; este estado no garantiza una inferencia exitosa.</small>}
+          </>}
+          {preflightError && <p className="upload-error">{preflightError}</p>}
+          <button type="button" onClick={() => void checkVideoPrerequisites()}
+            disabled={!enabled || busy || checkingPrerequisites}>Comprobar dependencias otra vez</button>
+        </div>
       </div>
     </div>
 
