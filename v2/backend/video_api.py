@@ -7,6 +7,7 @@ rate limits, persistent storage and a real queue.
 """
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import logging
@@ -32,6 +33,8 @@ logger = logging.getLogger("pantheraid.video")
 router = APIRouter(prefix="/api/videos", tags=["Video"])
 
 MAX_VIDEO_BYTES = 250 * 1024 * 1024
+MAX_UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024
+UPLOAD_TTL_SECONDS = 1800
 MAX_DURATION_SECONDS = 600
 MAX_FRAME_PIXELS = 3840 * 2160
 MAX_SAMPLES = 24
@@ -53,7 +56,10 @@ def _prune():
     dirs = []
     with _LOCK:
         for identifier, job in list(_JOBS.items()):
-            if job["state"] in ("completed", "failed") and now - job["created_at"] >= JOB_TTL_SECONDS:
+            finished = job.get("finished_at", job["created_at"])
+            expired = (job["state"] in ("completed", "failed") and now - finished >= JOB_TTL_SECONDS)
+            stale_upload = (job["state"] == "uploading" and now - job.get("last_upload_at", job["created_at"]) >= UPLOAD_TTL_SECONDS)
+            if expired or stale_upload:
                 dirs.append(job["directory"])
                 del _JOBS[identifier]
     for path in dirs:
@@ -65,6 +71,8 @@ def _change(identifier, **updates):
         job = _JOBS.get(identifier)
         if job:
             job.update(updates)
+            if updates.get("state") in ("completed", "failed"):
+                job["finished_at"] = time.time()
 
 
 def _snapshot(identifier):
@@ -406,6 +414,154 @@ def _process(identifier):
                 error="Ocurrió un error al procesar el video. Revisá la terminal de Python.")
     finally:
         source.unlink(missing_ok=True)
+
+
+def _upload_name(request: Request):
+    raw_name = unquote(request.headers.get("x-video-name", "camara.mp4"))
+    filename = Path(raw_name.replace("\\", "/")).name[:120] or "camara.mp4"
+    extension = Path(filename).suffix.lower()
+    if extension not in VIDEO_EXTENSIONS:
+        raise HTTPException(status_code=415, detail="Formato no admitido. Usá MP4, MOV, AVI o MKV.")
+    return filename, extension
+
+
+@router.post("/uploads", status_code=201)
+async def begin_chunked_upload(
+    request: Request,
+    threshold: float = Query(0.25, ge=0.10, le=0.90),
+    sample_seconds: float = Query(1.0, ge=0.5, le=5.0),
+    max_samples: int = Query(8, ge=1, le=MAX_SAMPLES),
+):
+    """Reserve an upload session without transmitting the video in one big request.
+
+    The browser subsequently PUTs sequential <=8-MiB chunks. Unlike a single
+    250-MB POST, this also works through proxies with a per-request body limit.
+    """
+    _prune()
+    filename, extension = _upload_name(request)
+    try:
+        expected = int(request.headers.get("x-video-size", "0"))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="El tamaño declarado del video no es válido.")
+    if expected <= 0:
+        raise HTTPException(status_code=400, detail="El video está vacío o no se indicó su tamaño.")
+    if expected > MAX_VIDEO_BYTES:
+        raise HTTPException(status_code=413, detail="El video supera 250 MB.")
+
+    with _LOCK:
+        if any(job["state"] in ("uploading", "processing") for job in _JOBS.values()):
+            raise HTTPException(status_code=429, detail="Ya hay un video en proceso. Esperá a que termine.")
+        identifier = uuid.uuid4().hex
+        directory = tempfile.mkdtemp(prefix="pantheraid_video_")
+        source = Path(directory) / ("entrada" + extension)
+        _JOBS[identifier] = {
+            "state": "uploading", "stage": "Recibiendo video por bloques…",
+            "created_at": time.time(), "last_upload_at": time.time(),
+            "directory": directory, "source": str(source), "filename": filename,
+            "threshold": threshold, "sample_seconds": sample_seconds, "max_samples": max_samples,
+            "expected_size": expected, "received_bytes": 0,
+            "upload_lock": asyncio.Lock(),
+            "processed": 0, "total": 0, "error": None, "result": None,
+        }
+    logger.info("Sesión de video %s iniciada (%.2f MiB)", identifier, expected / (1024 * 1024))
+    return {"upload_id": identifier, "chunk_max_bytes": MAX_UPLOAD_CHUNK_BYTES,
+            "expected_bytes": expected}
+
+
+@router.put("/uploads/{identifier}/chunks")
+async def upload_video_chunk(request: Request, identifier: str, offset: int = Query(..., ge=0)):
+    _prune()
+    with _LOCK:
+        job = _JOBS.get(identifier)
+        if not job or job["state"] != "uploading" or "upload_lock" not in job:
+            raise HTTPException(status_code=404, detail="La sesión de carga no existe o ya terminó.")
+        upload_lock = job["upload_lock"]
+
+    async with upload_lock:
+        with _LOCK:
+            job = _JOBS.get(identifier)
+            if not job or job["state"] != "uploading":
+                raise HTTPException(status_code=409, detail="La carga ya no está disponible.")
+            start = job["received_bytes"]
+            expected = job["expected_size"]
+            source = Path(job["source"])
+            if offset != start:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Orden incorrecto de bloques: el servidor esperaba el byte {start}."
+                )
+        length = request.headers.get("content-length")
+        if length:
+            try:
+                declared = int(length)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Tamaño de bloque inválido.")
+            if declared > MAX_UPLOAD_CHUNK_BYTES or start + declared > expected:
+                raise HTTPException(status_code=413, detail="El bloque supera el tamaño permitido.")
+
+        received = 0
+        try:
+            with source.open("ab") as sink:
+                async for piece in request.stream():
+                    received += len(piece)
+                    if received > MAX_UPLOAD_CHUNK_BYTES or start + received > expected:
+                        raise HTTPException(
+                            status_code=413, detail="El bloque supera 8 MB o el tamaño declarado."
+                        )
+                    sink.write(piece)
+            if received == 0:
+                raise HTTPException(status_code=400, detail="El bloque recibido está vacío.")
+        except BaseException:
+            # A disconnected browser must not leave a corrupt partial chunk.
+            if source.exists():
+                with source.open("r+b") as sink:
+                    sink.truncate(start)
+            raise
+        _change(identifier, received_bytes=start + received, last_upload_at=time.time())
+        return {"upload_id": identifier, "received_bytes": start + received,
+                "expected_bytes": expected}
+
+
+@router.post("/uploads/{identifier}/complete", status_code=202)
+async def finish_chunked_upload(identifier: str):
+    _prune()
+    with _LOCK:
+        job = _JOBS.get(identifier)
+        if not job or "upload_lock" not in job:
+            raise HTTPException(status_code=404, detail="La carga no existe o ya terminó.")
+        upload_lock = job["upload_lock"]
+
+    async with upload_lock:
+        with _LOCK:
+            job = _JOBS.get(identifier)
+            if not job or job["state"] != "uploading":
+                raise HTTPException(status_code=409, detail="La carga ya no está disponible.")
+            if job["received_bytes"] != job["expected_size"]:
+                raise HTTPException(
+                    status_code=409, detail="La carga está incompleta. Faltan bloques del video."
+                )
+            source = Path(job["source"])
+            if not source.exists() or source.stat().st_size != job["expected_size"]:
+                raise HTTPException(status_code=409, detail="El archivo recibido no coincide con su tamaño.")
+            job.update(state="processing", stage="Preparando análisis…")
+        _EXECUTOR.submit(_process, identifier)
+    return {"job_id": identifier, "state": "processing", "message": "Video completo; análisis iniciado."}
+
+
+@router.delete("/uploads/{identifier}", status_code=204)
+async def cancel_chunked_upload(identifier: str):
+    with _LOCK:
+        job = _JOBS.get(identifier)
+        if not job or job["state"] != "uploading" or "upload_lock" not in job:
+            raise HTTPException(status_code=404, detail="La carga no existe o ya finalizó.")
+        upload_lock = job["upload_lock"]
+    async with upload_lock:
+        with _LOCK:
+            job = _JOBS.get(identifier)
+            if not job or job["state"] != "uploading":
+                raise HTTPException(status_code=409, detail="El análisis ya comenzó.")
+            _JOBS.pop(identifier, None)
+        shutil.rmtree(job["directory"], ignore_errors=True)
 
 
 @router.post("/jobs", status_code=202)
