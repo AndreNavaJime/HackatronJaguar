@@ -1136,6 +1136,7 @@ def build_observation_geojson(observation):
     properties = {
         "observation_id": observation.get("observation_id"),
         "camera_id": observation.get("camera_id"),
+        "coordinate_provenance": observation.get("coordinate_provenance"),
         "study_site": observation.get("study_site"),
         "organization": observation.get("organization"),
         "project_code": observation.get("project_code"),
@@ -1331,6 +1332,7 @@ def create_observation_pdf(observation, candidate_images):
         [T("Retrieval date", "Fecha de retiro"), escape_pdf_text(observation.get("retrieval_date", ""))],
         [T("Latitude", "Latitud"), str(observation.get("camera_latitude", "Not specified"))],
         [T("Longitude", "Longitud"), str(observation.get("camera_longitude", "Not specified"))],
+        [T("Coordinate provenance", "Procedencia de coordenadas"), escape_pdf_text(observation.get("coordinate_provenance", "demo_unverified"))],
         ["Species annotation", escape_pdf_text(observation.get("species", ""))],
         [T("Individual ID", "ID del individuo"), escape_pdf_text(observation.get("individual_id", ""))],
         ["Media type", escape_pdf_text(observation.get("media_type", "none"))],
@@ -3574,6 +3576,21 @@ with geo_col2:
 camera_latitude = float(st.session_state["camera_latitude"])
 camera_longitude = float(st.session_state["camera_longitude"])
 
+coordinate_provenance = st.selectbox(
+    T("Coordinate provenance", "Procedencia de las coordenadas"),
+    ["demo_unverified", "camera_gps", "field_gps", "researcher_verified"],
+    help=T(
+        "The initial coordinates are demonstration values and must be verified before scientific use.",
+        "Las coordenadas iniciales son de demostración; verificarlas antes de su uso científico.",
+    ),
+    key="research_coordinate_provenance",
+)
+if coordinate_provenance == "demo_unverified":
+    st.warning(T(
+        "Map coordinates are not yet verified. Replace/confirm them before interpreting satellite context or sharing georeferenced records.",
+        "Las coordenadas del mapa aún no están verificadas. Confirmalas antes de interpretar Sentinel o compartir datos georreferenciados.",
+    ))
+
 camera_map_df = pd.DataFrame(
     {
         "lat": [camera_latitude],
@@ -3586,6 +3603,7 @@ st.map(camera_map_df, zoom=7)
 
 observation["camera_latitude"] = camera_latitude
 observation["camera_longitude"] = camera_longitude
+observation["coordinate_provenance"] = coordinate_provenance
 if st.session_state.analysis_result is not None:
     st.session_state.analysis_result["observation"] = observation.copy()
 
@@ -4774,6 +4792,7 @@ else:
         "analysis_date",
         "camera_id",
         "study_site",
+        "coordinate_provenance",
         "organization",
         "project_code",
         "sampling_protocol",
