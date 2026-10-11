@@ -5,6 +5,8 @@ import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
 import InstallControl from './InstallControl';
 import ScientificWorkspace, { emptyObservation, type EdgeSummary, type ScientificObservation } from './ScientificWorkspace';
+import EdgeOperations from './EdgeOperations';
+import MonitoringPanel from './MonitoringPanel';
 import { registerPantheraPwa } from './registerPwa';
 
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'Investigación'];
@@ -115,7 +117,8 @@ function App() {
         <div><span className="status-dot" aria-hidden="true"></span><strong>Conexión con backend</strong><p>{apiMessage}</p></div>
         <button type="button" onClick={() => void checkApi()} disabled={apiState === 'checking'}>Comprobar conexión</button>
       </section>
-      {section === 'PantheraID' ? <section className="panel upload-panel">
+      <div hidden={section !== 'PantheraID' && section !== 'PantheraEDGE'}>
+      <section className="panel upload-panel">
         <div className="panel-heading">
           <div><h2>PantheraID · Multimedia de cámaras trampa</h2><p>Fotografías, detección animal y análisis de videos con revisión científica.</p></div>
           <span className="tag">IMAGEN + VIDEO</span>
@@ -143,10 +146,22 @@ function App() {
           onAnalysisComplete={setLatestEdge} />
         <VideoPanel enabled={apiState === 'connected'} onAnalysisComplete={setLatestEdge} />
         <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en Codespaces y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.</p>
-      </section> : section === 'PantheraEDGE' || section === 'Investigación' ?
-        <ScientificWorkspace view={section} enabled={apiState === 'connected'}
+      </section>
+      </div>
+      {section === 'PantheraEDGE' && <>
+        <EdgeOperations latestEdge={latestEdge} draft={scientificDraft} setDraft={setScientificDraft}
+          enabled={apiState === 'connected'} />
+        <ScientificWorkspace view="PantheraEDGE" enabled={apiState === 'connected'}
           draft={scientificDraft} setDraft={setScientificDraft}
-          records={scientificRecords} setRecords={setScientificRecords} latestEdge={latestEdge} /> : <>
+          records={scientificRecords} setRecords={setScientificRecords} latestEdge={latestEdge} />
+      </>}
+      {section === 'Investigación' && <ScientificWorkspace view="Investigación" enabled={apiState === 'connected'}
+        draft={scientificDraft} setDraft={setScientificDraft}
+        records={scientificRecords} setRecords={setScientificRecords} latestEdge={latestEdge} />}
+      {section === 'PantheraMONITORING' && <MonitoringPanel records={scientificRecords}
+        latestEdge={latestEdge} onOpenEdge={() => setSection('PantheraEDGE')}
+        onOpenResearch={() => setSection('Investigación')} />}
+      {section === 'Resumen' && <>
         <div className="cards">
           <article><span>Identificación individual</span><strong>En migración</strong><p>Los modelos y la validación se integrarán desde el backend Python.</p></article>
           <article><span>Eventos de campo</span><strong>Sin datos conectados</strong><p>Preparado para integrar PantheraEDGE y el nodo VIGÍA.</p></article>
