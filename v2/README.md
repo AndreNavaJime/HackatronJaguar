@@ -80,8 +80,8 @@ La web de Codespaces se abre por puerto 5173. FastAPI documenta sus endpoints en
 
 ## Análisis de video y privacidad
 - Entrá a **PantheraID** en el puerto 5173, seleccioná un video y elegí umbral, intervalo (0,5 a 5 s) y máximo de fotogramas (1 a 24).
-- El prototipo acepta archivos de hasta **250 MB** y videos con duración informada de hasta **10 minutos**, resolución máxima 3840 × 2160. El análisis se realiza sobre copias redimensionadas, lado mayor 960 px, y las coordenadas de los recuadros corresponden a esa resolución de análisis.
-- El video se envía desde el navegador en **solicitudes independientes de 5 MiB**, mediante `POST /api/videos/uploads`, `PUT /api/videos/uploads/{id}/chunks?offset=...` y `POST /api/videos/uploads/{id}/complete`. Esto reduce el riesgo de rechazo por límites de tamaño de petición del proxy. FastAPI almacena los bloques directamente en disco, sin cargar los 250 MB completos en RAM; se necesita espacio libre y archivos grandes pueden tardar más. Una carga incompleta puede cancelarse con `DELETE /api/videos/uploads/{id}`. No se envía a Supabase. El video original se borra al finalizar el trabajo; resultados y archivos ZIP/CSV/PDF vencen aproximadamente a la hora y se eliminan al atender nuevas solicitudes. Una caída inesperada puede dejar temporales y el almacenamiento temporal **no es un mecanismo de seguridad ni retención formal**.
+- El prototipo acepta archivos de hasta **1 GiB (1024 MiB)** y videos con duración informada de hasta **60 minutos**, resolución máxima 3840 × 2160. El análisis se realiza sobre copias redimensionadas, lado mayor 960 px, y las coordenadas de los recuadros corresponden a esa resolución de análisis.
+- El video se envía desde el navegador en **solicitudes independientes de 5 MiB**, mediante `POST /api/videos/uploads`, `PUT /api/videos/uploads/{id}/chunks?offset=...` y `POST /api/videos/uploads/{id}/complete`. Esto reduce el riesgo de rechazo por límites de tamaño de petición del proxy. FastAPI almacena los bloques directamente en disco, sin cargar el archivo completo en RAM; se necesita espacio libre y archivos grandes pueden tardar más. Una carga incompleta puede cancelarse con `DELETE /api/videos/uploads/{id}`. No se envía a Supabase. El video original se borra al finalizar el trabajo; resultados y archivos ZIP/CSV/PDF vencen aproximadamente a la hora y se eliminan al atender nuevas solicitudes. Una caída inesperada puede dejar temporales y el almacenamiento temporal **no es un mecanismo de seguridad ni retención formal**.
 - **Solo un video a la vez por proceso.** Los trabajos y las sesiones de carga se almacenan en memoria del proceso FastAPI; reiniciar FastAPI cancela o pierde seguimiento de esos trabajos. Las cargas incompletas se consideran abandonadas tras 30 minutos de inactividad; los reportes finalizados vencen después de una hora. No implementar como servicio público sin autenticación, control de uso, cifrado y cola de tareas persistente.
 - **RETAIN**: al menos una detección animal en el fotograma muestreado; **DISCARD**: no se detectó un animal sobre el umbral. Esta clasificación no verifica especie ni ausencia ecológica.
 - El indicador de reducción es una **estimación de bytes JPEG de fotogramas muestreados frente a los retenidos**, no representa tráfico 5G real ni ahorro de red medido. El recuento de animales suma detecciones por fotograma, **no individuos únicos**.
@@ -91,7 +91,7 @@ La web de Codespaces se abre por puerto 5173. FastAPI documenta sus endpoints en
 ## Error de proxy al subir videos grandes
 Si aparece «respuesta no JSON» o un HTTP 413/502, puede ser que un servidor intermediario bloquee una petición. Desde esta versión, el navegador divide la carga en trozos de 5 MiB e informa cuántos MB han llegado a FastAPI. Si falla un bloque, la interfaz muestra el código HTTP en vez de afirmar que Python produjo JSON inválido. Los límites externos de Codespaces no están bajo control de este repositorio; comprobar en las terminales de Vite y FastAPI si continúan los errores.
 
-Para activar los cambios después de `git pull`, reiniciar FastAPI con `python -m uvicorn main:app --host 0.0.0.0 --port 8000`; Vite debe permanecer ejecutándose en el puerto 5173. **No se ha comprobado todavía una subida real de 118 MB ni 250 MB en este entorno**.
+Para activar los cambios después de `git pull`, reiniciar FastAPI con `python -m uvicorn main:app --host 0.0.0.0 --port 8000`; Vite debe permanecer ejecutándose en el puerto 5173. **La capacidad de hasta 1 GiB requiere espacio libre real, un códec compatible y el modelo de IA instalado; no se ha completado aún una subida de 1 GiB en Codespaces**.
 
 ## Pruebas de API
 Se añadieron pruebas con un modelo simulado para no descargar pesos durante los tests:
@@ -252,7 +252,7 @@ No fusionar PR #3 hasta terminar pruebas funcionales.
 
 Se agregó `GET /api/videos/preflight` y un indicador en el formulario
 de video. Comprueba que el proceso **actual** de FastAPI encuentre OpenCV,
-PyTorchWildlife/PyTorch y ReportLab **antes de recibir hasta 250 MB**. No carga
+PyTorchWildlife/PyTorch y ReportLab **antes de recibir hasta 1 GiB**. No carga
 pesos de IA, no verifica códec concreto y no promete detecciones.
 
 Un fallo de Python antes de ejecutar inferencia puede mostrarse como
@@ -284,3 +284,42 @@ Si pasa la comprobación, comenzar con un video de prueba corto y
 ejercitan AVI/MJPEG y un detector **simulado**; no prueban pesos reales
 de MegaDetector ni códecs específicos de cámaras trampa. No afirmar
 que un archivo `.avi` es decodificable por extensión solamente.
+
+### Archivos de video de hasta 1 GB (1 GiB = 1024 MiB)
+
+Los límites de PWA y FastAPI son ahora `MAX_VIDEO_BYTES = 1024**3`.
+El navegador mantiene un `File` local y transmite segmentos de **5 MiB**
+con `Blob.slice`; el servidor escribe cada bloque en disco. **No lee
+el archivo de 1 GiB completo en memoria**. Las cargas de red temporariamente
+fallidas vuelven a consultar `GET /api/videos/jobs/{id}` para saber el
+número de bytes confirmados por el servidor antes de intentar reenviar un
+bloque. Esta recuperación sirve durante la sesión actual, no después de
+cerrar el navegador o de reiniciar FastAPI.
+
+- Formatos aceptados: MP4, MOV, AVI o MKV. La extensión no confirma que
+  OpenCV disponga del códec de cámara correspondiente.
+- La duración máxima de esta versión es **60 minutos**; se analizan **1–24
+  fotogramas seleccionados**, no todos los fotogramas del video.
+- `GET /api/videos/preflight?expected_bytes=N` comprueba dependencias de IA
+  y espacio libre en el volumen temporal, calculado como bytes declarados del
+  video + **512 MiB de margen para resultados** + **1 GiB de reserva**. Si
+  no hay espacio, FastAPI rechaza la carga con HTTP 507.
+- Los pesos de PyTorchWildlife/PyTorch pueden requerir varios GB extra.
+  El espacio libre de 9,27 GiB del Codespaces observado **antes** de
+  instalar IA no garantiza que persista para un archivo de 1 GiB.
+  Se debe comprobar nuevamente tras la instalación de bibliotecas.
+- Las cargas se almacenan temporalmente en Codespaces, no en Supabase, y
+  los reportes de trabajos terminados vencen aproximadamente a una hora.
+- `POST /api/videos/jobs` (carga directa heredada) se limita a 8 MiB;
+  para videos grandes es obligatorio `/api/videos/uploads` por bloques.
+- El video original del investigador no se modifica: el servidor procesa
+  una copia temporal que elimina al completar o fallar el trabajo.
+  No subas coordenadas o evidencia sensible a endpoints públicos sin controles.
+
+**Validación:** GitHub Actions comprueba que el servidor acepte una
+sesión *declarada* de 1 GiB, bloquee un archivo mayor y rechace cargas
+con poco disco; también ejercita transferencias pequeñas y analiza un AVI
+con detector simulado. **No se subió realmente un archivo de 1 GiB ni se
+verificó MegaDetector con el AVI original.** Hace falta una prueba de campo
+en Codespaces y posiblemente un despliegue de infraestructura con más
+almacenamiento y tiempo de sesión para uso habitual.
