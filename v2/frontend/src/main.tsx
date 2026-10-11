@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
+import DetectionPanel from './DetectionPanel';
 
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'Investigación'];
 type ApiState = 'checking' | 'connected' | 'disconnected';
@@ -131,7 +132,8 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-        <p className="scientific-note">Esta prueba no ejecuta MegaDetector, no identifica especies y no identifica individuos. No guarda imágenes ni envía registros a Supabase.</p>
+        <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />
+        <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. El módulo de detección requiere la dependencia opcional de IA. Las imágenes no se guardan ni se envían a Supabase.</p>
       </section> : <>
         <div className="cards">
           <article><span>Identificación individual</span><strong>En migración</strong><p>Los modelos y la validación se integrarán desde el backend Python.</p></article>
