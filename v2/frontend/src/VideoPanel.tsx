@@ -76,7 +76,7 @@ type JobSnapshot = {
 };
 type LocalStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed';
 
-const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
 const percentage = (value: number) => (value * 100).toFixed(1) + '%';
 const megabytes = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
 
@@ -206,7 +206,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
   async function analyze() {
     if (!file || !enabled || busy) return;
     if (file.size > MAX_VIDEO_BYTES) {
-      setError('El video supera el límite de 60 MB.');
+      setError('El video supera el límite de 250 MB.');
       return;
     }
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -255,7 +255,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
 
     <div className="video-config">
       <div className="video-input">
-        <label htmlFor="panthera-video">Video de cámara trampa (MP4, MOV, AVI o MKV · máximo 60 MB)</label>
+        <label htmlFor="panthera-video">Video de cámara trampa (MP4, MOV, AVI o MKV · máximo 250 MB)</label>
         <input id="panthera-video" type="file" accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo"
           disabled={busy} onChange={onFileChange} />
         {file && <small>{file.name} · {megabytes(file.size)}</small>}
