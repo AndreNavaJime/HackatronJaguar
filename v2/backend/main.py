@@ -11,6 +11,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from detection import DetectorUnavailable, detect_image
 from video_api import router as video_router
+from research_api import router as research_router
 
 logger = logging.getLogger('pantheraid.api')
 
@@ -19,6 +20,7 @@ Image.MAX_IMAGE_PIXELS = 40_000_000
 
 app = FastAPI(title='PantheraID API', version='0.4.0')
 app.include_router(video_router)
+app.include_router(research_router)
 # Same-origin Vite proxy serves /api calls in Codespaces; restrict external CORS.
 app.add_middleware(
     CORSMiddleware,
@@ -46,6 +48,9 @@ def capabilities():
         'video_job_storage': 'temporary_one_hour',
         'supabase': 'not_configured',
         'edge_ingestion': 'not_migrated',
+        'scientific_observations': 'session_registry_with_stateless_api_validation',
+        'scientific_exports': ['csv', 'json', 'geojson', 'pdf'],
+        'copernicus': 'catalogue_metadata_only',
     }
 
 
