@@ -94,14 +94,64 @@ def test_unexpected_video_failure_has_diagnostic_stage(client, monkeypatch):
 
 
 def test_video_size_limit(client):
-    assert video_api.MAX_VIDEO_BYTES == 250 * 1024 * 1024
+    assert video_api.MAX_VIDEO_BYTES == 1024 * 1024 * 1024
+    assert video_api.MAX_DURATION_SECONDS == 3600
     response = client.post(
         '/api/videos/uploads',
         headers={'X-Video-Name': 'muy_grande.mp4',
                  'X-Video-Size': str(video_api.MAX_VIDEO_BYTES + 1)},
     )
     assert response.status_code == 413
-    assert '250 MB' in response.json()['detail']
+    assert '1 GB' in response.json()['detail']
+
+
+
+def test_one_gib_upload_session_does_not_allocate_video_in_ram(client, monkeypatch):
+    """Accept the max declared size without creating or uploading a 1-GiB fixture."""
+    monkeypatch.setattr(video_api, "_disk_capacity_for_upload", lambda size: {
+        "can_accept": True, "free_bytes": 10 * 1024**3,
+        "required_bytes": size + 2 * 1024**3, "message": "Espacio adecuado",
+    })
+    size = 1024**3
+    response = client.post(
+        "/api/videos/uploads",
+        headers={"X-Video-Name": "camaratrampa.avi", "X-Video-Size": str(size)},
+    )
+    assert response.status_code == 201, response.text
+    upload_id = response.json()["upload_id"]
+    assert response.json()["expected_bytes"] == size
+    snapshot = client.get(f"/api/videos/jobs/{upload_id}").json()
+    assert snapshot["expected_bytes"] == size
+    assert snapshot["received_bytes"] == 0
+    canceled = client.delete(f"/api/videos/uploads/{upload_id}")
+    assert canceled.status_code == 204
+
+
+def test_insufficient_disk_rejects_large_upload(client, monkeypatch):
+    usage = type("Usage", (), {"free": 2 * 1024**3})()
+    monkeypatch.setattr(video_api.shutil, "disk_usage", lambda _: usage)
+    size = 1024**3
+    preflight = client.get("/api/videos/preflight", params={"expected_bytes": size})
+    assert preflight.status_code == 200
+    data = preflight.json()
+    assert data["max_video_bytes"] == size
+    assert not data["storage"]["can_accept"]
+    assert not data["ready_for_attempt"]
+    response = client.post(
+        "/api/videos/uploads",
+        headers={"X-Video-Name": "video.avi", "X-Video-Size": str(size)},
+    )
+    assert response.status_code == 507
+    assert "Espacio insuficiente" in response.json()["detail"]
+
+
+def test_large_single_post_must_use_chunked_endpoint(client):
+    response = client.post(
+        "/api/videos/jobs", headers={"X-Video-Name": "video.avi"},
+        content=b"x" * (video_api.MAX_UPLOAD_CHUNK_BYTES + 1)
+    )
+    assert response.status_code == 413
+    assert "bloques" in response.json()["detail"]
 
 
 def test_video_input_validation(client):
