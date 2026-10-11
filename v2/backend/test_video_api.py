@@ -4,6 +4,7 @@ Tests use a fake detector, not actual MegaDetector weights. OpenCV writes
 a tiny local AVI and the background task is polled until completion.
 """
 import base64
+import errno
 import io
 import time
 import zipfile
@@ -143,6 +144,32 @@ def test_insufficient_disk_rejects_large_upload(client, monkeypatch):
     )
     assert response.status_code == 507
     assert "Espacio insuficiente" in response.json()["detail"]
+
+
+def test_disk_full_during_chunk_returns_actionable_error(client, monkeypatch):
+    """ENOSPC during an upload is reported as HTTP 507, not a vague 500."""
+    from pathlib import Path
+    monkeypatch.setattr(video_api, "_disk_capacity_for_upload", lambda size: {
+        "can_accept": True, "free_bytes": 10 * 1024**3,
+        "required_bytes": size, "message": "Espacio para comenzar.",
+    })
+    created = client.post("/api/videos/uploads",
+                          headers={"X-Video-Name": "test.avi", "X-Video-Size": "2000"})
+    assert created.status_code == 201, created.text
+    identifier = created.json()["upload_id"]
+    original_open = Path.open
+
+    def failed_write(path, mode="r", *args, **kwargs):
+        if path.name == "entrada.avi" and mode == "ab":
+            raise OSError(errno.ENOSPC, "No space left on device")
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", failed_write)
+    response = client.put(f"/api/videos/uploads/{identifier}/chunks?offset=0",
+                          content=b"x" * 500)
+    assert response.status_code == 507, response.text
+    assert "sin espacio" in response.json()["detail"]
+    assert client.delete(f"/api/videos/uploads/{identifier}").status_code == 204
 
 
 def test_large_single_post_must_use_chunked_endpoint(client):
