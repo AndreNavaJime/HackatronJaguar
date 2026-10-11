@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import csv
 import io
+from importlib.util import find_spec
 import logging
 import math
 import os
@@ -51,6 +52,57 @@ class VideoError(Exception):
     """A clear, user-facing validation or decoding error."""
 
 
+def _video_prerequisites() -> dict:
+    """Lightweight, non-inference diagnostic: do NOT download model weights."""
+    available = {}
+    # OpenCV can be present on disk but fail to import because of a native library.
+    try:
+        import cv2
+        available["opencv"] = callable(getattr(cv2, "VideoCapture", None))
+    except (ImportError, OSError, RuntimeError) as error:
+        logger.warning("OpenCV import failed: %s", type(error).__name__)
+        available["opencv"] = False
+    for name, module in (("pytorchwildlife", "PytorchWildlife"),
+                         ("torch", "torch"), ("reportlab", "reportlab")):
+        try:
+            available[name] = find_spec(module) is not None
+        except (ImportError, ValueError):
+            available[name] = False
+
+    missing = [name for name, ok in available.items() if not ok]
+    instructions = []
+    if "pytorchwildlife" in missing or "torch" in missing:
+        instructions.append("Instalá MegaDetector: python -m pip install -r requirements-ai.txt")
+    if "opencv" in missing:
+        instructions.append("Instalá OpenCV: python -m pip install opencv-python-headless")
+    if "reportlab" in missing:
+        instructions.append("Instalá informes PDF: python -m pip install -r requirements.txt")
+    return {
+        "ready_for_attempt": not missing,
+        "modules": available,
+        "missing": missing,
+        "message": "Dependencias disponibles. Los pesos, la memoria y el códec del video se comprueban al analizar."
+                   if not missing else "No se puede analizar video: faltan dependencias en este Python.",
+        "instructions": instructions,
+        "model_weights_checked": False,
+        "codec_checked": False,
+    }
+
+
+@router.get("/preflight")
+def video_preflight():
+    return _video_prerequisites()
+
+
+def _require_video_prerequisites():
+    report = _video_prerequisites()
+    if not report["ready_for_attempt"]:
+        raise HTTPException(
+            status_code=503,
+            detail=report["message"] + " " + " | ".join(report["instructions"]),
+        )
+
+
 def _prune():
     now = time.time()
     dirs = []
@@ -88,6 +140,7 @@ def _snapshot(identifier):
             "processed": job.get("processed", 0),
             "total": job.get("total", 0),
             "error": job.get("error"),
+            "error_code": job.get("error_code"),
             "result": job.get("result") if job["state"] == "completed" else None,
             "filename": job.get("filename", ""),
         }
@@ -407,11 +460,23 @@ def _process(identifier):
             cap.release()
     except (VideoError, DetectorUnavailable) as error:
         logger.warning("Video %s no procesado: %s", identifier, error)
-        _change(identifier, state="failed", stage="Análisis interrumpido", error=str(error))
-    except Exception:
+        _change(identifier, state="failed", error_code=(
+            "detector_unavailable" if isinstance(error, DetectorUnavailable) else "invalid_video"
+        ), error=str(error))
+    except (ImportError, OSError) as error:
+        logger.exception("Dependencia o biblioteca nativa falló al procesar video %s", identifier)
+        module = getattr(error, "name", None)
+        suffix = f" ({module})" if module and len(module) < 60 else ""
+        _change(identifier, state="failed", error_code="dependency_error",
+                error="Falta o falló una biblioteca necesaria" + suffix +
+                      ". Comprobá /api/videos/preflight e instalá las dependencias de IA/video.")
+    except Exception as error:
         logger.exception("Error inesperado en análisis de video %s", identifier)
-        _change(identifier, state="failed", stage="Análisis interrumpido",
-                error="Ocurrió un error al procesar el video. Revisá la terminal de Python.")
+        with _LOCK:
+            stage = _JOBS.get(identifier, {}).get("stage", "etapa desconocida")
+        _change(identifier, state="failed", error_code="unexpected_error",
+                error=f"Error durante «{stage}» ({type(error).__name__}). "
+                      "Revisá el detalle técnico en la terminal de FastAPI.")
     finally:
         source.unlink(missing_ok=True)
 
@@ -448,6 +513,7 @@ async def begin_chunked_upload(
     if expected > MAX_VIDEO_BYTES:
         raise HTTPException(status_code=413, detail="El video supera 250 MB.")
 
+    _require_video_prerequisites()
     with _LOCK:
         if any(job["state"] in ("uploading", "processing") for job in _JOBS.values()):
             raise HTTPException(status_code=429, detail="Ya hay un video en proceso. Esperá a que termine.")
@@ -585,6 +651,7 @@ async def create_video_job(
         except ValueError:
             raise HTTPException(status_code=400, detail="Tamaño de solicitud inválido.")
 
+    _require_video_prerequisites()
     with _LOCK:
         if any(job["state"] in ("uploading", "processing") for job in _JOBS.values()):
             raise HTTPException(status_code=429, detail="Ya hay un video en proceso. Esperá a que termine.")
