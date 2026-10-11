@@ -226,3 +226,14 @@ body{overscroll-behavior-y:contain}
  .edge-event-detail dl{grid-template-columns:1fr}
  .edge-bar-item{grid-template-columns:minmax(70px,1fr) minmax(55px,1fr) 25px;gap:6px}
 }
+
+/* Proactive video analysis environment checks; avoid wasting 250MB uploads. */
+.video-preflight{width:100%;border:1px solid #446e53;border-radius:12px;background:#0c2218;padding:15px;margin-top:6px}
+.video-preflight>strong{display:block;margin:0 0 10px;font-size:14px;color:#d4eddd}
+.video-preflight p{font-size:12px;line-height:1.5;margin:8px 0}
+.video-preflight small{display:block;color:#b0c8b6;font-size:12px;line-height:1.5}
+.video-preflight button{min-height:40px;border:1px solid #477b5b;background:#244b36;color:#d9eede;
+ padding:9px 12px;text-align:center;margin-top:12px}
+.video-preflight .video-ready{color:#91e4ad}
+.video-dependency-list{display:grid;grid-template-columns:1fr;gap:5px;padding:7px 0}
+.video-dependency-list span{color:#d2e4d6;font-size:12px;line-height:1.4}
