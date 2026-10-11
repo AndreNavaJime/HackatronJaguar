@@ -6,9 +6,10 @@ Desarrollo experimental en la rama `pantheraid-v2`. **No se modifica** la versi�
 - React + TypeScript + Vite: interfaz responsive, navegación y visor de fotografías.
 - FastAPI: `/api/health`, `/api/capabilities`, `/api/images/inspect`.
 - **MegaDetector V6 opcional** (YOLOv10-c compacto por defecto): `/api/images/detect?threshold=0.25`; recuadros, confianza, conteos animal/persona/vehículo, imagen anotada descargable y tiempo medido de inferencia.
+- **Análisis de video (fase beta)**: MP4, MOV, AVI y MKV mediante `/api/videos/jobs`, con muestreo configurable, progreso consultable, galería de fotogramas anotados, recortes candidatos, tabla CSV, ZIP de evidencia, PDF de reporte y gráficos en la interfaz. Requiere dependencias de video y códec compatible.
 - Se procesan fotografías de hasta 12 MB y 40 megapíxeles. La API utiliza archivos temporales durante la inferencia y los elimina; no persiste imágenes en Supabase.
 - Detección real requiere instalar PyTorchWildlife y cargar sus pesos; **no está operativa automáticamente** por el mero hecho de descargar esta rama.
-- No hay todavía identificación validada de especies o individuos, videos, registros Supabase ni ingesta de VIGÍA en v2.
+- No hay todavía identificación validada de especies o individuos, registros Supabase ni ingesta de VIGÍA en v2. La migración de análisis de video está implementada como primera etapa y aún requiere pruebas con videos reales en Codespaces.
 
 ## Ejecutar en Codespaces (tres terminales)
 
@@ -26,10 +27,11 @@ python -m pip install -r requirements.txt
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Terminal C — dependencias de IA opcionales **antes de iniciar la detección**:
+Terminal C — dependencias de IA y video (se instalan una vez antes de reiniciar FastAPI):
 ```bash
 cd /workspaces/HackatronJaguar/v2/backend
 python -m pip install -r requirements-ai.txt
+python -m pip install -r requirements-video.txt
 ```
 Después de instalar, reiniciar la terminal B con Ctrl+C y el comando de inicio de Python anterior. La primera inferencia descarga pesos de MegaDetector y puede tardar o necesitar bastante memoria/espacio. En Codespaces se utiliza normalmente CPU, por lo que el rendimiento puede ser limitado. Si las dependencias IA fallan, el visor y la recepción de fotografías pueden seguir funcionando.
 
@@ -53,21 +55,31 @@ Revisar RAM disponible y el contador `oom_kill`. Son pistas y no un diagnóstico
 
 La web de Codespaces se abre por puerto 5173. FastAPI documenta sus endpoints en el puerto 8000, ruta `/docs`. Vite redirige `/api` a 8000 mediante `vite.config.ts`.
 
+## Análisis de video y privacidad
+- Entrá a **PantheraID** en el puerto 5173, seleccioná un video y elegí umbral, intervalo (0,5 a 5 s) y máximo de fotogramas (1 a 24).
+- El prototipo acepta archivos de hasta **60 MB** y videos con duración informada de hasta **10 minutos**, resolución máxima 3840 × 2160. El análisis se realiza sobre copias redimensionadas, lado mayor 960 px, y las coordenadas de los recuadros corresponden a esa resolución de análisis.
+- El video se transmite **a FastAPI**, que lo almacena temporalmente en el Codespace. No se envía a Supabase. El video original se borra al finalizar el trabajo; resultados y archivos ZIP/CSV/PDF vencen aproximadamente a la hora y se eliminan al atender nuevas solicitudes. Una caída inesperada puede dejar temporales y el almacenamiento temporal **no es un mecanismo de seguridad ni retención formal**.
+- **Solo un video a la vez por proceso.** Los trabajos en curso se almacenan en memoria del proceso FastAPI; reiniciar FastAPI cancela o pierde seguimiento de los trabajos. No implementar como servicio público sin autenticación, control de uso, cifrado y cola de tareas persistente.
+- **RETAIN**: al menos una detección animal en el fotograma muestreado; **DISCARD**: no se detectó un animal sobre el umbral. Esta clasificación no verifica especie ni ausencia ecológica.
+- El indicador de reducción es una **estimación de bytes JPEG de fotogramas muestreados frente a los retenidos**, no representa tráfico 5G real ni ahorro de red medido. El recuento de animales suma detecciones por fotograma, **no individuos únicos**.
+- Si el video contiene FPS variables, el timestamp inferido por número de fotograma es nominal; para aplicaciones científicas más exigentes habrá que extraer PTS reales y validar fotogramas.
+- Descargas: ZIP con fotogramas retenidos, fotogramas anotados retenidos, recortes candidatos y CSV; también PDF preliminar y CSV independiente. El reporte incluye límites metodológicos.
+
 ## Pruebas de API
 Se añadieron pruebas con un modelo simulado para no descargar pesos durante los tests:
 ```bash
 cd v2/backend
 python -m pip install pytest httpx
-python -m pytest -q test_api.py
+python -m pytest -q test_api.py test_video_api.py
 ```
-Estas pruebas **no prueban inferencia real de MegaDetector**. Validar con fotografías de cámaras trampa y posteriormente con datos anotados de referencia.
+Estas pruebas **no prueban inferencia real de MegaDetector** y necesitan OpenCV y ReportLab instalados. Además, deben ejecutarse en Codespaces antes de dar el video por operativo. Validar con fotografías de cámaras trampa y posteriormente con datos anotados de referencia.
 
 ## Notas científicas
 MegaDetector detecta **animales, personas y vehículos**, no identifica la especie ni el individuo de un jaguar. La puntuación de confianza de detección no es una medida de exactitud externa ni prueba de calibración. La ausencia de detecciones por encima de un umbral no demuestra ausencia de fauna.
 
 ## Siguientes etapas
-1. Completar y validar inferencia de fotografías en Codespaces.
-2. Migrar análisis de videos, selección de fotogramas, gráficos y exportaciones PDF/ZIP.
+1. Validar análisis real de videos, fotogramas, gráficos y descargas en Codespaces (fase beta implementada).
+2. Ampliar metadatos de observaciones, reportes avanzados, filtros, mapas y comparación científica del Streamlit original.
 3. Separar identificación individual y su validación científica.
 4. Integrar Supabase con autenticación y políticas RLS comprobadas.
 5. Conectar PantheraEDGE/VIGÍA y telemetría testbed; diferenciar mediciones de estimaciones.
