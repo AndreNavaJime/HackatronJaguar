@@ -82,3 +82,6 @@
 .video-table-scroll th{background:#173c29}
 @media(max-width:900px){.video-config,.video-analytics{grid-template-columns:1fr}.video-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.video-panel{padding:14px}.video-metrics{grid-template-columns:1fr}.video-frame-card img{height:210px}}
+
+/* Evitar reglas globales de tarjetas sobre el texto de resultados de video. */
+.video-frame-details strong{margin:0;font-size:14px}
