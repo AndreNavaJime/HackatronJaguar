@@ -46,16 +46,38 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
         body: file,
       });
-      const payload: unknown = await response.json();
+      // A proxy may return an empty/HTML response when the Python worker exits.
+      // Never assume that every HTTP response contains valid JSON.
+      const raw = await response.text();
+      let payload: unknown = null;
+      if (raw.trim()) {
+        try {
+          payload = JSON.parse(raw) as unknown;
+        } catch {
+          const description = response.ok
+            ? 'El servidor devolvió contenido no JSON. Reiniciá Vite y FastAPI si acabás de actualizar el código.'
+            : 'El servidor devolvió un error sin JSON (HTTP ' + response.status + '). Comprobá la terminal de Python.';
+          throw new Error(description);
+        }
+      }
+      const isObject = typeof payload === 'object' && payload !== null;
       if (!response.ok) {
-        const message = typeof payload === 'object' && payload !== null && 'detail' in payload
-          && typeof payload.detail === 'string' ? payload.detail : 'Falló la detección.';
-        throw new Error(message);
+        const detail = isObject && 'detail' in payload && typeof payload.detail === 'string'
+          ? payload.detail : null;
+        throw new Error(detail ?? ('Python no completó la solicitud (HTTP ' + response.status +
+          '). Puede haberse interrumpido por falta de memoria; revisá la terminal de FastAPI.'));
+      }
+      if (!isObject || !('counts' in payload) || !('annotated_image' in payload)
+        || typeof payload.annotated_image !== 'string' || !payload.annotated_image.startsWith('data:image/')) {
+        throw new Error('El servidor respondió sin datos completos. Revisá la terminal de Python y su memoria disponible.');
       }
       setResult(payload as DetectionResult);
       setAnnotated(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo ejecutar MegaDetector.');
+      const message = cause instanceof Error ? cause.message : 'No se pudo ejecutar MegaDetector.';
+      setError(message === 'Failed to fetch'
+        ? 'Se perdió la comunicación con Python. Puede haberse cerrado por falta de memoria. Revisá la terminal de FastAPI.'
+        : message);
     } finally {
       setProcessing(false);
     }
