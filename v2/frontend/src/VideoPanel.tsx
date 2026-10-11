@@ -84,9 +84,13 @@ type VideoPreflight = {
   instructions: string[];
   model_weights_checked: boolean;
   codec_checked: boolean;
+  max_video_bytes?: number;
+  max_duration_seconds?: number;
+  storage?: { can_accept: boolean; free_bytes: number | null; required_bytes: number; message: string };
 };
 
-const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 1024 * 1024 * 1024; // 1 GiB
+const MAX_VIDEO_LABEL = '1 GB (1024 MB)';
 const UPLOAD_CHUNK_BYTES = 5 * 1024 * 1024;
 const percentage = (value: number) => (value * 100).toFixed(1) + '%';
 const megabytes = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
@@ -179,11 +183,11 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
   const [preflightError, setPreflightError] = React.useState('');
   const [checkingPrerequisites, setCheckingPrerequisites] = React.useState(false);
 
-  const checkVideoPrerequisites = React.useCallback(async (): Promise<VideoPreflight | null> => {
+  const checkVideoPrerequisites = React.useCallback(async (expectedBytes = 0): Promise<VideoPreflight | null> => {
     setCheckingPrerequisites(true);
     setPreflightError('');
     try {
-      const data = await fetchJson(await fetch('/api/videos/preflight', { cache: 'no-store' })) as VideoPreflight;
+      const data = await fetchJson(await fetch('/api/videos/preflight?expected_bytes=' + expectedBytes, { cache: 'no-store' })) as VideoPreflight;
       if (typeof data.ready_for_attempt !== 'boolean' || !data.modules) {
         throw new Error('La API devolvió un diagnóstico incompleto.');
       }
@@ -199,9 +203,9 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
   }, []);
 
   React.useEffect(() => {
-    if (enabled) void checkVideoPrerequisites();
+    if (enabled) void checkVideoPrerequisites(file && file.size <= MAX_VIDEO_BYTES ? file.size : 0);
     else setPreflight(null);
-  }, [enabled, checkVideoPrerequisites]);
+  }, [enabled, file, checkVideoPrerequisites]);
 
   React.useEffect(() => {
     if (!file) {
@@ -265,7 +269,8 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
     setJob(null);
     setJobId(null);
     setResult(null);
-    setError('');
+    setError(event.target.files?.[0] && event.target.files[0].size > MAX_VIDEO_BYTES
+      ? 'El video supera el límite de ' + MAX_VIDEO_LABEL + '.' : '');
     setUploadedBytes(0);
     onAnalysisComplete?.(null);
   }
@@ -273,7 +278,7 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
   async function analyze() {
     if (!file || !enabled || busy) return;
     if (file.size > MAX_VIDEO_BYTES) {
-      setError('El video supera el límite de 250 MB.');
+      setError('El video supera el límite de 1 GB (1024 MB).');
       return;
     }
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -284,9 +289,9 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
     setError('');
     setResult(null);
     setJob(null);
-    // Verify prerequisites immediately before uploading a possibly 250-MB video.
+    // Verify prerequisites and available disk before transferring a large video.
     // A file can remain selected while FastAPI has been restarted or updated.
-    const check = await checkVideoPrerequisites();
+    const check = await checkVideoPrerequisites(file.size);
     if (!check) {
       setError('No se pudo verificar que el servidor pueda analizar el video. Revisá el diagnóstico de dependencias.');
       return;
@@ -359,7 +364,7 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
 
     <div className="video-config">
       <div className="video-input">
-        <label htmlFor="panthera-video">Video de cámara trampa (MP4, MOV, AVI o MKV · máximo 250 MB)</label>
+        <label htmlFor="panthera-video">Video de cámara trampa (MP4, MOV, AVI o MKV · hasta 1 GB)</label>
         <input id="panthera-video" type="file" accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo"
           disabled={busy} onChange={onFileChange} />
         {file && <small>{file.name} · {megabytes(file.size)}</small>}
@@ -379,11 +384,11 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
         <label htmlFor="video-samples">Máximo de fotogramas: {maxSamples}</label>
         <input id="video-samples" type="range" min={1} max={24} step={1} value={maxSamples}
           disabled={busy} onChange={e => setMaxSamples(Number(e.target.value))} />
-        <button className="action-button" type="button" disabled={!file || !enabled || busy || checkingPrerequisites || !preflight?.ready_for_attempt}
+        <button className="action-button" type="button" disabled={!file || file.size > MAX_VIDEO_BYTES || !enabled || busy || checkingPrerequisites || !preflight?.ready_for_attempt}
           onClick={() => void analyze()}>
           {status === 'uploading' ? 'Enviando video…' : busy ? 'Analizando video…' : 'Analizar video con IA'}
         </button>
-        <small>Los archivos grandes se transfieren en bloques de 5 MB para evitar límites de la conexión. Después se analizan los fotogramas muestreados.</small>
+        <small>Hasta 1 GB por video y 60 minutos de duración; se transfieren bloques de 5 MB y se analizan como máximo 24 fotogramas. El tamaño permitido no garantiza que el códec AVI sea compatible.</small>
         <div className="video-preflight" role="status" aria-live="polite">
           <strong>Preparación del servidor de análisis</strong>
           {checkingPrerequisites && <p>Comprobando OpenCV, PyTorch y MegaDetector…</p>}
@@ -399,8 +404,12 @@ export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: b
             <p key={item} className="science-hint">{item}</p>)}
             {preflight.ready_for_attempt && <small>Los pesos del modelo y el códec del video se verificarán al procesarlo; este estado no garantiza una inferencia exitosa.</small>}
           </>}
+          {preflight?.storage && <p className={preflight.storage.can_accept ? 'video-ready' : 'upload-error'}>
+            Almacenamiento temporal: {preflight.storage.message}
+            {preflight.storage.free_bytes !== null && ' · libres ' + megabytes(preflight.storage.free_bytes)}
+          </p>}
           {preflightError && <p className="upload-error">{preflightError}</p>}
-          <button type="button" onClick={() => void checkVideoPrerequisites()}
+          <button type="button" onClick={() => void checkVideoPrerequisites(file && file.size <= MAX_VIDEO_BYTES ? file.size : 0)}
             disabled={!enabled || busy || checkingPrerequisites}>Comprobar dependencias otra vez</button>
         </div>
       </div>
