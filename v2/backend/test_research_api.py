@@ -4,6 +4,11 @@ import unittest
 from pydantic import ValidationError
 from research_api import ScientificObservation, observation_geojson, export_pdf, copernicus_context
 from unittest.mock import patch
+from edge_bridge import get_edge_event, normalize_event, verify_event_signature
+import os
+import json
+import hmac
+import hashlib
 
 
 class ObservationTests(unittest.TestCase):
@@ -57,6 +62,30 @@ class ObservationTests(unittest.TestCase):
             self.assertEqual(response["sentinel_2"]["count"], 1)
             self.assertEqual(searched.call_args_list[0].args[0]["collections"], ["sentinel-1-grd"])
             self.assertEqual(searched.call_args_list[1].args[0]["collections"], ["sentinel-2-l2a"])
+
+
+    def test_demo_without_edge_bridge_url(self):
+        with patch.dict(os.environ, {"PANTHERA_EDGE_BRIDGE_URL": ""}):
+            self.assertEqual(get_edge_event()["configured"], False)
+
+    def test_edge_event_normalizes_nested_fields(self):
+        event = normalize_event({
+            "node_id": "CT-7", "location": {"latitude": 9.1, "longitude": -83.3},
+            "detection": {"class": "animal", "confidence": 0.83}
+        })
+        self.assertEqual(event["camera_id"], "CT-7")
+        self.assertEqual(event["latitude"], 9.1)
+        self.assertEqual(event["class"], "animal")
+        self.assertEqual(event["confidence"], 0.83)
+
+    def test_edge_hmac_checks_canonical_payload(self):
+        payload = {"event_id": "EDGE-1", "camera_id": "CT-7"}
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=False, default=str).encode("utf-8")
+        signature = hmac.new(b"test-secret", canonical, hashlib.sha256).hexdigest()
+        self.assertEqual(verify_event_signature({**payload, "hmac_sha256": signature}, "test-secret"), "VALID")
+        self.assertEqual(verify_event_signature({**payload, "hmac_sha256": "wrong"}, "test-secret"), "INVALID")
+        self.assertEqual(verify_event_signature(payload, "test-secret"), "MISSING")
 
     def test_unknown_extra_data_is_rejected(self):
         with self.assertRaises(ValidationError):
