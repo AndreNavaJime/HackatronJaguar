@@ -28,6 +28,7 @@ function App() {
   const [section, setSection] = React.useState('Resumen');
   const [apiState, setApiState] = React.useState<ApiState>('checking');
   const [apiMessage, setApiMessage] = React.useState('Comprobando conexión con Python…');
+  const [aiDependencyState, setAiDependencyState] = React.useState<'checking' | 'available' | 'missing'>('checking');
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [imageResult, setImageResult] = React.useState<ImageResult | null>(null);
@@ -48,9 +49,17 @@ function App() {
         throw new Error('Respuesta inesperada del servidor');
       }
       setApiState('connected');
-      setApiMessage('Python conectado · PantheraID API responde correctamente');
+      setApiMessage('Python conectado · PantheraLAB API responde correctamente');
+      try {
+        const capResponse = await fetch('/api/capabilities', { cache: 'no-store' });
+        if (capResponse.ok) {
+          const capabilities = await capResponse.json() as { animal_detection?: string };
+          setAiDependencyState(capabilities.animal_detection === 'requires_pytorchwildlife' ? 'missing' : 'available');
+        }
+      } catch { setAiDependencyState('checking'); }
     } catch {
       setApiState('disconnected');
+      setAiDependencyState('checking');
       setApiMessage('No se pudo conectar con Python. Verificá que FastAPI siga ejecutándose en el puerto 8000.');
     }
   }, []);
@@ -162,6 +171,11 @@ function App() {
       {section === 'PantheraMONITORING' && <MonitoringPanel records={scientificRecords}
         latestEdge={latestEdge} onOpenEdge={() => setSection('PantheraEDGE')}
         onOpenResearch={() => setSection('Investigación')} />}
+      {apiState === 'connected' && aiDependencyState === 'missing' &&
+        (section === 'PantheraID' || section === 'PantheraEDGE') && <p className="science-hint" role="status">
+          La API científica funciona, pero MegaDetector todavía necesita PyTorchWildlife y sus pesos en el entorno de FastAPI.
+          Los formularios y exportaciones no dependen de ese modelo.
+        </p>}
       {section === 'Resumen' && <>
         <div className="cards">
           <article><span>PantheraID · Imágenes y videos</span><strong>MegaDetector V6</strong><p>Detección de animales, personas y vehículos con API Python. La identificación individual continúa pendiente.</p>
