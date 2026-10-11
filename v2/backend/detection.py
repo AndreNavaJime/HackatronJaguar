@@ -5,6 +5,8 @@ The model is lazy-loaded on first request and reused in this server process.
 """
 import base64
 import io
+import logging
+import os
 import threading
 import tempfile
 import time
@@ -12,7 +14,12 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-DETECTOR_VERSION = 'MDV6-yolov9-c'
+# Official 2.3M-parameter CPU-friendly MegaDetector V6 variant.
+# Override only when comparing validated variants (see README).
+_SUPPORTED_VERSIONS = {'MDV6-yolov10-c', 'MDV6-yolov9-c'}
+_requested_version = os.getenv('PANTHERA_MD_VERSION', 'MDV6-yolov10-c')
+DETECTOR_VERSION = _requested_version if _requested_version in _SUPPORTED_VERSIONS else 'MDV6-yolov10-c'
+logger = logging.getLogger('pantheraid.detector')
 CLASS_NAMES = {0: 'animal', 1: 'person', 2: 'vehicle'}
 _MODEL_LOCK = threading.Lock()
 _MODEL = None
@@ -36,6 +43,9 @@ def _get_model():
                 f'Detalle: {error}'
             ) from error
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if device == 'cpu':
+            torch.set_num_threads(max(1, min(2, os.cpu_count() or 2)))
+        logger.info('Inicializando MegaDetector V6 %s en %s (primera carga puede descargar pesos)', DETECTOR_VERSION, device)
         try:
             model = pw_detection.MegaDetectorV6(
                 device=device, pretrained=True, version=DETECTOR_VERSION
@@ -48,6 +58,7 @@ def _get_model():
             ) from error
         _MODEL = model
         _MODEL_DEVICE = device
+        logger.info('MegaDetector V6 %s listo en %s', DETECTOR_VERSION, device)
     return _MODEL, _MODEL_DEVICE
 
 
@@ -85,8 +96,10 @@ def detect_image(image: Image.Image, threshold: float):
                 path = Path(temp.name)
                 rgb.save(temp, format='JPEG', quality=94)
             start = time.perf_counter()
+            logger.info('Iniciando inferencia: %s, umbral %.2f, imagen %dx%d', DETECTOR_VERSION, threshold, rgb.width, rgb.height)
             result = model.single_image_detection(str(path), det_conf_thres=threshold)
             elapsed = time.perf_counter() - start
+            logger.info('Inferencia completada en %.2fs', elapsed)
         finally:
             if path is not None:
                 path.unlink(missing_ok=True)
