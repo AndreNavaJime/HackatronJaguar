@@ -59,6 +59,10 @@ class ScientificObservation(BaseModel):
     notes: str = Field(default="", max_length=3000)
     limitations: str = Field(default="", max_length=1500)
     media_reference: str = Field(default="", max_length=300)
+    edge_event_id: str = Field(default="", max_length=120)
+    edge_event_timestamp: str = Field(default="", max_length=60)
+    edge_transport: str = Field(default="", max_length=100)
+    edge_hmac_status: str = Field(default="", max_length=40)
     edge_analysis: dict | None = None
 
     @model_validator(mode="after")
@@ -131,6 +135,10 @@ def export_pdf(observation: ScientificObservation):
         ("Comportamiento", observation.behavior),
         ("Hábitat", observation.habitat_type),
         ("Referencia multimedia", observation.media_reference),
+        ("Evento PantheraEDGE", observation.edge_event_id),
+        ("Hora del evento Edge", observation.edge_event_timestamp),
+        ("Transporte Edge", observation.edge_transport),
+        ("Verificación HMAC", observation.edge_hmac_status),
         ("Limitaciones y sesgos", observation.limitations),
         ("Notas de campo", observation.notes),
     ]
