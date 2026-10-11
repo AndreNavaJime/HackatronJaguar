@@ -2,7 +2,7 @@
 
 """
 =========================================================
-PANTHERA LAB · PANTHERAMONITORING
+PANTHERA LAB · PANTHERAEDGE
 CLOUD MONITORING & SCIENTIFIC REVIEW · HACKATRON 5G
 =========================================================
 
@@ -25,10 +25,10 @@ Storage / database + PantheraID + PantheraMONITORING
 INSTITUTIONAL OUTPUTS
 SINAC / researchers / guardaparques / emergency-response integrations
 
-THIS STREAMLIT APPLICATION REPRESENTS THE CLOUD/MONITORING LAYER.
-It also keeps a LOCAL EDGE DEMO mode so the hackathon can demonstrate
-MegaDetector filtering when the physical PantheraEDGE hardware or 5G testbed
-is unavailable.
+THIS STREAMLIT APPLICATION IS THE PANTHERAEDGE SCIENTIFIC WORKSPACE.
+It includes a local MegaDetector demonstration and a preview of downstream
+cloud monitoring/institutional reporting. It does not replace the physical
+field Edge hardware, PantheraID identification model or monitoring dashboard.
 
 IMPORTANT SCIENTIFIC LIMITS
 
@@ -470,7 +470,7 @@ def build_pantheraid_payload(
 # =========================================================
 
 st.set_page_config(
-    page_title="PantheraMONITORING | Panthera Lab",
+    page_title="PantheraEDGE | Panthera Lab",
     page_icon="🐆",
     layout="wide",
 )
@@ -723,6 +723,7 @@ language_choice = st.sidebar.radio(
     "Language / Idioma",
     ["English", "Español"],
     horizontal=True,
+    index=1,
     key="jaguarid_language",
 )
 UI_LANGUAGE = "es" if language_choice == "Español" else "en"
@@ -1136,6 +1137,13 @@ def build_observation_geojson(observation):
         "observation_id": observation.get("observation_id"),
         "camera_id": observation.get("camera_id"),
         "study_site": observation.get("study_site"),
+        "organization": observation.get("organization"),
+        "project_code": observation.get("project_code"),
+        "sampling_protocol": observation.get("sampling_protocol"),
+        "camera_nights": observation.get("camera_nights"),
+        "identification_method": observation.get("identification_method"),
+        "evidence_quality": observation.get("evidence_quality"),
+        "environmental_source": observation.get("environmental_source"),
         "event_datetime_utc": observation.get("event_datetime_utc"),
         "species": observation.get("species"),
         "individual_id": observation.get("individual_id"),
@@ -1315,6 +1323,12 @@ def create_observation_pdf(observation, candidate_images):
         [T("Observer / Researcher", "Observador / Investigador"), escape_pdf_text(observation.get("observer", ""))],
         ["Camera / Station", escape_pdf_text(observation.get("camera_id", ""))],
         [T("Study site", "Sitio de estudio"), escape_pdf_text(observation.get("study_site", ""))],
+        [T("Institution / NGO", "Institución / ONG"), escape_pdf_text(observation.get("organization", ""))],
+        [T("Project code", "Código del proyecto"), escape_pdf_text(observation.get("project_code", ""))],
+        [T("Sampling protocol", "Protocolo de muestreo"), escape_pdf_text(observation.get("sampling_protocol", ""))],
+        [T("Camera model", "Modelo de cámara"), escape_pdf_text(observation.get("camera_model", ""))],
+        [T("Deployment date", "Fecha de instalación"), escape_pdf_text(observation.get("deployment_date", ""))],
+        [T("Retrieval date", "Fecha de retiro"), escape_pdf_text(observation.get("retrieval_date", ""))],
         [T("Latitude", "Latitud"), str(observation.get("camera_latitude", "Not specified"))],
         [T("Longitude", "Longitud"), str(observation.get("camera_longitude", "Not specified"))],
         ["Species annotation", escape_pdf_text(observation.get("species", ""))],
@@ -1348,6 +1362,11 @@ def create_observation_pdf(observation, candidate_images):
         ["Viewpoint", escape_pdf_text(observation.get("viewpoint", "unknown"))],
         ["Behavior", escape_pdf_text(observation.get("behavior", "") or "Not specified")],
         ["Validation status", escape_pdf_text(observation.get("validation_status", "researcher_review_pending"))],
+        ["Camera nights", str(observation.get("camera_nights") if observation.get("camera_nights") is not None else "Not specified")],
+        ["Identification method", escape_pdf_text(observation.get("identification_method", "not_verified"))],
+        ["Evidence quality", escape_pdf_text(observation.get("evidence_quality", "not_assessed"))],
+        ["Environmental source", escape_pdf_text(observation.get("environmental_source", "not_specified"))],
+        ["Habitat category", escape_pdf_text(observation.get("habitat_category", ""))],
         ["Image URL / URI", escape_pdf_text(observation.get("image_url", "") or "Not specified")],
         ["Video URL / URI", escape_pdf_text(observation.get("video_url", "") or "Not specified")],
     ]
@@ -1362,6 +1381,12 @@ def create_observation_pdf(observation, candidate_images):
                 note_style,
             )
         )
+
+    if observation.get("sampling_limitations"):
+        story.append(Paragraph(
+            "<b>Sampling limitations:</b> " + escape_pdf_text(observation.get("sampling_limitations", "")),
+            note_style,
+        ))
 
     story.append(Paragraph("Edge AI Analysis", section_style))
 
@@ -1558,18 +1583,18 @@ def create_observation_pdf(observation, candidate_images):
 # =========================================================
 
 st.markdown(
-    f'<div class="jaguarid-kicker">{T("Panthera Lab Cloud Monitoring Prototype", "Prototipo de monitoreo en Nube Panthera Lab")}</div>',
+    f'<div class="jaguarid-kicker">{T("PantheraEDGE Scientific Workspace", "PantheraEDGE · Laboratorio científico")}</div>',
     unsafe_allow_html=True,
 )
 
-st.title(T("PantheraMONITORING · Panthera Lab", "PantheraMONITORING · Nube Panthera Lab"))
+st.title(T("PantheraEDGE · Panthera Lab", "PantheraEDGE · Panthera Lab"))
 
 st.markdown(
     f"""
     <div class="jaguarid-subtitle">
         {T(
-            "Cloud monitoring, scientific review and institutional outputs for wildlife events filtered by PantheraEDGE and transported over 5G or fallback links.",
-            "Monitoreo en nube, revisión científica y salidas institucionales para eventos de fauna filtrados por PantheraEDGE y transportados por 5G o enlaces de respaldo."
+            "Scientific camera-trap analysis, researcher annotations, event filtering and exports. Cloud monitoring is a preview, not a connected production dashboard.",
+            "Análisis científico de cámaras trampa, anotaciones de investigadores, filtrado de eventos y exportaciones. La sección de monitoreo es una vista de demostración, no un dashboard productivo conectado."
         )}
     </div>
     <div class="technical-strip">
@@ -1677,7 +1702,7 @@ max_samples = st.sidebar.slider(
 
 
 st.sidebar.divider()
-st.sidebar.caption("Panthera Lab · HACKATRON 5G · Cloud Monitoring Prototype")
+st.sidebar.caption("Panthera Lab · HACKATRON 5G · PantheraEDGE Scientific Prototype")
 
 st.sidebar.divider()
 show_technical_diagnostics = st.sidebar.toggle(
@@ -1740,6 +1765,87 @@ observation_notes = st.text_area(
     ),
 )
 
+# Optional research provenance fields are retained across image, video and manual records.
+with st.expander(
+    T("Research protocol & data provenance", "Protocolo científico y procedencia de los datos"),
+    expanded=False,
+):
+    provenance_left, provenance_right = st.columns(2)
+    with provenance_left:
+        organization_name = st.text_input(
+            T("Research institution / NGO", "Institución / ONG responsable"),
+            key="research_organization",
+        )
+        project_code = st.text_input(
+            T("Project or study code", "Código del proyecto o estudio"),
+            key="research_project_code",
+        )
+        study_protocol = st.text_input(
+            T("Sampling protocol / methodology", "Protocolo de muestreo / metodología"),
+            key="research_protocol",
+        )
+        camera_model = st.text_input(
+            T("Camera model", "Modelo de cámara"),
+            key="research_camera_model",
+        )
+        deployment_date = st.text_input(
+            T("Deployment date (YYYY-MM-DD)", "Fecha de instalación (AAAA-MM-DD)"),
+            placeholder="2026-10-01",
+            key="research_deployment_date",
+        )
+        retrieval_date = st.text_input(
+            T("Retrieval date (YYYY-MM-DD)", "Fecha de retiro (AAAA-MM-DD)"),
+            placeholder="2026-10-08",
+            key="research_retrieval_date",
+        )
+    with provenance_right:
+        sampling_effort_nights = st.number_input(
+            T("Sampling effort (camera-nights)", "Esfuerzo de muestreo (noches-cámara)"),
+            min_value=0.0,
+            step=1.0,
+            value=None,
+            key="research_camera_nights",
+            help=T(
+                "Leave blank when effort has not been calculated from deployment records.",
+                "Dejar vacío si el esfuerzo no se ha calculado con registros de instalación.",
+            ),
+        )
+        identification_method = st.selectbox(
+            T("Species / individual identification method", "Método de identificación de especie / individuo"),
+            ["not_verified", "researcher_visual_review", "expert_validated", "external_model_unverified"],
+            key="research_identification_method",
+            help=T(
+                "MegaDetector does not identify species or individual jaguars.",
+                "MegaDetector no identifica especies ni jaguares individuales.",
+            ),
+        )
+        evidence_quality = st.selectbox(
+            T("Evidence quality", "Calidad de la evidencia"),
+            ["not_assessed", "high", "medium", "low", "unusable"],
+            key="research_evidence_quality",
+        )
+        environmental_source = st.selectbox(
+            T("Environmental data source", "Fuente de datos ambientales"),
+            ["not_specified", "camera_sensor", "field_measurement", "weather_station", "researcher_estimate"],
+            key="research_environmental_source",
+        )
+        camera_habitat = st.text_input(
+            T("Habitat category", "Categoría de hábitat"),
+            placeholder=T("e.g. primary forest, secondary forest, riverbank", "p. ej. bosque primario, secundario, ribera"),
+            key="research_habitat_category",
+        )
+        sampling_notes = st.text_area(
+            T("Sampling limitations / biases", "Limitaciones / sesgos de muestreo"),
+            key="research_sampling_notes",
+        )
+
+st.caption(
+    T(
+        "Extra research metadata are optional and exported with the observation; they do not alter MegaDetector predictions.",
+        "Estos metadatos son opcionales, se exportan con la observación y no modifican las predicciones de MegaDetector.",
+    )
+)
+
 st.subheader(T("Monitoring & Reporting Variables", "Variables de monitoreo y reporte"))
 
 st.markdown(
@@ -1766,11 +1872,8 @@ with report_col1:
         T("Altitude (m)", "Altitud (m)"),
         min_value=-500.0,
         max_value=9000.0,
-        value=float(
-            st.session_state.get("altitude_m")
-            if st.session_state.get("altitude_m") is not None
-            else 100.0
-        ),
+        value=(float(st.session_state["altitude_m"])
+               if st.session_state.get("altitude_m") is not None else None),
         step=1.0,
         key="altitude_m_input",
         help="Camera-station altitude in metres. Keep as a configurable field unless supplied by the field node.",
@@ -1779,11 +1882,8 @@ with report_col1:
         T("Temperature (°C)", "Temperatura (°C)"),
         min_value=-50.0,
         max_value=80.0,
-        value=float(
-            st.session_state.get("temperature_c")
-            if st.session_state.get("temperature_c") is not None
-            else 25.0
-        ),
+        value=(float(st.session_state["temperature_c"])
+               if st.session_state.get("temperature_c") is not None else None),
         step=0.1,
         key="temperature_c_input",
     )
@@ -1793,11 +1893,8 @@ with report_col2:
         T("Relative humidity (%)", "Humedad relativa (%)"),
         min_value=0.0,
         max_value=100.0,
-        value=float(
-            st.session_state.get("humidity_percent")
-            if st.session_state.get("humidity_percent") is not None
-            else 80.0
-        ),
+        value=(float(st.session_state["humidity_percent"])
+               if st.session_state.get("humidity_percent") is not None else None),
         step=1.0,
         key="humidity_percent_input",
     )
@@ -1861,9 +1958,9 @@ validation_status = st.selectbox(
 )
 
 st.session_state["event_datetime_utc"] = event_datetime_input.strip() or None
-st.session_state["altitude_m"] = float(altitude_m)
-st.session_state["temperature_c"] = float(temperature_c)
-st.session_state["humidity_percent"] = float(humidity_percent)
+st.session_state["altitude_m"] = float(altitude_m) if altitude_m is not None else None
+st.session_state["temperature_c"] = float(temperature_c) if temperature_c is not None else None
+st.session_state["humidity_percent"] = float(humidity_percent) if humidity_percent is not None else None
 st.session_state["sex"] = sex_label
 st.session_state["age_class"] = age_class_label
 st.session_state["viewpoint"] = observation_viewpoint
@@ -1872,6 +1969,12 @@ st.session_state["habitat_notes"] = habitat_notes.strip()
 st.session_state["image_url"] = external_image_url.strip()
 st.session_state["video_url"] = external_video_url.strip()
 st.session_state["validation_status"] = validation_status
+if any(value is not None for value in (altitude_m, temperature_c, humidity_percent)):
+    if environmental_source == "not_specified":
+        st.warning(T(
+            "For scientific traceability, indicate the origin of altitude, temperature and humidity measurements.",
+            "Para la trazabilidad científica, indicá de dónde provienen las mediciones de altitud, temperatura y humedad.",
+        ))
 
 # Camera coordinates are stored independently from the video analysis.
 # The editable map is shown later, after Edge Results.
@@ -2893,6 +2996,21 @@ observation["habitat_notes"] = st.session_state.get("habitat_notes", "")
 observation["image_url"] = st.session_state.get("image_url", "")
 observation["video_url"] = st.session_state.get("video_url", "")
 observation["validation_status"] = st.session_state.get("validation_status", "researcher_review_pending")
+# This common update runs for manual, image and video observations.
+observation.update({
+    "organization": organization_name.strip(),
+    "project_code": project_code.strip(),
+    "sampling_protocol": study_protocol.strip(),
+    "camera_model": camera_model.strip(),
+    "deployment_date": deployment_date.strip(),
+    "retrieval_date": retrieval_date.strip(),
+    "camera_nights": float(sampling_effort_nights) if sampling_effort_nights is not None else None,
+    "identification_method": identification_method,
+    "evidence_quality": evidence_quality,
+    "environmental_source": environmental_source,
+    "habitat_category": camera_habitat.strip(),
+    "sampling_limitations": sampling_notes.strip(),
+})
 
 observation["edge_event_id"] = (
     st.session_state.latest_edge_event.get("event_id", "Not available")
@@ -4544,6 +4662,11 @@ st.markdown(
     f"""
     **Viewpoint:** {observation.get("viewpoint", "unknown")}  
     **Behavior:** {observation.get("behavior", "") or "Not specified"}  
+    **Research institution:** {observation.get("organization") or "Not specified"}  
+    **Project code:** {observation.get("project_code") or "Not specified"}  
+    **Sampling effort:** {observation.get("camera_nights") if observation.get("camera_nights") is not None else "Not specified"} camera-nights  
+    **Identification method:** {observation.get("identification_method", "not_verified")}  
+    **Environmental data source:** {observation.get("environmental_source", "not_specified")}  
     **Habitat / microhabitat:** {observation.get("habitat_notes", "") or "Not specified"}  
     **Image URL / URI:** {observation.get("image_url", "") or "Not specified"}  
     **Video URL / URI:** {observation.get("video_url", "") or "Not specified"}
@@ -4651,6 +4774,14 @@ else:
         "analysis_date",
         "camera_id",
         "study_site",
+        "organization",
+        "project_code",
+        "sampling_protocol",
+        "camera_model",
+        "camera_nights",
+        "identification_method",
+        "evidence_quality",
+        "environmental_source",
         "species",
         "individual_id",
         "event_datetime_utc",
@@ -4686,6 +4817,26 @@ else:
         use_container_width=True,
         hide_index=True,
     )
+
+    backup_csv_col, backup_json_col = st.columns(2)
+    with backup_csv_col:
+        st.download_button(
+            T("Back up registry · CSV", "Respaldar registro · CSV"),
+            data=registry_df.to_csv(index=False).encode("utf-8-sig"),
+            file_name="PantheraEDGE_registro.csv",
+            mime="text/csv",
+            key="backup_registry_csv",
+            use_container_width=True,
+        )
+    with backup_json_col:
+        st.download_button(
+            T("Back up registry · JSON", "Respaldar registro · JSON"),
+            data=json.dumps(st.session_state.observation_registry, ensure_ascii=False, indent=2, default=str).encode("utf-8"),
+            file_name="PantheraEDGE_registro.json",
+            mime="application/json",
+            key="backup_registry_json",
+            use_container_width=True,
+        )
 
     registry_count = len(
         st.session_state.observation_registry
