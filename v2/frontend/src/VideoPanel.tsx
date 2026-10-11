@@ -77,17 +77,28 @@ type JobSnapshot = {
 type LocalStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed';
 
 const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
+const UPLOAD_CHUNK_BYTES = 5 * 1024 * 1024;
 const percentage = (value: number) => (value * 100).toFixed(1) + '%';
 const megabytes = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
 
 async function fetchJson(response: Response) {
-  const raw = await response.text();
+  let raw: string;
+  try {
+    raw = await response.text();
+  } catch {
+    throw new Error('La conexión se interrumpió mientras recibíamos una respuesta de Python.');
+  }
   let value: unknown = null;
   if (raw.trim()) {
     try {
       value = JSON.parse(raw);
     } catch {
-      throw new Error('Python devolvió una respuesta incompleta. Revisá la terminal de FastAPI.');
+      const status = 'HTTP ' + response.status;
+      if (response.status === 413) {
+        throw new Error('El servidor intermediario rechazó el tamaño de la petición (' + status + ').');
+      }
+      throw new Error('Se recibió una respuesta no JSON (' + status +
+        '). Revisá la terminal de FastAPI y la de Vite; podría ser un error del proxy de Codespaces.');
     }
   }
   if (!response.ok) {
@@ -153,6 +164,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
   const [job, setJob] = React.useState<JobSnapshot | null>(null);
   const [result, setResult] = React.useState<VideoAnalysis | null>(null);
   const [error, setError] = React.useState('');
+  const [uploadedBytes, setUploadedBytes] = React.useState(0);
 
   React.useEffect(() => {
     if (!file) {
@@ -201,6 +213,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
     setJobId(null);
     setResult(null);
     setError('');
+    setUploadedBytes(0);
   }
 
   async function analyze() {
@@ -215,28 +228,54 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
       return;
     }
     setStatus('uploading');
+    setUploadedBytes(0);
     setError('');
     setResult(null);
     setJob(null);
+    let uploadId: string | null = null;
     try {
       const params = new URLSearchParams({
         threshold: threshold.toFixed(2),
         sample_seconds: sampleSeconds.toFixed(1),
         max_samples: String(maxSamples),
       });
-      const response = await fetch('/api/videos/jobs?' + params.toString(), {
+      // Each network request is <= 5 MiB; large single POSTs may be rejected
+      // by Codespaces or development proxies before reaching Python.
+      const start = await fetchJson(await fetch('/api/videos/uploads?' + params.toString(), {
         method: 'POST',
         headers: {
-          'Content-Type': file.type || 'application/octet-stream',
           'X-Video-Name': encodeURIComponent(file.name),
+          'X-Video-Size': String(file.size),
         },
-        body: file,
-      });
-      const payload = await fetchJson(response) as { job_id?: string };
-      if (!payload.job_id) throw new Error('El servidor no devolvió identificador del análisis.');
-      setJobId(payload.job_id);
+      })) as { upload_id?: string; chunk_max_bytes?: number };
+      if (!start.upload_id) throw new Error('Python no devolvió una sesión de carga.');
+      uploadId = start.upload_id;
+      const chunkSize = Math.min(UPLOAD_CHUNK_BYTES, start.chunk_max_bytes || UPLOAD_CHUNK_BYTES);
+      let offset = 0;
+      while (offset < file.size) {
+        const next = Math.min(offset + chunkSize, file.size);
+        const reply = await fetchJson(await fetch(
+          '/api/videos/uploads/' + uploadId + '/chunks?offset=' + offset,
+          { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' },
+            body: file.slice(offset, next) }
+        )) as { received_bytes?: number };
+        if (reply.received_bytes !== next) {
+          throw new Error('La cantidad de datos recibidos no coincide con el bloque enviado.');
+        }
+        offset = next;
+        setUploadedBytes(offset);
+      }
+      const completed = await fetchJson(await fetch(
+        '/api/videos/uploads/' + uploadId + '/complete', { method: 'POST' }
+      )) as { job_id?: string };
+      if (!completed.job_id) throw new Error('Python no confirmó el inicio del análisis.');
+      setJobId(completed.job_id);
       setStatus('processing');
     } catch (cause) {
+      if (uploadId) {
+        // Best-effort cleanup; never hide the original upload error.
+        try { await fetch('/api/videos/uploads/' + uploadId, { method: 'DELETE' }); } catch { /* ignored */ }
+      }
       setStatus('failed');
       setError(cause instanceof Error ? cause.message : 'No se pudo enviar el video.');
     }
@@ -279,10 +318,16 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
           onClick={() => void analyze()}>
           {status === 'uploading' ? 'Enviando video…' : busy ? 'Analizando video…' : 'Analizar video con IA'}
         </button>
-        <small>El procesamiento puede tardar según el video y la CPU. Solo se analizan los fotogramas muestreados.</small>
+        <small>Los archivos grandes se transfieren en bloques de 5 MB para evitar límites de la conexión. Después se analizan los fotogramas muestreados.</small>
       </div>
     </div>
 
+    {status === 'uploading' && file && <div className="video-progress" role="status" aria-live="polite">
+      <strong>Subiendo video en bloques de 5 MB…</strong>
+      <p>{megabytes(uploadedBytes)} de {megabytes(file.size)} · {Math.round(100 * uploadedBytes / file.size)}%</p>
+      <progress max={file.size} value={uploadedBytes} />
+      <small>No cerrés la pestaña hasta terminar la carga.</small>
+    </div>}
     {status === 'processing' && <div className="video-progress" role="status" aria-live="polite">
       <strong>{job?.stage || 'Preparando MegaDetector…'}</strong>
       <p>{job?.processed ?? 0} de {job?.total || maxSamples} fotogramas completados</p>
