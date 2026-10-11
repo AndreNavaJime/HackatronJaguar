@@ -33,6 +33,7 @@ cd /workspaces/HackatronJaguar/v2/backend
 python -m pip install -r requirements-ai.txt
 python -m pip install -r requirements-video.txt
 ```
+En el Codespace actual, OpenCV (`cv2`) ya llegó con la instalación de la IA; `requirements-video.txt` instala ReportLab para PDF sin instalar una segunda variante de OpenCV que pudiera entrar en conflicto. Si una instalación nueva no tiene `cv2`, instalar `opencv-python-headless` por separado.
 Después de instalar, reiniciar la terminal B con Ctrl+C y el comando de inicio de Python anterior. La primera inferencia descarga pesos de MegaDetector y puede tardar o necesitar bastante memoria/espacio. En Codespaces se utiliza normalmente CPU, por lo que el rendimiento puede ser limitado. Si las dependencias IA fallan, el visor y la recepción de fotografías pueden seguir funcionando.
 
 ### Diagnóstico de error «Unexpected end of JSON input»
