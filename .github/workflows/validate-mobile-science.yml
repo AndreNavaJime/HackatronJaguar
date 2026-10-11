@@ -25,6 +25,11 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
           python -m unittest discover -p 'test_research_api.py' -v
+      - name: Install lightweight video test dependencies
+        run: python -m pip install pytest httpx numpy opencv-python-headless
+      - name: Video upload, AVI decode and failure diagnostics (fake detector)
+        working-directory: v2/backend
+        run: python -m pytest -q test_video_api.py
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
