@@ -171,3 +171,58 @@ body{overscroll-behavior-y:contain}
   .science-actions button{flex:1 1 auto}
   .science-record .science-actions{width:100%}
 }
+
+/* Migrated PantheraEDGE Streamlit modules: mobile, accessible dashboards. */
+[hidden]{display:none!important}
+.edge-operations{margin:28px 0;display:grid;gap:24px}
+.edge-module{min-height:0}
+.edge-module h2{margin-bottom:12px}
+.edge-flow{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:20px 0}
+.edge-flow>div{flex:1 1 145px;min-width:130px;padding:13px;background:#102d21;border:1px solid #356248;border-radius:10px}
+.edge-flow>div small{display:block;color:#96bca4;margin-bottom:7px;font-size:10px;letter-spacing:.1em}
+.edge-flow>div strong{font-size:13px;line-height:1.4;display:block}
+.edge-flow-arrow{font-size:20px;color:#7abb90}
+.edge-metrics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.edge-metric{min-width:0;background:#0e271b;border:1px solid #386048;border-radius:11px;padding:17px;
+ display:flex;flex-direction:column;gap:9px;overflow-wrap:anywhere}
+.edge-metric span{font-size:12px;color:#aacdb7}
+.edge-metric strong{font-size:clamp(17px,2vw,25px);line-height:1.2}
+.edge-metric small{font-size:11px;color:#a6baa9}
+.edge-graphs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}
+.edge-chart{background:#0b2118;border:1px solid #335e44;border-radius:12px;padding:19px;min-width:0}
+.edge-chart h4,.edge-chart h3{margin:0 0 14px;font-size:15px}
+.edge-chart svg{width:100%;display:block}
+.edge-chart>small{display:block;color:#a9c5b2;line-height:1.5;margin-top:12px}
+.edge-bars{display:grid;gap:12px;margin:14px 0}
+.edge-bar-item{display:grid;grid-template-columns:minmax(75px,1fr) minmax(80px,2fr) 33px;align-items:center;gap:12px}
+.edge-bar-item span{font-size:12px;color:#c1dbc7;overflow-wrap:anywhere}
+.edge-bar-item strong{font-size:13px;text-align:right}
+.edge-bar-track{width:100%;height:13px;overflow:hidden;border-radius:30px;background:#234234}
+.edge-bar-track>div{height:100%;min-width:0;background:#73bf8a;border-radius:30px}
+.edge-map{margin:18px 0;border:1px solid #476f52;border-radius:11px;overflow:hidden}
+.edge-map p{padding:12px 15px;background:#1a3426;margin:0;font-size:12px}
+.edge-map iframe{width:100%;height:340px;border:0;display:block}
+.edge-event-detail{padding:15px;background:#0c2016;border:1px solid #345b43;border-radius:12px;overflow-wrap:anywhere}
+.edge-event-detail dl{display:grid;grid-template-columns:minmax(110px,180px) 1fr;gap:9px;font-size:13px}
+.edge-event-detail dt{color:#aac8b4}.edge-event-detail dd{margin:0;color:#e2f2e8}
+.edge-module .science-check{margin:15px 0}
+.monitoring-workspace{display:grid;gap:24px;margin-top:28px}
+.science-individual-history{border-top:1px solid #365940;margin-top:28px;padding-top:16px}
+.science-individual-history h3{margin-bottom:10px}
+@media(max-width:900px){
+ .edge-graphs{grid-template-columns:1fr}
+ .edge-flow-arrow{display:none}
+}
+@media(max-width:760px){
+ .edge-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .edge-flow>div{min-width:130px}
+ .edge-module{padding:16px}
+ .edge-map iframe{height:300px}
+}
+@media(max-width:430px){
+ .edge-metrics-grid{grid-template-columns:1fr 1fr}
+ .edge-metric{padding:13px}
+ .edge-metric strong{font-size:19px}
+ .edge-event-detail dl{grid-template-columns:1fr}
+ .edge-bar-item{grid-template-columns:minmax(70px,1fr) minmax(55px,1fr) 25px;gap:6px}
+}
