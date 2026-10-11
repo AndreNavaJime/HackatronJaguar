@@ -1,0 +1,4 @@
+# Dependencias de video y reportes (instalar después de requirements-ai.txt).
+# OpenCV sin interfaz gráfica, para procesamiento con VideoCapture.
+opencv-python-headless>=4.8,<5
+reportlab>=4.2,<5
