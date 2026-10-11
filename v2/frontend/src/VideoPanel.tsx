@@ -1,4 +1,5 @@
 import React from 'react';
+import type { EdgeSummary } from './ScientificWorkspace';
 
 type Counts = { animal: number; person: number; vehicle: number };
 type Frame = {
@@ -153,7 +154,7 @@ function Download({ href, children, filename }: { href: string; children: React.
   return <a className="download-link" href={href} download={filename}>{children}</a>;
 }
 
-export default function VideoPanel({ enabled }: { enabled: boolean }) {
+export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: boolean; onAnalysisComplete?: (summary: EdgeSummary) => void }) {
   const [file, setFile] = React.useState<File | null>(null);
   const [videoUrl, setVideoUrl] = React.useState<string | null>(null);
   const [threshold, setThreshold] = React.useState(0.25);
@@ -188,6 +189,13 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         if (data.state === 'completed') {
           if (!data.result) throw new Error('El análisis terminó sin resultados.');
           setResult(data.result);
+          onAnalysisComplete?.({
+            source: 'video', filename: data.result.metadata.filename, model: data.result.metadata.model,
+            sampled: data.result.totals.sampled, retained: data.result.totals.retained,
+            animals: data.result.totals.animals, persons: data.result.totals.persons,
+            vehicles: data.result.totals.vehicles, max_confidence: data.result.totals.max_confidence,
+            note: 'Conteos de detecciones, no individuos únicos. Requiere revisión científica.',
+          });
           setStatus('completed');
         } else if (data.state === 'failed') {
           setError(data.error || 'Falló el análisis. Revisá la terminal de Python.');
@@ -202,7 +210,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
     void poll();
     const timer = window.setInterval(() => { void poll(); }, 2000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [jobId, status]);
+  }, [jobId, status, onAnalysisComplete]);
 
   const busy = status === 'uploading' || status === 'processing';
 
