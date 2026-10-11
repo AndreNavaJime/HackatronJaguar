@@ -166,7 +166,7 @@ function App() {
         <div className="cards">
           <article><span>PantheraID · Imágenes y videos</span><strong>MegaDetector V6</strong><p>Detección de animales, personas y vehículos con API Python. La identificación individual continúa pendiente.</p>
             <button className="action-button" onClick={() => setSection('PantheraID')}>Abrir análisis multimedia</button></article>
-          <article><span>PantheraEDGE · Ciencia</span><strong>14 módulos migrados</strong><p>Captura científica, IA, gráficos, ubicación, eventos, Sentinel, simulación 5G y reportes.</p>
+          <article><span>PantheraEDGE · Ciencia</span ><strong>Módulos científicos</strong><p>Captura científica, IA, gráficos, ubicación, eventos, Sentinel, simulación 5G y reportes.</p>
             <button className="action-button" onClick={() => setSection('PantheraEDGE')}>Abrir PantheraEDGE</button></article>
           <article><span>PantheraMONITORING</span><strong>{scientificRecords.length} registros locales</strong><p>Dashboard de observaciones de esta sesión. Sin conexión automática a Supabase.</p>
             <button className="action-button" onClick={() => setSection('PantheraMONITORING')}>Abrir monitoreo</button></article>
