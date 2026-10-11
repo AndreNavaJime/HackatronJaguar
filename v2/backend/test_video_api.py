@@ -43,6 +43,56 @@ def _short_avi():
         return path.read_bytes()
 
 
+@pytest.fixture(autouse=True)
+def isolate_model_prerequisites(monkeypatch):
+    """Video tests use a fake detector; don't require heavyweight AI weights."""
+    monkeypatch.setattr(video_api, "_video_prerequisites", lambda: {
+        "ready_for_attempt": True,
+        "modules": {"opencv": True, "pytorchwildlife": True, "torch": True, "reportlab": True},
+        "missing": [], "message": "Bibliotecas disponibles para pruebas simuladas.",
+        "instructions": [], "model_weights_checked": False, "codec_checked": False,
+    })
+
+
+def test_missing_dependencies_decline_upload_before_file_transfer(client, monkeypatch):
+    monkeypatch.setattr(video_api, "_video_prerequisites", lambda: {
+        "ready_for_attempt": False,
+        "modules": {"opencv": False, "pytorchwildlife": False, "torch": False, "reportlab": True},
+        "missing": ["opencv", "pytorchwildlife", "torch"],
+        "message": "No se puede analizar video: faltan dependencias.",
+        "instructions": ["Instalá MegaDetector: python -m pip install -r requirements-ai.txt"],
+        "model_weights_checked": False, "codec_checked": False,
+    })
+    report = client.get("/api/videos/preflight")
+    assert report.status_code == 200
+    assert not report.json()["ready_for_attempt"]
+    response = client.post("/api/videos/uploads",
+                           headers={"X-Video-Name": "camara.avi", "X-Video-Size": "125000000"})
+    assert response.status_code == 503
+    assert "faltan dependencias" in response.json()["detail"]
+
+
+def test_unexpected_video_failure_has_diagnostic_stage(client, monkeypatch):
+    def broken_detector(_image, _threshold):
+        raise RuntimeError("unexpected mock runtime issue")
+
+    monkeypatch.setattr(video_api, "detect_image", broken_detector)
+    response = client.post("/api/videos/jobs",
+                           headers={"X-Video-Name": "camera.avi"}, content=_short_avi())
+    assert response.status_code == 202
+    identifier = response.json()["job_id"]
+    for _ in range(100):
+        payload = client.get(f"/api/videos/jobs/{identifier}").json()
+        if payload["state"] in ("completed", "failed"):
+            break
+        time.sleep(0.1)
+    assert payload["state"] == "failed"
+    assert payload["error_code"] == "unexpected_error"
+    assert "Analizando fotograma" in payload["error"]
+    assert "RuntimeError" in payload["error"]
+    assert "unexpected mock runtime issue" not in payload["error"]
+
+
 def test_video_size_limit(client):
     assert video_api.MAX_VIDEO_BYTES == 250 * 1024 * 1024
     response = client.post(
