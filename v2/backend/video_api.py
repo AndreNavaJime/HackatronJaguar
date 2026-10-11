@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import csv
+import errno
 import io
 from importlib.util import find_spec
 import logging
@@ -613,11 +614,22 @@ async def upload_video_chunk(request: Request, identifier: str, offset: int = Qu
                     sink.write(piece)
             if received == 0:
                 raise HTTPException(status_code=400, detail="El bloque recibido está vacío.")
-        except BaseException:
+        except BaseException as error:
             # A disconnected browser must not leave a corrupt partial chunk.
             if source.exists():
-                with source.open("r+b") as sink:
-                    sink.truncate(start)
+                try:
+                    with source.open("r+b") as sink:
+                        sink.truncate(start)
+                except OSError:
+                    logger.exception("No se pudo deshacer el bloque incompleto %s", identifier)
+            if isinstance(error, OSError) and error.errno in (
+                errno.ENOSPC, getattr(errno, "EDQUOT", -1)
+            ):
+                raise HTTPException(
+                    status_code=507,
+                    detail="El servidor se quedó sin espacio al recibir el video. "
+                           "Liberá disco y empezá una carga nueva.",
+                ) from error
             raise
         _change(identifier, received_bytes=start + received, last_upload_at=time.time())
         return {"upload_id": identifier, "received_bytes": start + received,
