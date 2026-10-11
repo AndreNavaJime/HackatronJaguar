@@ -43,6 +43,18 @@ def _short_avi():
         return path.read_bytes()
 
 
+def test_video_size_limit(client):
+    assert video_api.MAX_VIDEO_BYTES == 250 * 1024 * 1024
+    response = client.post(
+        '/api/videos/jobs',
+        headers={'X-Video-Name': 'muy_grande.mp4',
+                 'Content-Length': str(video_api.MAX_VIDEO_BYTES + 1)},
+        content=b'',
+    )
+    assert response.status_code == 413
+    assert '250 MB' in response.json()['detail']
+
+
 def test_video_input_validation(client):
     assert client.post("/api/videos/jobs", headers={"X-Video-Name": "not-a-video.txt"}, content=b"x").status_code == 415
     assert client.post("/api/videos/jobs", headers={"X-Video-Name": "empty.mp4"}, content=b"").status_code == 400
