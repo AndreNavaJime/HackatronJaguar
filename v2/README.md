@@ -114,3 +114,57 @@ MegaDetector detecta **animales, personas y vehículos**, no identifica la espec
 6. Preparar PWA; más adelante evaluar Capacitor/Tauri para tiendas y escritorio.
 
 No publicar credenciales, datos confidenciales ni identificaciones científicas no validadas. Antes de desplegar fuera del entorno de desarrollo, implementar autenticación, control de uso y límites de concurrencia.
+
+## PantheraEDGE científico en la aplicación móvil (rama de integración)
+
+La PWA `v2/frontend` incorpora un espacio para investigadores en las pestañas
+**PantheraEDGE** e **Investigación**, manteniendo las funciones actuales de PantheraID.
+
+- Identificación de campaña, investigador, institución, protocolo, cámara y esfuerzo de muestreo.
+- Anotaciones manuales de especie/individuo, método, calidad de evidencia, sexo, edad,
+  perspectiva, conducta, hábitat, notas y limitaciones.
+- Coordenadas opcionales WGS84 con procedencia explícita y valores ambientales
+  opcionales **sin ejemplos inventados**. El servidor requiere fuente para cualquier
+  altitud, temperatura o humedad introducidas.
+- Vinculación **explícita** del último resultado de MegaDetector (imagen/video)
+  mediante un resumen; no implica identificación de especies ni de individuos.
+- Registro **temporal en memoria del navegador**, con exportación de respaldo
+  CSV, JSON y GeoJSON; el PDF se genera mediante FastAPI.
+- Consulta bajo demanda de metadatos STAC Sentinel-1 y Sentinel-2 en torno a
+  coordenadas de cámara introducidas por el usuario. No calcula NDVI,
+  deforestación, inundaciones ni parámetros ambientales en suelo.
+
+**No hay sincronización automática con Supabase, ni ingesta real de VIGÍA,
+ni almacenamiento duradero** en esta fase. El investigador debe descargar su
+registro antes de recargar o cerrar la página. El servicio FastAPI debe
+estar activo para validar observaciones, exportar PDF o consultar Sentinel.
+La PWA instalada solo almacena recursos de interfaz, no datos científicos.
+
+### Probar sin alterar `pantheraid-v2`
+
+En Codespaces, usar una carpeta Git worktree separada para esta rama, tal como
+se hizo con la prueba de Streamlit. Si ya está instalado el entorno de backend,
+arrancarlo desde la carpeta nueva en puerto 8000 y Vite en puerto 5173;
+si hay otros procesos en esos puertos, detenerlos o elegir puertos libres
+y ajustar el proxy de Vite. Dentro de la carpeta de prueba:
+
+```bash
+cd v2/backend
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+En otra terminal:
+
+```bash
+cd v2/frontend
+npm install
+npm run dev -- --port 5173 --strictPort
+```
+
+Comprobar `/api/health` y las pestañas PantheraEDGE e Investigación.
+Registrar una observación sin ubicación y descargar GeoJSON: la geometría
+debe ser `null`. Confirmar error si se introduce temperatura sin fuente.
+Vincular una detección de video solo si corresponde a la misma observación,
+guardar, exportar PDF y probar la consulta Sentinel con coordenadas **reales**.
+No activar persistencia en nube en esta prueba.
