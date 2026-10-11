@@ -4,8 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/generate-pwa-icons.mjs",
     "dev": "vite --host 0.0.0.0",
+    "prebuild": "node scripts/generate-pwa-icons.mjs",
     "build": "tsc -b && vite build",
+    "icons": "node scripts/generate-pwa-icons.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
