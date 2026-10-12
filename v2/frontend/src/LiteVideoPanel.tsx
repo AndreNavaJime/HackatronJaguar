@@ -1,0 +1,385 @@
+import React from 'react';
+import { useLanguage } from './language';
+import {VideoResult,VideoSession,VideoEvidenceBatch,saveVideoSession,getVideoSession,
+  listVideoSessions,deleteVideoSession,getActiveVideoId,setActiveVideoId,
+  createAnalysisId,selectionBatch} from './videoWorkspaceDb';
+
+type LiteResult = VideoResult;
+
+type Job = {state:'uploading'|'processing'|'completed'|'failed';stage:string;
+  processed:number;total:number;error:string|null;result:LiteResult|null};
+const CHUNK=5*1024*1024;
+const LIMIT=60*1024*1024;
+
+async function readResponse(response:Response) {
+  let value:unknown;
+  try { value=await response.json(); }
+  catch { throw new Error('El servidor no devolvió datos JSON. / Server returned no JSON.'); }
+  if (!response.ok) {
+    const detail=typeof value==='object'&&value!==null&&'detail' in value&&typeof value.detail==='string'
+      ? value.detail : 'HTTP '+response.status;
+    throw new Error(detail);
+  }
+  return value;
+}
+
+export type VideoWorkflowState={hasResult:boolean;selectedCount:number};
+export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState,nextRequest=0}:{enabled:boolean;
+  onRecordEvidence?:(item:VideoEvidenceBatch)=>void;
+  onWorkflowState?:(state:VideoWorkflowState)=>void;nextRequest?:number}) {
+  const {language}=useLanguage();
+  const tx=(es:string,en:string)=>language==='en'?en:es;
+  const [file,setFile]=React.useState<File|null>(null);
+  const [preview,setPreview]=React.useState('');
+  const [motionThreshold,setMotionThreshold]=React.useState(.04);
+  const [seconds,setSeconds]=React.useState(1);
+  const [samples,setSamples]=React.useState(8);
+  const [uploaded,setUploaded]=React.useState(0);
+  const [state,setState]=React.useState<'idle'|'uploading'|'processing'|'completed'|'failed'>('idle');
+  const [jobId,setJobId]=React.useState('');
+  const [job,setJob]=React.useState<Job|null>(null);
+  const [result,setResult]=React.useState<LiteResult|null>(null);
+  const [error,setError]=React.useState('');
+  const [analysisId,setAnalysisId]=React.useState('');
+  const [createdAt,setCreatedAt]=React.useState('');
+  const [persistedFilename,setPersistedFilename]=React.useState('');
+  const [selectedSamples,setSelectedSamples]=React.useState<number[]>([]);
+  const [history,setHistory]=React.useState<VideoSession[]>([]);
+  const [restoring,setRestoring]=React.useState(true);
+  const [storageNotice,setStorageNotice]=React.useState('');
+  const busy=state==='uploading'||state==='processing';
+  const latestFilename=file?.name||persistedFilename||result?.metadata.filename||'';
+
+  async function refreshHistory(){
+    try{setHistory((await listVideoSessions()).slice(0,15));}
+    catch{setStorageNotice(tx('El historial del navegador no está disponible. Descargá tus resultados.',
+      'Browser history is unavailable. Download your results.'));}
+  }
+  async function restoreAnalysis(id:string){
+    const saved=await getVideoSession(id);
+    if(!saved)throw new Error(tx('Análisis guardado no encontrado.','Saved analysis not found.'));
+    setFile(null);setAnalysisId(saved.id);setJobId(saved.jobId);setResult(saved.result);
+    setPersistedFilename(saved.filename);setCreatedAt(saved.createdAt);
+    setSelectedSamples(saved.selectedSamples||[]);setMotionThreshold(saved.motionThreshold);
+    setSeconds(saved.sampleSeconds);setSamples(saved.maxSamples);
+    setState(saved.stage==='processing'?'processing':saved.stage==='completed'?'completed':'failed');
+    setError(saved.error||'');setJob(null);setUploaded(0);
+    setActiveVideoId(saved.id);
+  }
+  React.useEffect(()=>{
+    let canceled=false;
+    void (async()=>{
+      try{
+        const active=getActiveVideoId();
+        const stored=await listVideoSessions();
+        if(!canceled&&stored.length)await restoreAnalysis(
+          active&&stored.some(v=>v.id===active)?active:stored[0].id);
+        if(!canceled)setHistory(stored.slice(0,15));
+      }catch{if(!canceled)setStorageNotice(tx(
+        'No se pudo recuperar el historial; podés continuar con un análisis nuevo.',
+        'History could not be restored. You can start a new analysis.'));}
+      finally{if(!canceled)setRestoring(false);}
+    })();
+    return ()=>{canceled=true;};
+  },[]);
+  React.useEffect(()=>{
+    if(restoring||!analysisId||!jobId||state==='idle'||state==='uploading')return;
+    const now=new Date().toISOString();
+    const snapshot:VideoSession={
+      id:analysisId,jobId,filename:latestFilename,createdAt:createdAt||now,
+      updatedAt:now,stage:state==='completed'?'completed':state==='failed'?'failed':'processing',
+      motionThreshold,sampleSeconds:seconds,maxSamples:samples,selectedSamples,result,
+      error:state==='failed'?error:undefined,
+    };
+    setActiveVideoId(analysisId);
+    void saveVideoSession(snapshot).then(()=>refreshHistory()).catch(()=>setStorageNotice(tx(
+      'No se pudieron guardar los fotogramas localmente. Descargá el ZIP antes de salir.',
+      'Frames could not be saved locally. Download the ZIP before leaving.')));
+  },[analysisId,jobId,state,result,selectedSamples,restoring,error]);
+  const changeSelection=(sample:number)=>setSelectedSamples(previous=>
+    previous.includes(sample)?previous.filter(x=>x!==sample):
+    previous.length>=6?previous:[...previous,sample]);
+  function continueReview(samplesToSend=selectedSamples){
+    if(!onRecordEvidence||!result||!analysisId||!jobId||!samplesToSend.length)return;
+    setSelectedSamples(samplesToSend);
+    const snapshot:VideoSession={
+      id:analysisId,jobId,filename:latestFilename,
+      createdAt:createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),
+      stage:'completed',motionThreshold,sampleSeconds:seconds,maxSamples:samples,
+      selectedSamples:samplesToSend,result,
+    };
+    void saveVideoSession(snapshot).catch(()=>{/* Frame data is also passed in memory. */});
+    onRecordEvidence(selectionBatch(snapshot));
+  }
+
+  // The same Next command is available in a fixed mobile/desktop workflow dock.
+  React.useEffect(()=>{
+    onWorkflowState?.({hasResult:!!result,selectedCount:selectedSamples.length});
+  },[!!result,selectedSamples.length,onWorkflowState]);
+  React.useEffect(()=>{
+    if(!nextRequest)return;
+    if(result&&selectedSamples.length){continueReview();return;}
+    const target=result?'lite-video-gallery':'lite-video';
+    document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'center'});
+    if(!result)document.getElementById('lite-video')?.focus();
+  },[nextRequest]);
+
+  React.useEffect(()=>{
+    if(!file){setPreview('');return;}
+    const url=URL.createObjectURL(file);setPreview(url);
+    return ()=>URL.revokeObjectURL(url);
+  },[file]);
+  React.useEffect(()=>{
+    if(!jobId||state!=='processing')return;
+    let active=true;
+    const poll=async()=>{
+      try{
+        const response=await fetch('/api/videos/jobs/'+encodeURIComponent(jobId),{cache:'no-store'});
+        if(response.status===404||response.status===410){
+          if(active){setError(tx('El proceso del servidor expiró. Podés iniciar un nuevo análisis.',
+            'The server job expired. You can start a new analysis.'));setState('failed');}
+          return;
+        }
+        const next=await readResponse(response) as Job;
+        if(!active)return;
+        setJob(next);
+        if(next.state==='completed'){
+          if(!next.result||next.result.metadata?.mode!=='lite')throw new Error('Resultado inesperado. / Unexpected result.');
+          setResult(next.result);setState('completed');setError('');
+        }else if(next.state==='failed'){setState('failed');setError(next.error||'Error del servidor / Server error');}
+      }catch(cause){if(active)setError(cause instanceof Error?cause.message:String(cause));}
+    };
+    void poll();
+    const interval=window.setInterval(()=>{void poll();},2500);
+    return ()=>{active=false;window.clearInterval(interval);};
+  },[jobId,state]);
+
+  async function analyze(){
+    if(!file||!enabled||busy)return;
+    if(file.size>LIMIT){setError(tx('El archivo supera el límite de 60 MB para este análisis.','The file exceeds the 60 MB limit for this analysis.'));return;}
+    if(!/\.(mp4|mov|avi|mkv)$/i.test(file.name)){setError(tx('Elegí MP4, MOV, AVI o MKV.','Choose MP4, MOV, AVI or MKV.'));return;}
+    setError('');setUploaded(0);setJob(null);setJobId('');setResult(null);
+    setSelectedSamples([]);setAnalysisId(createAnalysisId());
+    setCreatedAt(new Date().toISOString());setPersistedFilename(file.name);setState('uploading');
+    let uploadId='';
+    try{
+      const params=new URLSearchParams({
+        mode:'lite',motion_threshold:motionThreshold.toFixed(3),sample_seconds:seconds.toFixed(1),
+        max_samples:String(samples),
+      });
+      const started=await readResponse(await fetch('/api/videos/uploads?'+params.toString(),{
+        method:'POST',headers:{'X-Video-Name':encodeURIComponent(file.name),'X-Video-Size':String(file.size)},
+      })) as {upload_id:string;chunk_max_bytes:number};
+      if(!started.upload_id)throw new Error('El servidor no creó la sesión. / No upload session.');
+      uploadId=started.upload_id;
+      const chunkSize=Math.min(CHUNK,started.chunk_max_bytes||CHUNK);
+      for(let offset=0;offset<file.size;offset+=chunkSize){
+        const end=Math.min(offset+chunkSize,file.size);
+        const done=await readResponse(await fetch(
+          '/api/videos/uploads/'+encodeURIComponent(uploadId)+'/chunks?offset='+offset,
+          {method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:file.slice(offset,end)},
+        )) as {received_bytes:number};
+        if(done.received_bytes!==end)throw new Error('Carga incompleta. / Incomplete upload.');
+        setUploaded(end);
+      }
+      const begun=await readResponse(await fetch(
+        '/api/videos/uploads/'+encodeURIComponent(uploadId)+'/complete',{method:'POST'},
+      )) as {job_id:string};
+      if(!begun.job_id)throw new Error('El servidor no inició el análisis. / Analysis did not start.');
+      setJobId(begun.job_id);setState('processing');
+    }catch(cause){
+      setError(cause instanceof Error?cause.message:String(cause));setState('failed');
+      if(uploadId)try{await fetch('/api/videos/uploads/'+encodeURIComponent(uploadId),{method:'DELETE'});}catch{/* best effort */}
+    }
+  }
+  const reset=(next:File|null)=>{
+    setFile(next);setJob(null);setJobId('');setResult(null);setError('');setState('idle');setUploaded(0);
+    setAnalysisId('');setCreatedAt('');setPersistedFilename('');setSelectedSamples([]);
+  };
+  const pct=(value:number)=>(value*100).toFixed(1)+'%';
+  const base=jobId?'/api/videos/jobs/'+encodeURIComponent(jobId)+'/download?kind=':'';
+  const hasServerDownloads=!!jobId&&(!createdAt||
+    !Number.isFinite(Date.parse(createdAt))||Date.now()-Date.parse(createdAt)<50*60*1000);
+
+  return <section className="video-panel lite-panel" aria-label={tx('Análisis exploratorio de video','Exploratory video analysis')}>
+    <div className="panel-heading">
+      <div><span className="lite-kicker">{tx('PANTHERAID / ANÁLISIS EXPLORATORIO','PANTHERAID / EXPLORATORY ANALYSIS')}</span>
+        <h3>{tx('Análisis de secuencias','Sequence analysis')}</h3>
+        <p>{tx('Explorá registros de cámaras trampa mediante muestreo de fotogramas, análisis de variación visual y exportación de evidencias.',
+          'Explore camera-trap recordings through frame sampling, visual-change analysis and evidence exports.')}</p>
+      </div><span className="tag">OpenCV · CPU</span>
+    </div>
+    <div className="lite-science-notice" role="note">
+      <strong>{tx('Alcance del análisis','Analysis scope')}</strong>
+      <p>{tx('Este método identifica cambios entre fotogramas, no especies ni individuos. Los resultados requieren revisión científica.',
+        'This method identifies changes between frames, not species or individuals. Results require scientific review.')}</p>
+    </div>
+    <details className="method-details method-details-compact">
+      <summary>{tx('Sobre el método de análisis','About the analysis method')}</summary>
+      <p>{tx('Este procesamiento basado en OpenCV compara muestras del video. Cambios de iluminación, vegetación y movimiento de cámara pueden afectar los resultados. Una escena sin cambios detectados puede contener fauna inmóvil. El análisis no estima especies ni identidades individuales.',
+        'This OpenCV-based process compares video samples. Lighting, vegetation and camera movement can affect results. An unchanged scene may still contain stationary wildlife. The analysis does not identify species or individual animals.')}</p>
+    </details>
+    <nav className="video-workflow-progress" aria-label={tx('Etapas del estudio','Study stages')}>
+      <span className="active">{tx('1. Analizar','1. Analyze')}</span>
+      <span className={result?'active':''}>{tx('2. Revisar','2. Review')}</span>
+      <span>{tx('3. Registrar','3. Record')}</span>
+      <span>{tx('4. Identificar','4. Identify')}</span>
+      <span>{tx('5. Informe','5. Report')}</span>
+    </nav>
+    <div className="video-history-panel">
+      <div className="sci-panel-head"><h4>{tx('Análisis recientes','Recent analyses')}</h4>
+        <span className="sci-tag">{tx('GUARDADO LOCAL','SAVED LOCALLY')}</span></div>
+      <p className="sci-muted">{tx('El historial y los fotogramas se guardan en este navegador. El video original NO se conserva; mantené una copia independiente.',
+        'Results and frames are saved in this browser. The original video is NOT retained; keep a separate copy.')}</p>
+      {restoring?<p className="sci-muted">{tx('Recuperando el historial…','Restoring history…')}</p>:
+        history.length?<div className="video-history-items">{history.map(item=>
+          <div className="video-history-item" key={item.id}>
+            <div><strong>{item.filename}</strong><small>{new Date(item.createdAt).toLocaleString(
+              language==='en'?'en-US':'es-CR')} · {item.result?.frames.length||0} {tx('fotogramas','frames')}</small></div>
+            <button type="button" className="sci-secondary" disabled={busy||analysisId===item.id}
+              onClick={()=>void restoreAnalysis(item.id).catch(error=>setStorageNotice(String(error)))}>
+              {analysisId===item.id?tx('Activo','Active'):tx('Reabrir','Reopen')}</button>
+            <button type="button" className="sci-inline" disabled={busy} onClick={()=>{
+              if(window.confirm(tx('¿Eliminar este análisis local?', 'Delete this locally saved analysis?')))
+                void deleteVideoSession(item.id).then(()=>{
+                  if(analysisId===item.id)reset(null);
+                  void refreshHistory();
+                }).catch(error=>setStorageNotice(String(error)));
+            }}>{tx('Eliminar','Delete')}</button>
+          </div>)}</div>:<p className="sci-muted">{tx('Todavía no hay análisis guardados.','No saved analyses yet.')}</p>}
+      {storageNotice&&<p className="sci-notice" role="alert">{storageNotice}</p>}
+    </div>
+    <div className="video-config">
+      <div className="video-input">
+        <label htmlFor="lite-video">{tx('Video de cámara trampa (hasta 60 MB, máximo 3 min)','Camera-trap video (up to 60 MB, max 3 min)')}</label>
+        <input id="lite-video" type="file" accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo"
+          disabled={busy||restoring} onChange={e=>reset(e.target.files?.[0]??null)}/>
+        {file&&<small>{file.name} · {(file.size/1048576).toFixed(2)} MB</small>}
+        {!file&&persistedFilename&&<small>{tx('Análisis recuperado:', 'Recovered analysis:')} {persistedFilename} · {tx('video original no guardado', 'original video not stored')}</small>}
+        {preview&&<video controls preload="metadata" src={preview} className="video-preview"
+          aria-label={tx('Vista previa del video','Video preview')}/>}
+        <small>{tx('Formatos admitidos: MP4, MOV, AVI y MKV. La vista previa puede depender del códec.',
+          'Supported formats: MP4, MOV, AVI and MKV. Preview may depend on the codec.')}</small>
+      </div>
+      <div className="video-options">
+        <label htmlFor="lite-change">{tx('Umbral de píxeles cambiados','Changed-pixel threshold')}: {pct(motionThreshold)}</label>
+        <input id="lite-change" type="range" min=".01" max=".15" step=".01"
+          value={motionThreshold} disabled={busy} onChange={e=>setMotionThreshold(Number(e.target.value))}/>
+        <label htmlFor="lite-interval">{tx('Muestreo cada','Sample every')} {seconds.toFixed(1)} s</label>
+        <input id="lite-interval" type="range" min=".5" max="5" step=".5"
+          value={seconds} disabled={busy} onChange={e=>setSeconds(Number(e.target.value))}/>
+        <label htmlFor="lite-samples">{tx('Máximo de fotogramas','Maximum frames')}: {samples}</label>
+        <input id="lite-samples" type="range" min="2" max="12" step="1"
+          value={samples} disabled={busy} onChange={e=>setSamples(Number(e.target.value))}/>
+        <button type="button" className="action-button" disabled={!file||!enabled||busy||restoring} onClick={()=>void analyze()}>
+          {busy?tx('Procesando…','Processing…'):tx('Iniciar análisis ↗','Start analysis ↗')}
+        </button>
+        {!enabled&&<small>{tx('El servicio de análisis no está disponible en este momento. Intentá nuevamente en unos minutos.','The analysis service is currently unavailable. Please try again shortly.')}</small>}
+        <small>{tx('La sensibilidad controla el porcentaje de variación visual necesario para marcar una muestra.',
+          'Sensitivity controls the amount of visual change required to flag a sample.')}</small>
+      </div>
+    </div>
+    {state==='uploading'&&file&&<div className="video-progress" role="status">
+      <strong>{tx('Subiendo video por bloques…','Uploading video in chunks…')}</strong>
+      <p>{(uploaded/1048576).toFixed(1)} / {(file.size/1048576).toFixed(1)} MB</p>
+      <progress max={file.size} value={uploaded}/>
+    </div>}
+    {state==='processing'&&<div className="video-progress" role="status">
+      <strong>{job?.stage||tx('Analizando fotogramas…','Analyzing frames…')}</strong>
+      <p>{job?.processed??0} / {job?.total||samples} {tx('muestras','samples')}</p>
+      <progress max={job?.total||samples} value={job?.processed??0}/>
+    </div>}
+    {error&&<p role="alert" className="upload-error">{error}</p>}
+    {result&&<div className="video-results lite-results">
+      <h3>{tx('Resultados del análisis','Analysis results')}</h3>
+      <p className="details-caption">{result.metadata.filename} · OpenCV / {tx('análisis de variación visual','visual-change analysis')}</p>
+      <p className="sci-muted">{tx('El análisis terminó. Revisá las imágenes y seleccioná cuáles documentar. El botón Siguiente permanece al pie de la pantalla.',
+        'Analysis complete. Review the frames and select which ones to record. The Next button remains at the bottom of the screen.')}</p>
+      <div className="video-metrics">
+        <div><span>{tx('Fotogramas revisados','Frames reviewed')}</span><strong>{result.totals.sampled}</strong></div>
+        <div><span>{tx('Con cambios visuales','With visual changes')}</span><strong>{result.totals.retained}</strong></div>
+        <div><span>{tx('Referencia o sin cambios','Reference or unchanged')}</span><strong>{result.totals.discarded}</strong></div>
+        <div><span>{tx('Cambio medio de píxeles','Mean pixel change')}</span><strong>{pct(result.totals.mean_motion)}</strong></div>
+        <div><span>{tx('Muestras con cambios','Changed samples')}</span><strong>{result.totals.positive_frame_rate.toFixed(1)}%</strong></div>
+        <div><span>{tx('Duración del video','Video duration')}</span><strong>{result.metadata.duration_seconds.toFixed(1)} s</strong></div>
+      </div>
+      <div className="video-chart-panel lite-motion-chart">
+        <h4>{tx('Porcentaje de píxeles que cambiaron entre muestras','Percentage of pixels changed between samples')}</h4>
+        <div className="lite-motion-bars">
+          {result.rows.map(row=><div key={row.sample} className="lite-motion-row">
+            <span>{row.sample} · {row.video_time_seconds.toFixed(1)} s</span>
+            <div className="lite-motion-track"><div style={{width:Math.min(100,row.motion_score*100*5)+'%'}}/></div>
+            <strong>{pct(row.motion_score)}</strong>
+          </div>)}
+        </div>
+        <small>{tx('La primera muestra es una referencia (0%). Las barras visuales están ampliadas ×5 para facilitar la lectura.',
+          'First sample is the reference (0%). Bar lengths are magnified ×5 for readability.')}</small>
+      </div>
+      <div className="video-selection-summary">
+        <div><strong>{tx('Evidencias para el estudio','Evidence for the study')}</strong>
+          <p>{tx('Seleccioná hasta seis fotogramas. Se guardarán como evidencia de UNA captura, sin multiplicar los encuentros.',
+            'Select up to six frames. They will be linked to ONE capture rather than counted as separate encounters.')}</p>
+        </div><span className="sci-tag">{selectedSamples.length}/6</span>
+      </div>
+      {onRecordEvidence&&selectedSamples.length>0&&<div className="video-next-actions">
+        <button type="button" className="sci-secondary"
+          onClick={()=>setSelectedSamples([])}>{tx('Limpiar selección','Clear selection')}</button>
+      </div>}
+      <div className="video-downloads">
+        <h4>{tx('Descargas para revisión científica','Downloads for scientific review')}</h4>
+        {hasServerDownloads?<div className="preview-controls">
+          <a className="download-link" href={base+'zip'}>{tx('Todas las imágenes · ZIP ↓','All frames · ZIP ↓')}</a>
+          <a className="download-link" href={base+'csv'}>{tx('Cambios por fotograma · CSV ↓','Frame changes · CSV ↓')}</a>
+          <a className="download-link" href={base+'pdf'}>{tx('Informe técnico · PDF ↓','Technical report · PDF ↓')}</a>
+        </div>:<p className="sci-muted">{tx('Los archivos temporales del servidor ya no están disponibles. Los fotogramas recuperados siguen en la galería y pueden descargarse individualmente.',
+          'Temporary server exports are no longer available. Saved gallery frames can still be downloaded individually.')}</p>}
+        <small>{tx('El ZIP contiene TODAS las muestras, no solo las marcadas. Los archivos caducan en aproximadamente una hora.',
+          'The ZIP includes ALL frames, not only flagged ones. Files expire in approximately one hour.')}</small>
+      </div>
+      {result&&analysisId&&(!file)&&createdAt&&Date.now()-Date.parse(createdAt)>50*60*1000&&
+        <p className="sci-muted">{tx('La galería se recuperó localmente. Las descargas del servidor pueden haber caducado.',
+          'The gallery was recovered locally. Server downloads may have expired.')}</p>}
+      <h4>{tx('Galería de fotogramas','Frame gallery')}</h4>
+      <p>{tx('Se muestran todas las muestras para evitar omitir posibles animales inmóviles.',
+        'All samples are shown to avoid overlooking stationary wildlife.')}</p>
+      <div id="lite-video-gallery" className="video-gallery">
+        {result.frames.map(frame=><article key={frame.sample} className="video-frame-card">
+          <img src={frame.image} loading="lazy" alt={tx('Fotograma','Frame')+' '+frame.sample}/>
+          <div className="video-frame-details">
+            {onRecordEvidence&&<label className="video-frame-select">
+              <input type="checkbox" checked={selectedSamples.includes(frame.sample)}
+                disabled={!selectedSamples.includes(frame.sample)&&selectedSamples.length>=6}
+                onChange={()=>changeSelection(frame.sample)}/>
+              <span>{tx('Usar como evidencia','Include as evidence')}</span>
+            </label>}
+            <strong>{tx('Muestra','Sample')} {frame.sample} · {frame.time_seconds.toFixed(1)} s</strong>
+            <span>{frame.sample===1?tx('REFERENCIA INICIAL','INITIAL REFERENCE')
+              :frame.retained?tx('CAMBIO VISUAL · revisar','VISUAL CHANGE · review')
+              :tx('SIN CAMBIO DETECTADO','NO CHANGE DETECTED')}</span>
+            <small>{tx('Píxeles cambiados','Changed pixels')}: {pct(frame.motion_score)}</small>
+            <a className="download-link" download={'pantheraid_muestra_'+String(frame.sample).padStart(3,'0')+'.jpg'}
+              href={frame.image}>{tx('Descargar fotograma ↓','Download frame ↓')}</a>
+            {onRecordEvidence&&<button type="button" className="sci-secondary"
+              onClick={()=>continueReview([frame.sample])}>
+              {tx('Registrar solo este fotograma ↗','Register this frame only ↗')}</button>}
+          </div>
+        </article>)}
+      </div>
+      {onRecordEvidence&&<p className="workflow-selection-count" aria-live="polite">
+        {tx('Fotogramas seleccionados','Selected frames')}: {selectedSamples.length} / 6
+      </p>}
+      <details className="method-details">
+        <summary>{tx('Criterios de interpretación y limitaciones','Interpretation guidance and limitations')}</summary>
+        <p>{tx('El procesamiento utiliza OpenCV para comparar la variación de brillo entre fotogramas; no emplea un modelo de detección animal. El movimiento de vegetación, la lluvia o los cambios de iluminación pueden generar alertas y la ausencia de cambios no descarta fauna. Los porcentajes son variación visual, no confianza de identificación. Revisá todas las muestras.',
+          'Processing uses OpenCV to compare brightness changes between frames; it does not use an animal detection model. Vegetation, rain or changing light can trigger alerts, and unchanged frames do not rule out wildlife. Percentages indicate visual change, not identification confidence. Review every sample.')}</p>
+      </details>
+      {onRecordEvidence&&<p className="workflow-selection-count" aria-live="polite">
+        {selectedSamples.length>0
+          ?tx('La selección está lista. Usá el botón Siguiente de la barra inferior para registrar una captura.',
+            'Selection is ready. Use Next in the bottom bar to record a capture.')
+          :tx('Seleccioná al menos un fotograma; el botón Siguiente de abajo te llevará a la galería mientras tanto.',
+            'Select at least one frame; the bottom Next button will take you to the gallery until then.')}
+      </p>}
+    </div>}
+  </section>;
+}

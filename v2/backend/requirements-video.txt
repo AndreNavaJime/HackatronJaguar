@@ -1,0 +1,5 @@
+# Informe PDF del análisis de video.
+# La instalación anterior de PytorchWildlife ya aportó cv2/OpenCV en este Codespace;
+# no instalamos otro paquete OpenCV para evitar conflictos entre versiones.
+# Si cv2 no estuviera disponible en otra máquina, instalar opencv-python-headless.
+reportlab>=4.2,<5
