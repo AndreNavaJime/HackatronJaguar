@@ -9,9 +9,13 @@ import {readStudyData,saveStudyData} from './researchDb';
 
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 type Props={section:string;onNavigate:(section:string)=>void;
-  pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void};
+  pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
+  monitoringNextRequest?:number;
+  onRegistryTabChange?:(tab:'projects'|'stations'|'captures'|'individuals'|'reports')=>void;
+  requestReport?:number;};
 
-export default function ScientificWorkspace({section,onNavigate,pendingEvidence,onClearEvidence}:Props){
+export default function ScientificWorkspace({section,onNavigate,pendingEvidence,onClearEvidence,
+  monitoringNextRequest=0,onRegistryTabChange,requestReport=0}:Props){
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
   const [research,setResearch]=React.useState<ResearchData>(loadResearch);
   const [persistError,setPersistError]=React.useState(false);
@@ -23,6 +27,9 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   const [current,setCurrent]=React.useState<Observation>(()=>newObservation());
   const [incoming,setIncoming]=React.useState<EdgeEvent|null>(null);
   const [openReport,setOpenReport]=React.useState(false);
+  React.useEffect(()=>{
+    if(requestReport){setOpenReport(true);onNavigate('PantheraMONITORING');}
+  },[requestReport]);
   const records=React.useMemo(()=>flattenObservations(research),[research]);
 
   React.useEffect(()=>{
@@ -66,7 +73,9 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
         onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
         onClearEvidence={onClearEvidence} reportRequested={openReport}
-        onClearReportRequest={()=>setOpenReport(false)} onNavigate={onNavigate}/>
+        onClearReportRequest={()=>setOpenReport(false)}
+        nextRequest={monitoringNextRequest} onWorkflowTabChange={onRegistryTabChange}
+        onNavigate={onNavigate}/>
     </div>
     <div style={{display:section==='PantheraEDGE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
