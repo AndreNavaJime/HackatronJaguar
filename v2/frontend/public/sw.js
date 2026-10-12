@@ -47,6 +47,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Keep install metadata fresh so an old manifest cannot restore a stale splash icon.
+  if (url.pathname === '/manifest.webmanifest') {
+    event.respondWith(fetch(req).then(response => {
+      if (response.ok) {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(req, copy)));
+      }
+      return response;
+    }).catch(() => caches.match(req)));
+    return;
+  }
+
   const isAsset = url.pathname.startsWith('/assets/')
     || url.pathname.startsWith('/icons/')
     || url.pathname === '/manifest.webmanifest'
