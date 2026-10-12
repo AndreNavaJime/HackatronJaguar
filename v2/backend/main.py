@@ -12,6 +12,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from detection import DetectorUnavailable, detect_image
 from video_api import router as video_router
 from scientific_api import router as scientific_router, edge_router
+from study_reports import router as study_report_router
 
 logger = logging.getLogger('pantheraid.api')
 
@@ -22,6 +23,7 @@ app = FastAPI(title='PantheraID API', version='0.4.0')
 app.include_router(video_router)
 app.include_router(scientific_router)
 app.include_router(edge_router)
+app.include_router(study_report_router)
 # Same-origin Vite proxy serves /api calls in Codespaces; restrict external CORS.
 app.add_middleware(
     CORSMiddleware,
