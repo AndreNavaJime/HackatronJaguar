@@ -200,3 +200,25 @@ def test_reject_duplicate_video_analysis_and_unbounded_frame_gallery():
         {"sample": k, "time_seconds": float(k), "motion_score": .1,
          "data_url": "data:image/jpeg;base64,xxx"} for k in range(6)]
     assert client.post("/api/science/studies/report", json=dataset).status_code == 422
+
+
+def test_inspected_photograph_provenance_export():
+    data = study_data(thumbnail=True)
+    event = data["encounters"][0]
+    event["source_media_type"] = "image"
+    event["source_video_name"] = "camera_07_2026.jpg"
+    event["source_sha256"] = "abcdef1234" * 6 + "abcd"
+    event["source_analysis_id"] = "ANL-IMAGE-01"
+    event["analysis_method"] = "Photograph format inspection (no species identification)"
+    event["analysis_samples"] = 1
+    reply = client.post("/api/science/studies/report?kind=zip", json=data)
+    assert reply.status_code == 200, reply.text[:200]
+    with zipfile.ZipFile(io.BytesIO(reply.content)) as archive:
+        assert "reference_thumbnails/EVT-01.jpg" in archive.namelist()
+        flat = archive.read("observations_flat.csv").decode("utf-8")
+        assert "camera_07_2026.jpg" in flat
+        assert "Photograph format inspection" in flat
+        assert "abcdef1234" in flat
+        study = json.loads(archive.read("study.json"))
+        assert study["encounters"][0]["source_media_type"] == "image"
+        assert archive.read("PantheraLAB_informe_integral.pdf").startswith(b"%PDF-")
