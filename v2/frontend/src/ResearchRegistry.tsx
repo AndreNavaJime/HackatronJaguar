@@ -93,7 +93,16 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   const [studyDraft,setStudyDraft]=React.useState<Study>(initialStudy);
   const [stationDraft,setStationDraft]=React.useState<Deployment>(()=>initialStation(''));
   const [individualDraft,setIndividualDraft]=React.useState<Individual>(()=>initialIndividual(''));
-  const [eventDraft,setEventDraft]=React.useState<Encounter>(()=>initialEvent('',''));
+  const [eventDraft,setEventDraft]=React.useState<Encounter>(()=>{
+    try{
+      const raw=sessionStorage.getItem('pantheralab_capture_draft_v1');
+      if(raw){const value:unknown=JSON.parse(raw);
+        if(value&&typeof value==='object'&&
+           'encounter_id' in value&&'study_id' in value)return value as Encounter;
+      }
+    }catch{/* restricted storage or invalid previous draft */}
+    return initialEvent('','');
+  });
   const [sightingDraft,setSightingDraft]=React.useState<Sighting>(()=>initialSighting(''));
   const [selectedEvent,setSelectedEvent]=React.useState('');
   const [notice,setNotice]=React.useState('');
@@ -105,10 +114,16 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   const [endDate,setEndDate]=React.useState('');
   const fileRef=React.useRef<HTMLInputElement|null>(null);
   const opts=selectValues(tx);
+  React.useEffect(()=>{
+    if(!eventDraft.study_id)return;
+    try{sessionStorage.setItem('pantheralab_capture_draft_v1',JSON.stringify(eventDraft));}
+    catch{/* Browser storage may be restricted; research records show their own storage warning. */}
+  },[eventDraft]);
 
   React.useEffect(()=>{
     setStationDraft(initialStation(activeId));setIndividualDraft(initialIndividual(activeId));
-    setEventDraft(initialEvent(activeId,''));setSightingDraft(initialSighting(''));
+    setEventDraft(previous=>previous.study_id===activeId?previous:initialEvent(activeId,''));
+    setSightingDraft(initialSighting(''));
     setSelectedEvent('');setNotice('');
   },[activeId]);
   React.useEffect(()=>{
@@ -282,6 +297,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     setSightingDraft(initialSighting(eventDraft.encounter_id));
     saved('Captura guardada. Registrá ahora cada animal observado.',
       'Capture saved. Now record each observed animal.');
+    window.requestAnimationFrame(()=>document.getElementById('registry-sightings')
+      ?.scrollIntoView({behavior:'smooth',block:'start'}));
   }
   function saveSighting(){
     if(!selectedEvent||!encounters.some(e=>e.encounter_id===selectedEvent)){
