@@ -196,12 +196,43 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
       <p>{tx('Este procesamiento basado en OpenCV compara muestras del video. Cambios de iluminación, vegetación y movimiento de cámara pueden afectar los resultados. Una escena sin cambios detectados puede contener fauna inmóvil. El análisis no estima especies ni identidades individuales.',
         'This OpenCV-based process compares video samples. Lighting, vegetation and camera movement can affect results. An unchanged scene may still contain stationary wildlife. The analysis does not identify species or individual animals.')}</p>
     </details>
+    <nav className="video-workflow-progress" aria-label={tx('Etapas del estudio','Study stages')}>
+      <span className="active">{tx('1. Analizar','1. Analyze')}</span>
+      <span className={result?'active':''}>{tx('2. Revisar','2. Review')}</span>
+      <span>{tx('3. Registrar','3. Record')}</span>
+      <span>{tx('4. Identificar','4. Identify')}</span>
+      <span>{tx('5. Informe','5. Report')}</span>
+    </nav>
+    <div className="video-history-panel">
+      <div className="sci-panel-head"><h4>{tx('Análisis recientes','Recent analyses')}</h4>
+        <span className="sci-tag">{tx('GUARDADO LOCAL','SAVED LOCALLY')}</span></div>
+      <p className="sci-muted">{tx('El historial y los fotogramas se guardan en este navegador. El video original NO se conserva; mantené una copia independiente.',
+        'Results and frames are saved in this browser. The original video is NOT retained; keep a separate copy.')}</p>
+      {restoring?<p className="sci-muted">{tx('Recuperando el historial…','Restoring history…')}</p>:
+        history.length?<div className="video-history-items">{history.map(item=>
+          <div className="video-history-item" key={item.id}>
+            <div><strong>{item.filename}</strong><small>{new Date(item.createdAt).toLocaleString(
+              language==='en'?'en-US':'es-CR')} · {item.result?.frames.length||0} {tx('fotogramas','frames')}</small></div>
+            <button type="button" className="sci-secondary" disabled={busy||analysisId===item.id}
+              onClick={()=>void restoreAnalysis(item.id).catch(error=>setStorageNotice(String(error)))}>
+              {analysisId===item.id?tx('Activo','Active'):tx('Reabrir','Reopen')}</button>
+            <button type="button" className="sci-inline" disabled={busy} onClick={()=>{
+              if(window.confirm(tx('¿Eliminar este análisis local?', 'Delete this locally saved analysis?')))
+                void deleteVideoSession(item.id).then(()=>{
+                  if(analysisId===item.id)reset(null);
+                  void refreshHistory();
+                }).catch(error=>setStorageNotice(String(error)));
+            }}>{tx('Eliminar','Delete')}</button>
+          </div>)}</div>:<p className="sci-muted">{tx('Todavía no hay análisis guardados.','No saved analyses yet.')}</p>}
+      {storageNotice&&<p className="sci-notice" role="alert">{storageNotice}</p>}
+    </div>
     <div className="video-config">
       <div className="video-input">
         <label htmlFor="lite-video">{tx('Video de cámara trampa (hasta 60 MB, máximo 3 min)','Camera-trap video (up to 60 MB, max 3 min)')}</label>
         <input id="lite-video" type="file" accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo"
           disabled={busy} onChange={e=>reset(e.target.files?.[0]??null)}/>
         {file&&<small>{file.name} · {(file.size/1048576).toFixed(2)} MB</small>}
+        {!file&&persistedFilename&&<small>{tx('Análisis recuperado:', 'Recovered analysis:')} {persistedFilename} · {tx('video original no guardado', 'original video not stored')}</small>}
         {preview&&<video controls preload="metadata" src={preview} className="video-preview"
           aria-label={tx('Vista previa del video','Video preview')}/>}
         <small>{tx('Formatos admitidos: MP4, MOV, AVI y MKV. La vista previa puede depender del códec.',
@@ -259,6 +290,20 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
         <small>{tx('La primera muestra es una referencia (0%). Las barras visuales están ampliadas ×5 para facilitar la lectura.',
           'First sample is the reference (0%). Bar lengths are magnified ×5 for readability.')}</small>
       </div>
+      <div className="video-selection-summary">
+        <div><strong>{tx('Evidencias para el estudio','Evidence for the study')}</strong>
+          <p>{tx('Seleccioná hasta seis fotogramas. Se guardarán como evidencia de UNA captura, sin multiplicar los encuentros.',
+            'Select up to six frames. They will be linked to ONE capture rather than counted as separate encounters.')}</p>
+        </div><span className="sci-tag">{selectedSamples.length}/6</span>
+      </div>
+      {onRecordEvidence&&<div className="video-next-actions">
+        <button type="button" className="sci-secondary" disabled={!selectedSamples.length}
+          onClick={()=>setSelectedSamples([])}>{tx('Anterior · Revisar selección','Back · Review selection')}</button>
+        <button type="button" className="action-button" disabled={!selectedSamples.length}
+          onClick={()=>continueReview()}>
+          {tx('Siguiente: registrar captura →','Next: record capture →')} ({selectedSamples.length})
+        </button>
+      </div>}
       <div className="video-downloads">
         <h4>{tx('Descargas para revisión científica','Downloads for scientific review')}</h4>
         <div className="preview-controls">
@@ -269,6 +314,9 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
         <small>{tx('El ZIP contiene TODAS las muestras, no solo las marcadas. Los archivos caducan en aproximadamente una hora.',
           'The ZIP includes ALL frames, not only flagged ones. Files expire in approximately one hour.')}</small>
       </div>
+      {result&&analysisId&&(!file)&&createdAt&&Date.now()-Date.parse(createdAt)>50*60*1000&&
+        <p className="sci-muted">{tx('La galería se recuperó localmente. Las descargas del servidor pueden haber caducado.',
+          'The gallery was recovered locally. Server downloads may have expired.')}</p>}
       <h4>{tx('Galería de fotogramas','Frame gallery')}</h4>
       <p>{tx('Se muestran todas las muestras para evitar omitir posibles animales inmóviles.',
         'All samples are shown to avoid overlooking stationary wildlife.')}</p>
@@ -276,6 +324,12 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
         {result.frames.map(frame=><article key={frame.sample} className="video-frame-card">
           <img src={frame.image} loading="lazy" alt={tx('Fotograma','Frame')+' '+frame.sample}/>
           <div className="video-frame-details">
+            {onRecordEvidence&&<label className="video-frame-select">
+              <input type="checkbox" checked={selectedSamples.includes(frame.sample)}
+                disabled={!selectedSamples.includes(frame.sample)&&selectedSamples.length>=6}
+                onChange={()=>changeSelection(frame.sample)}/>
+              <span>{tx('Usar como evidencia','Include as evidence')}</span>
+            </label>}
             <strong>{tx('Muestra','Sample')} {frame.sample} · {frame.time_seconds.toFixed(1)} s</strong>
             <span>{frame.sample===1?tx('REFERENCIA INICIAL','INITIAL REFERENCE')
               :frame.retained?tx('CAMBIO VISUAL · revisar','VISUAL CHANGE · review')
@@ -284,9 +338,8 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
             <a className="download-link" download={'pantheraid_muestra_'+String(frame.sample).padStart(3,'0')+'.jpg'}
               href={frame.image}>{tx('Descargar fotograma ↓','Download frame ↓')}</a>
             {onRecordEvidence&&<button type="button" className="sci-secondary"
-              onClick={()=>onRecordEvidence({fileName:file?.name||result.metadata.filename,
-                frameDataUrl:frame.image,timeSeconds:frame.time_seconds,sample:frame.sample})}>
-              {tx('Registrar en PantheraMONITORING ↗','Register in PantheraMONITORING ↗')}</button>}
+              onClick={()=>continueReview([frame.sample])}>
+              {tx('Registrar solo este fotograma ↗','Register this frame only ↗')}</button>
           </div>
         </article>)}
       </div>
