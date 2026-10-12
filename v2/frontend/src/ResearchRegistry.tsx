@@ -133,7 +133,13 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   });
   const [sightingDraft,setSightingDraft]=React.useState<Sighting>(()=>
     recoverDraft('pantheralab_sighting_draft_v1','sighting_id',()=>initialSighting('')));
-  const [selectedEvent,setSelectedEvent]=React.useState('');
+  const [selectedEvent,setSelectedEvent]=React.useState(()=>{
+    try{return sessionStorage.getItem('pantheralab_selected_event_v1')||'';}catch{return '';}
+  });
+  React.useEffect(()=>{
+    try{sessionStorage.setItem('pantheralab_selected_event_v1',selectedEvent);}
+    catch{/* optional */}
+  },[selectedEvent]);
   const [notice,setNotice]=React.useState('');
   const [pdfBusy,setPdfBusy]=React.useState(false);
   const [mapDeployment,setMapDeployment]=React.useState('');
@@ -166,7 +172,10 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     setEventDraft(previous=>previous.study_id===activeId?previous:initialEvent(activeId,''));
     setSightingDraft(previous=>previous.encounter_id&&encounters.some(e=>e.encounter_id===previous.encounter_id)
       ?previous:initialSighting(''));
-    setSelectedEvent('');setNotice('');
+    setSelectedEvent(previous=>encounters.some(e=>e.encounter_id===previous)?previous:
+      sightingDraft.encounter_id&&encounters.some(e=>e.encounter_id===sightingDraft.encounter_id)
+        ?sightingDraft.encounter_id:'');
+    setNotice('');
   },[activeId]);
   React.useEffect(()=>{
     if(!pendingEvidence)return;
