@@ -47,8 +47,8 @@ export default function MonitoringWorkspace({records,current,setCurrent,onSave,o
     }
     const complete={...current,source:'manual_researcher_entry',saved_at:new Date().toISOString()};
     onSave(complete);setCurrent(complete);
-    setNotice(tx('Observación guardada en esta pestaña (NO en Supabase).',
-      'Observation saved in this tab (NOT Supabase).'));
+    setNotice(tx('Observación incorporada al registro de sesión.',
+      'Observation added to the session registry.'));
   }
 
   async function generatePdf(){
@@ -75,10 +75,13 @@ export default function MonitoringWorkspace({records,current,setCurrent,onSave,o
       <h2>{tx('PantheraMONITORING · Registros científicos','PantheraMONITORING · Scientific records')}</h2>
       <p>{tx('Documentación de observaciones de cámaras trampa, variables de campo y revisión por investigadores.',
         'Camera-trap observation documentation, field variables and researcher review.')}</p></div>
-      <span className="sci-tag">{tx('SESION TEMPORAL','TEMPORARY SESSION')}</span></div>
-    <p className="sci-warning"><strong>{tx('Datos temporales:','Temporary data:')}</strong> {tx(
-      'Los registros permanecen solo en esta pestaña del navegador. NO se guardan en Supabase ni se sincronizan entre dispositivos. Exportalos antes de cerrar; protegé coordenadas de fauna vulnerable.',
-      'Records are only stored in this browser tab. NOT saved to Supabase or synced across devices. Export before closing; protect sensitive wildlife coordinates.')}</p>
+      <span className="sci-tag">{tx('REGISTRO CIENTÍFICO','SCIENTIFIC REGISTRY')}</span></div>
+    <div className="sci-inline-info" role="note">
+      <span className="sci-info-dot" aria-hidden="true" />
+      <p><strong>{tx('Almacenamiento de sesión','Session storage')}</strong> · {tx(
+        'Las observaciones permanecen en esta pestaña. Exportá tus registros antes de cerrarla; todavía no hay sincronización con Supabase.',
+        'Observations remain in this tab. Export records before closing it; Supabase synchronization is not enabled.')}</p>
+    </div>
 
     <div className="sci-stats">
       <div><span>{tx('Observaciones guardadas','Saved observations')}</span><strong>{records.length}</strong></div>
@@ -178,6 +181,11 @@ export default function MonitoringWorkspace({records,current,setCurrent,onSave,o
           onClick={()=>{if(window.confirm(tx('¿Eliminar esta observación de la sesión?','Delete this observation from this session?'))){
             onRemove(removeId);setRemoveId('');}}}>{tx('Eliminar registro','Delete record')}</button></div></>}
     </section>
+    <details className="method-details method-details-compact">
+      <summary>{tx('Protección de coordenadas y trazabilidad','Coordinate protection and traceability')}</summary>
+      <p>{tx('Las coordenadas de fauna sensible pueden requerir restricción o generalización antes de compartir archivos JSON, CSV y GeoJSON. La especie, el ID individual y la validación de registros son anotaciones de investigación, no identificaciones automáticas.',
+        'Sensitive wildlife coordinates may require restricted access or generalization before sharing JSON, CSV and GeoJSON files. Species, individual IDs and validation are researcher annotations, not automatic identifications.')}</p>
+    </details>
     {records.length>0&&<section className="sci-panel">
       <h3>{tx('Resumen de especies anotadas','Annotated species summary')}</h3>
       <p className="sci-muted">{tx('Frecuencias de anotaciones manuales, no conteos automatizados de individuos ni abundancia poblacional.',
