@@ -98,6 +98,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   const [selectedEvent,setSelectedEvent]=React.useState('');
   const [notice,setNotice]=React.useState('');
   const [pdfBusy,setPdfBusy]=React.useState(false);
+  const [mapDeployment,setMapDeployment]=React.useState('');
   const [includePrecise,setIncludePrecise]=React.useState(false);
   const [filterStatus,setFilterStatus]=React.useState<'all'|'verified'>('all');
   const [startDate,setStartDate]=React.useState('');
@@ -468,8 +469,25 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           <thead><tr><th>{tx('Cámara','Camera')}</th><th>{tx('Sitio','Site')}</th><th>{tx('Días operativos','Operational days')}</th><th></th></tr></thead>
           <tbody>{stations.map(d=><tr key={d.deployment_id}><td>{d.camera_id}</td><td>{d.site}</td>
             <td>{d.operational_days??'—'}</td><td><button type="button" className="sci-inline"
-              onClick={()=>setStationDraft({...d})}>{tx('Editar','Edit')}</button></td></tr>)}</tbody>
+              onClick={()=>setStationDraft({...d})}>{tx('Editar','Edit')}</button>
+              {d.latitude!==null&&d.longitude!==null&&<button type="button" className="sci-inline"
+                onClick={()=>setMapDeployment(d.deployment_id===mapDeployment?'':d.deployment_id)}>
+                {tx('Ver mapa','Show map')}</button>}</td></tr>)}</tbody>
         </table></div>}
+        {mapDeployment&&(()=>{
+          const location=stations.find(d=>d.deployment_id===mapDeployment);
+          if(!location||location.latitude===null||location.longitude===null)return null;
+          const {latitude:lat,longitude:lon}=location;
+          const bbox=[lon-.06,lat-.04,lon+.06,lat+.04].map(v=>v.toFixed(5)).join('%2C');
+          const src='https://www.openstreetmap.org/export/embed.html?bbox='+bbox+
+            '&layer=mapnik&marker='+lat.toFixed(6)+'%2C'+lon.toFixed(6);
+          return <div className="sci-map-toggle">
+            <p className="sci-muted">{tx('Al abrir este mapa, las coordenadas de la estación se comparten con OpenStreetMap.',
+              'Opening this map shares the camera location with OpenStreetMap.')}</p>
+            <iframe className="sci-map" title={tx('Mapa de estación','Camera deployment map')}
+              loading="lazy" referrerPolicy="no-referrer" src={src}/>
+          </div>;
+        })()}
       </>}
     </section>}
 
