@@ -15,6 +15,7 @@ export type Encounter={encounter_id:string;study_id:string;deployment_id:string;
   thumbnail_data_url?:string;thumbnail_filename?:string;
   evidence_frames?:{sample:number;time_seconds:number;motion_score:number;data_url:string}[];
   source_analysis_id?:string;source_job_id?:string;source_video_name?:string;
+  source_media_type?:'video'|'image';source_sha256?:string;
   analysis_method?:string;analysis_sample_seconds?:number;analysis_threshold?:number;
   analysis_samples?:number;video_duration_seconds?:number;};
 export type Sighting={sighting_id:string;encounter_id:string;species:string;individual_id:string;
