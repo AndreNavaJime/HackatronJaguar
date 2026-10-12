@@ -660,7 +660,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <p className="sci-muted">{tx('Los días-cámara se declaran manualmente; la aplicación no presume actividad continua entre instalación y retiro.',
           'Camera-days are manually reported; continuous operation is not assumed between deployment and retrieval.')}</p>
         <div className="sci-actions video-next-actions">
-          <button className="action-button" type="button" onClick={saveStation}>
+          <button className="action-button" type="button" onClick={()=>saveStation()}>
             {tx('Guardar estación','Save deployment')}</button>
           <button className="workflow-next-button" type="button" disabled={!stations.length}
             onClick={()=>setTab('captures')}>
