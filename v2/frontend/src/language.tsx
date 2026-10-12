@@ -203,7 +203,8 @@ const translations: Record<string, string> = {
   "No se pudo establecer conexión con el servicio. Volvé a intentar en unos minutos.": "Could not connect to the analysis service. Please try again in a few minutes.",
   "Organización de evidencia multimedia y análisis exploratorio de cámaras trampa.": "Media evidence management and exploratory camera-trap analysis.",
   "Inspeccionar fotografía": "Inspect photograph",
-  "Fotografía verificada": "Photograph verified"
+  "Fotografía verificada": "Photograph verified",
+  "El análisis de videos y las consultas satelitales requieren conexión a Internet, incluso con la aplicación instalada.": "Video analysis and satellite queries require an Internet connection, even after installation."
 };
 
 type I18n = { language: Language; setLanguage: (next: Language) => void; t: (spanish: string) => string };
