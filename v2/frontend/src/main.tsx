@@ -135,10 +135,10 @@ function App() {
         <div><span className="status-dot" aria-hidden="true"></span><strong>Conexión con backend</strong><p>{apiMessage}</p></div>
         <button type="button" onClick={() => void checkApi()} disabled={apiState === 'checking'}>Comprobar conexión</button>
       </section>
-      <div hidden={section !== 'PantheraID' && section !== 'PantheraEDGE'}>
+      <div hidden={section !== 'PantheraID'}>
       <section className="panel upload-panel">
         <div className="panel-heading">
-          <div><h2>{section === 'PantheraEDGE' ? 'PantheraEDGE · Multimedia científica' : 'PantheraID · Multimedia de cámaras trampa'}</h2>
+          <div><h2>PantheraID · Multimedia de cámaras trampa</h2>
           <p>Fotografías y videos, detecciones de animales, recortes candidatos, tablas por frame, gráficos y descargas para revisión científica.</p></div>
           <span className="tag">IMAGEN + VIDEO</span>
         </div>
@@ -167,13 +167,11 @@ function App() {
         <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en Codespaces y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.</p>
       </section>
       </div>
-      {section === 'PantheraEDGE' && <>
-        <EdgeOperations latestEdge={latestEdge} draft={scientificDraft} setDraft={setScientificDraft}
-          enabled={apiState === 'connected'} />
-        <ScientificWorkspace view="PantheraEDGE" enabled={apiState === 'connected'}
-          draft={scientificDraft} setDraft={setScientificDraft}
-          records={scientificRecords} setRecords={setScientificRecords} latestEdge={latestEdge} />
-      </>}
+      {section === 'PantheraEDGE' && <EdgeOperations
+        latestEdge={latestEdge} draft={scientificDraft} setDraft={setScientificDraft}
+        enabled={apiState === 'connected'}
+        onOpenPantheraId={() => setSection('PantheraID')}
+        onOpenResearch={() => setSection('Investigación')} />}
       {section === 'Investigación' && <ScientificWorkspace view="Investigación" enabled={apiState === 'connected'}
         draft={scientificDraft} setDraft={setScientificDraft}
         records={scientificRecords} setRecords={setScientificRecords} latestEdge={latestEdge} />}
@@ -181,7 +179,7 @@ function App() {
         latestEdge={latestEdge} onOpenEdge={() => setSection('PantheraEDGE')}
         onOpenResearch={() => setSection('Investigación')} />}
       {apiState === 'connected' && aiDependencyState === 'missing' &&
-        (section === 'PantheraID' || section === 'PantheraEDGE') && <p className="science-hint" role="status">
+        section === 'PantheraID' && <p className="science-hint" role="status">
           La API científica funciona, pero MegaDetector todavía necesita PyTorchWildlife y sus pesos en el entorno de FastAPI.
           Los formularios y exportaciones no dependen de ese modelo.
         </p>}
@@ -189,13 +187,13 @@ function App() {
         <div className="cards">
           <article><span>PantheraID · Imágenes y videos</span><strong>MegaDetector V6</strong><p>Detección de animales, personas y vehículos con API Python. La identificación individual continúa pendiente.</p>
             <Button type="button" onClick={() => setSection('PantheraID')}>Abrir análisis multimedia</Button></article>
-          <article><span>PantheraEDGE · Ciencia</span ><strong>Módulos científicos</strong><p>Captura científica, IA, gráficos, ubicación, eventos, Sentinel, simulación 5G y reportes.</p>
+          <article><span>PantheraEDGE · Nodo VIGÍA</span><strong>Conexión y eventos</strong><p>Recepción de capturas del nodo de Manuel, estado de la conexión y estimaciones 5G/4G. Sin duplicar la IA de PantheraID.</p>
             <Button type="button" onClick={() => setSection('PantheraEDGE')}>Abrir PantheraEDGE</Button></article>
           <article><span>PantheraMONITORING</span><strong>{scientificRecords.length} registros locales</strong><p>Dashboard de observaciones de esta sesión. Sin conexión automática a Supabase.</p>
             <Button type="button" onClick={() => setSection('PantheraMONITORING')}>Abrir monitoreo</Button></article>
         </div>
-        <section className="panel"><h2>PantheraLAB · Flujo de investigación</h2><p>Ingresá una cámara o video, procesá los fotogramas con MegaDetector, documentá su procedencia científica en PantheraEDGE y exportá el registro desde Investigación. Una PWA instalada sigue necesitando conexión con el servidor Python para inferencia, informes PDF y Sentinel.</p>
-        <p className="scientific-note">Estado del prototipo: la detección exige bibliotecas y pesos de IA instalados en FastAPI; el nodo VIGÍA y la persistencia real en Supabase requieren configuración e integración adicionales.</p></section>
+        <section className="panel"><h2>PantheraLAB · Flujo de investigación</h2><p>PantheraEDGE recibe los eventos del nodo VIGÍA, PantheraID analiza fotografías y videos con MegaDetector, Investigación documenta los registros y Sentinel, y PantheraMONITORING presenta los resultados. La PWA requiere conexión al servidor Python para inferencia e informes.</p>
+        <p className="scientific-note">Estado del prototipo: la detección exige bibliotecas y pesos de IA instalados en FastAPI; el envío de VIGÍA requiere HTTPS y credenciales configuradas; la conexión 5G física y la persistencia en Supabase siguen pendientes.</p></section>
       </>}
     </main>
     <MobileNavigation currentSection={section} onSelect={setSection} />

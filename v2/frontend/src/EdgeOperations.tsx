@@ -8,13 +8,19 @@ type EdgeEvent = {
   temperature?: number | null; humidity?: number | null;
   class?: string | null; confidence?: number | null;
   hmac_status?: string; source?: string;
+  auth_status?: string; trigger?: string; filename?: string;
+  size_bytes?: number; saved?: boolean; analyzed?: boolean;
+  received_at?: string;
 };
+type VigiaStatus = { configured: boolean; dashboard_configured: boolean; received_count: number; message: string };
 
 type Props = {
   latestEdge: EdgeSummary | null;
   draft: ScientificObservation;
   setDraft: React.Dispatch<React.SetStateAction<ScientificObservation>>;
   enabled: boolean;
+  onOpenPantheraId: () => void;
+  onOpenResearch: () => void;
 };
 
 function Metric({ label, value, detail }: { label: string; value: string; detail?: string }) {
@@ -24,53 +30,11 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 const percent = (number: number) => (number * 100).toFixed(1) + '%';
 const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(3) + ' MB';
 
-function ConfidenceGraph({ rows, threshold = 0.25 }: { rows: NonNullable<EdgeSummary['rows']>; threshold?: number }) {
-  if (!rows.length) return null;
-  const values = rows.map(point => Math.max(0, Math.min(1, point.confidence)));
-  const W = 680, H = 180, L = 38, R = 660, T = 12, B = 147;
-  const line = values.map((value, i) =>
-    (i === 0 ? 'M' : 'L') + (L + i / Math.max(1, values.length - 1) * (R - L)).toFixed(1)
-    + ',' + (B - value * (B - T)).toFixed(1)).join(' ');
-  return <div className="edge-chart">
-    <h4>Confianza de detección animal por muestra</h4>
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Perfil de confianza de MegaDetector de cero a cien por ciento">
-      {[0, 0.25, 0.5, 0.75, 1].map(value => <g key={value}>
-        <line x1={L} x2={R} y1={B - value * (B - T)} y2={B - value * (B - T)}
-          stroke="#315b45" strokeDasharray="4 5" />
-        <text x={L - 5} y={B - value * (B - T) + 4} fontSize="11" textAnchor="end" fill="#b9cfbf">{Math.round(value * 100)}%</text>
-      </g>)}
-      <line x1={L} x2={R} y1={B - threshold * (B - T)} y2={B - threshold * (B - T)}
-        stroke="#f2c675" strokeDasharray="7 5" strokeWidth="2" />
-      <path d={line} stroke="#78db99" fill="none" strokeWidth="2.5" />
-      {values.map((value, index) => <circle key={index}
-        cx={L + index / Math.max(1, values.length - 1) * (R - L)}
-        cy={B - value * (B - T)} r={4} fill={rows[index].retained ? '#86eab0' : '#abb7ae'} />)}
-      <text x={L} y={H - 7} fill="#b9cfbf" fontSize="11">Muestra 1</text>
-      <text x={R} y={H - 7} textAnchor="end" fill="#b9cfbf" fontSize="11">Muestra {rows.length}</text>
-    </svg>
-    <small>La línea amarilla representa el umbral del análisis. Los ceros no demuestran ausencia de fauna.</small>
-  </div>;
-}
-
-function Distribution({ rows }: { rows: NonNullable<EdgeSummary['rows']> }) {
-  const detected = rows.map(row => row.confidence).filter(value => value > 0);
-  if (!detected.length) return <p>No hay valores positivos para calcular una distribución.</p>;
-  const bins = Array.from({ length: 5 }, (_, index) =>
-    detected.filter(value => value >= index / 5 && (index === 4 ? value <= 1 : value < (index + 1) / 5)).length);
-  const largest = Math.max(...bins, 1);
-  return <div className="edge-chart"><h4>Distribución de confianza entre muestras positivas</h4>
-    <div className="edge-bars">{bins.map((count, index) => <div key={index} className="edge-bar-item">
-      <span>{Math.round(index * 20)}–{Math.round((index + 1) * 20)}%</span>
-      <div className="edge-bar-track"><div style={{ width: (count / largest * 100) + '%' }} /></div>
-      <strong>{count}</strong>
-    </div>)}</div>
-    <small>Se agrupa la confianza máxima por muestra, no cada detección individual. Este histograma no mide exactitud del modelo.</small>
-  </div>;
-}
-
-export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }: Props) {
+export default function EdgeOperations({ latestEdge, draft, setDraft, enabled, onOpenPantheraId, onOpenResearch }: Props) {
   const [event, setEvent] = React.useState<EdgeEvent | null>(null);
-  const [eventSource, setEventSource] = React.useState<'none' | 'demo' | 'remote'>('none');
+  const [eventSource, setEventSource] = React.useState<'none' | 'demo' | 'remote' | 'vigia'>('none');
+  const [vigiaStatus, setVigiaStatus] = React.useState<VigiaStatus | null>(null);
+  const [dashboardToken, setDashboardToken] = React.useState('');
   const [eventError, setEventError] = React.useState('');
   const [polling, setPolling] = React.useState(false);
   const [notice, setNotice] = React.useState('');
@@ -117,6 +81,33 @@ export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }:
       setEventError(cause instanceof Error ? cause.message : 'No se pudo consultar el nodo.');
     } finally { setPolling(false); }
   }
+  async function pollVigia() {
+    if (!enabled) { setEventError('Se requiere conexión con FastAPI.'); return; }
+    setPolling(true); setEventError(''); setNotice('');
+    try {
+      const statusResponse = await fetch('/api/edge/vigia/status', { cache: 'no-store' });
+      if (!statusResponse.ok) throw new Error('No se pudo consultar el receptor VIGÍA.');
+      const status = await statusResponse.json() as VigiaStatus;
+      setVigiaStatus(status);
+      if (!status.configured) { setEventError(status.message); return; }
+      if (!status.received_count) { setEventError('Receptor activo, pero todavía no recibió fotografías de VIGÍA.'); return; }
+      if (!dashboardToken.trim()) {
+        setEventError('Ingresá la clave de consulta proporcionada por el operador para ver el evento.');
+        return;
+      }
+      const response = await fetch('/api/edge/vigia/latest', {
+        cache: 'no-store', headers: { 'X-Panthera-Dashboard-Token': dashboardToken },
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(typeof payload.detail === 'string' ? payload.detail : 'No se autorizó la consulta del nodo.');
+      if (!payload.event) { setEventError(payload.message || 'No hay eventos de VIGÍA.'); return; }
+      setEvent(payload.event as EdgeEvent);
+      setEventSource('vigia');
+    } catch (cause) {
+      setEventError(cause instanceof Error ? cause.message : 'Falló la consulta a VIGÍA.');
+    } finally { setPolling(false); }
+  }
+
   function linkEvent() {
     if (!event) return;
     setDraft(previous => ({
@@ -127,7 +118,8 @@ export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }:
       edge_hmac_status: event.hmac_status || 'NOT_CHECKED',
       camera_id: previous.camera_id || event.camera_id || '',
     }));
-    setNotice('Identificador del evento asociado al formulario. Las coordenadas y las mediciones del nodo NO se copian automáticamente: necesitan validación de procedencia.');
+    setNotice('Identificador vinculado al borrador de Investigación. Las coordenadas y mediciones del nodo NO se copian automáticamente: verificá su procedencia.');
+    onOpenResearch();
   }
 
   const mapCoordsPresent = draft.latitude !== null && draft.longitude !== null;
@@ -141,33 +133,19 @@ export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }:
 
   return <div className="edge-operations">
     <section className="panel edge-module">
-      <h2>PantheraEDGE · Flujo de monitoreo</h2>
+      <h2>PantheraEDGE · Conexión con VIGÍA</h2>
       <div className="edge-flow" aria-label="Arquitectura conceptual">
-        {['PantheraCAM / Sensores', 'PantheraEDGE · IA local', 'Troncal 5G / 4G', 'Panthera LAB · Nube', 'Investigadores / Instituciones'].map((step, index) =>
+        {['VIGÍA · SD / ESP32', 'Wi-Fi / futura pasarela 5G', 'PantheraEDGE · Recepción', 'PantheraID · Detección', 'Monitoreo / Investigación'].map((step, index) =>
           <React.Fragment key={step}>{index > 0 && <span aria-hidden="true" className="edge-flow-arrow">→</span>}
             <div><small>ETAPA {index + 1}</small><strong>{step}</strong></div></React.Fragment>)}
       </div>
-      <p className="scientific-note">Arquitectura de referencia: esta PWA es la interfaz de investigación. La ingesta real y la transmisión 5G dependen de infraestructura externa; no se infieren conexiones físicas.</p>
+      <p className="scientific-note">VIGÍA en Wokwi simula cámara, PIR, microSD y subida Wi-Fi. No es una conexión 5G real. La recepción autenticada de fotografías requiere configurar el endpoint HTTPS y modificar el sketch o su pasarela; aún no hay integración física.</p>
     </section>
 
-    <section className="panel edge-module">
-      <h2>Resultados y analítica de MegaDetector</h2>
-      {latestEdge ? <>
-        <p>Último archivo: <strong>{latestEdge.filename}</strong> · {latestEdge.model}</p>
-        <div className="edge-metrics-grid">
-          <Metric label="Muestras analizadas" value={String(latestEdge.sampled)} />
-          <Metric label="Frames retenidos" value={String(latestEdge.retained)} />
-          <Metric label="Animales detectados" value={String(latestEdge.animals)} />
-          <Metric label="Personas / vehículos" value={latestEdge.persons + ' / ' + latestEdge.vehicles} />
-          <Metric label="Confianza máxima" value={percent(latestEdge.max_confidence)} />
-          <Metric label="Reducción JPEG estimada" value={reduction === null ? 'Sin datos' : reduction.toFixed(1) + '%'} />
-        </div>
-        {(latestEdge.rows?.length ?? 0) > 0 && <div className="edge-graphs">
-          <ConfidenceGraph rows={latestEdge.rows!} threshold={latestEdge.threshold} />
-          <Distribution rows={latestEdge.rows!} />
-        </div>}
-        <p className="scientific-note">La detección animal no identifica especies, ni jaguares individuales. La confianza no mide precisión, y las muestras positivas no representan individuos únicos.</p>
-      </> : <p>Analizá una imagen o video en PantheraID o en el bloque multimedia de esta pestaña. Los resultados científicos aparecerán aquí.</p>}
+    <section className="panel edge-module edge-id-link">
+      <h2>Análisis de imágenes: PantheraID</h2>
+      <p>La detección de animales, sus gráficos y fotogramas se realizan únicamente en PantheraID. PantheraEDGE se ocupa de la conexión del nodo VIGÍA y de los eventos recibidos.</p>
+      <div className="science-actions"><button type="button" onClick={onOpenPantheraId}>Abrir PantheraID</button></div>
     </section>
 
     <section className="panel edge-module">
@@ -187,17 +165,31 @@ export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }:
     </section>
 
     <section className="panel edge-module">
-      <h2>Eventos PantheraCAM / PantheraEDGE</h2>
-      <p>Podés simular una captura o consultar un puente HTTP real configurado previamente por el responsable del servidor.</p>
-      <div className="science-actions">
-        <button type="button" onClick={simulate}>Simular captura PantheraCAM</button>
-        <button type="button" disabled={!enabled || polling} onClick={() => void pollRemote()}>
-          {polling ? 'Consultando…' : 'Consultar puente HTTP configurado'}</button>
+      <h2>VIGÍA · Eventos del nodo de Manuel</h2>
+      <p>PantheraEDGE recibe metadatos de capturas enviadas por VIGÍA. El sketch original usa Wi-Fi y todavía debe configurarse para utilizar un endpoint HTTPS autenticado. Los eventos no se guardan en Supabase ni ejecutan MegaDetector.</p>
+      <div className="edge-vigia-connect">
+        <p><strong>Estado del receptor:</strong> {vigiaStatus ? vigiaStatus.message : 'Sin comprobar'}</p>
+        {vigiaStatus && <p className="science-hint">Configuración: {vigiaStatus.configured ? 'Receptor habilitado' : 'Pendiente'} · Eventos en memoria: {vigiaStatus.received_count} · No implica conexión 5G real.</p>}
+        <label className="science-field" htmlFor="vigia-dashboard-token">
+          <span>Clave de consulta del operador (no se guarda en el navegador)</span>
+          <input id="vigia-dashboard-token" type="password" autoComplete="off"
+            value={dashboardToken} onChange={event => setDashboardToken(event.target.value)}
+            placeholder="Solo para eventos reales" />
+        </label>
+        <div className="science-actions">
+          <button type="button" disabled={!enabled || polling} onClick={() => void pollVigia()}>
+            {polling ? 'Consultando…' : 'Consultar receptor VIGÍA'}
+          </button>
+          <button type="button" onClick={simulate}>Simular evento (solo demo)</button>
+          <button type="button" disabled={!enabled || polling} onClick={() => void pollRemote()}>
+            Consultar puente JSON opcional
+          </button>
+        </div>
       </div>
       {eventError && <p role="alert" className="upload-error">{eventError}</p>}
       {event && <div className="edge-event-detail">
         <div className="edge-metrics-grid">
-          <Metric label="Origen" value={eventSource === 'demo' ? 'DEMOSTRACIÓN' : 'PUENTE HTTP'} />
+          <Metric label="Origen" value={eventSource === 'demo' ? 'DEMOSTRACIÓN' : eventSource === 'vigia' ? 'VIGÍA / MULTIPART' : 'PUENTE JSON'} />
           <Metric label="Estado" value={event.status || 'RECEIVED'} />
           <Metric label="Contrato" value={event.contract_version || 'No indicado'} />
           <Metric label="HMAC" value={event.hmac_status || 'NOT_CHECKED'} />
@@ -207,6 +199,9 @@ export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }:
           <dt>Cámara/nodo</dt><dd>{event.camera_id || 'No indicado'}</dd>
           <dt>Hora UTC</dt><dd>{event.timestamp || 'No indicada'}</dd>
           <dt>Transporte</dt><dd>{event.transport || 'No indicado'}</dd>
+          {event.filename && <><dt>Fotografía recibida</dt><dd>{event.filename} · {typeof event.size_bytes === 'number' ? mb(event.size_bytes) : 'Tamaño desconocido'}</dd></>}
+          {eventSource === 'vigia' && <><dt>Autenticación del nodo</dt><dd>{event.auth_status || 'Sin especificar'}</dd>
+            <dt>Inferencia automática</dt><dd>No; fotografía no guardada ni analizada</dd></>}
           <dt>Clase / confianza</dt><dd>{event.class || 'Sin detectar'} · {typeof event.confidence === 'number' ? percent(event.confidence) : 'N/D'}</dd>
         </dl>
         <div className="science-actions">
@@ -220,14 +215,14 @@ export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }:
         </div>
         {notice && <p className="science-success" role="status">{notice}</p>}
       </div>}
-      <p className="scientific-note">Los eventos simulados no provienen de sensores ni de redes 5G reales. La consulta remota es opcional y requiere la variable PANTHERA_EDGE_BRIDGE_URL en FastAPI.</p>
+      <p className="scientific-note">El receptor VIGÍA requiere credenciales configuradas en FastAPI y cambios coordinados con Manuel. Los eventos simulados no provienen de sensores reales. El puente JSON previo sigue siendo opcional. No se realiza inferencia ni se almacena la fotografía al recibir el evento.</p>
     </section>
 
     <section className="panel edge-module">
-      <h2>Conectividad y estimación de transferencia · 5G / 4G</h2>
+      <h2>Pasarela 5G / 4G · Escenario de conectividad</h2>
       <div className="science-check"><input type="checkbox" checked={measured} onChange={event => setMeasured(event.target.checked)} />
         <span>Los valores de throughput y latencia fueron medidos externamente (testbed)</span></div>
-      <p className="science-hint">Los valores iniciales son supuestos de referencia. Activar la casilla no mide la red: solo etiqueta valores aportados por el usuario.</p>
+      <p className="science-hint">Wokwi se conecta mediante Wi-Fi, no 5G. Los valores iniciales son supuestos; marcar la casilla no mide la red. Para 5G real se necesita un router/gateway y mediciones verificadas.</p>
       <div className="science-grid">
         <label className="science-field"><span>5G subida (Mbps)</span><input type="number" min="0.1" max="1000" step="0.1" value={fiveGUp}
           onChange={e => setFiveGUp(Number(e.target.value))}/></label>
@@ -248,7 +243,7 @@ export default function EdgeOperations({ latestEdge, draft, setDraft, enabled }:
           <Metric label="Tráfico evitado estimado" value={mb(Math.max(0, raw - filtered))} />
         </div>
         <p className="science-hint">Fuente: {measured ? 'valores de red declarados medidos por investigador' : 'supuestos de referencia'} · Comparación determinista de carga JPEG. No son métricas de tráfico real ni una medición de rendimiento 5G.</p>
-      </> : <p>Cuando haya un análisis de video o imagen con tamaños JPEG comparables, se calcularán los tiempos estimados de transmisión.</p>}
+      </> : <p>Analizá un video desde PantheraID para obtener tamaños JPEG comparables. Aquí se calculan tiempos estimados para una futura pasarela 5G/4G, no tráfico real del nodo.</p>}
     </section>
   </div>;
 }

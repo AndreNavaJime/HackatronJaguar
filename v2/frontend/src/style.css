@@ -319,3 +319,12 @@ body{overscroll-behavior-y:contain}
   .mobile-navigation button.mobile-tab svg{width:19px;height:19px}
 }
 @media(prefers-reduced-motion:reduce){.ui-button{transition:none}}
+
+/* VIGÍA receiver connection panel: compact mobile controls; no global overrides. */
+.edge-vigia-connect{padding:17px;background:#0a2117;border:1px solid #3b6850;border-radius:13px;margin:16px 0}
+.edge-vigia-connect>p{margin:0 0 12px}
+.edge-vigia-connect .science-field{max-width:470px}
+.edge-vigia-connect .science-actions{margin-top:16px}
+.edge-vigia-connect .science-actions button{flex:1 1 180px}
+.edge-id-link{border-color:#3a6b4c}
+@media(max-width:520px){.edge-vigia-connect{padding:13px}.edge-vigia-connect .science-actions button{flex:1 1 100%}}

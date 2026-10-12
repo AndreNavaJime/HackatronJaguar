@@ -217,7 +217,7 @@ export default function ScientificWorkspace({ view, enabled, draft, setDraft, re
         type: 'FeatureCollection', features: records.map(geoFeature),
       }, 'PantheraEDGE_registro.geojson')}>Descargar GeoJSON</button>
     </div>}
-    {!records.length ? <p>Aún no hay observaciones. Guardá una desde PantheraEDGE.</p> :
+    {!records.length ? <p>Aún no hay observaciones. Guardá una desde Investigación.</p> :
       <div className="science-records">{records.map((record, index) => <div className="science-record" key={record.observation_id + '-' + index}>
         <div><strong>{record.observation_name || record.observation_id}</strong>
           <small>{record.study_site || 'Sitio no indicado'} · {record.camera_id || 'Sin cámara'} · {record.species || 'Especie sin validar'}</small>
@@ -234,10 +234,10 @@ export default function ScientificWorkspace({ view, enabled, draft, setDraft, re
 
   return <section className="panel science-workspace">
     <div className="panel-heading"><div>
-      <h2>{view === 'Investigación' ? 'Investigación · Registro científico' : 'PantheraEDGE · Trabajo científico'}</h2>
+      <h2>{view === 'Investigación' ? 'Investigación · Registro científico' : 'Investigación · Registro científico'}</h2>
       <p>Metadatos de campo, contexto satelital, trazabilidad científica e informes para cámaras trampa.</p>
     </div><span className="tag">CIENCIA · BETA</span></div>
-    {view === 'PantheraEDGE' && <>
+    {view === 'Investigación' && <>
       <p className="scientific-note">Las especies y los individuos son anotaciones del investigador, no predicciones de MegaDetector.
         Dejá vacíos los valores ambientales que no se midieron; no se emplean coordenadas inventadas.</p>
       <form onSubmit={event => void register(event)} id="science-observation-form">
