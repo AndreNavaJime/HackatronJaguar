@@ -303,7 +303,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         {file && <small>{file.name} · {megabytes(file.size)}</small>}
         {videoUrl && <video className="video-preview" src={videoUrl} controls preload="metadata"
           aria-label={t("Vista previa del video seleccionado")}>
-          Tu navegador no puede reproducir este formato; Python podría procesarlo.
+          {t('Tu navegador no puede reproducir este formato; Python podría procesarlo.')}
         </video>}
         <small>{t("La reproducción previa depende del navegador; OpenCV podría leer formatos que el navegador no reproduce.")}</small>
       </div>
