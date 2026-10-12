@@ -90,8 +90,8 @@ export default function ResearchWorkspace({records,current}:Props){
         <div className="sci-satellite-box"><span>SENTINEL-2 · L2A</span>
           <p>{tx('Adquisiciones ópticas multiespectrales y nubosidad reportada. El catálogo no equivale a un índice NDVI calculado.',
             'Multispectral optical acquisitions and reported cloud cover. Catalogue metadata is not calculated NDVI.')}</p></div>
-        <p className="sci-warning">{tx('El catálogo por sí solo NO demuestra deforestación, inundaciones, cambios de hábitat ni presencia de jaguares.',
-          'Catalogue metadata alone does NOT establish forest loss, flooding, habitat change or jaguar presence.')}</p>
+        <p className="sci-warning">{tx('El catálogo aporta fechas y características de adquisición. La interpretación de cambios ecológicos requiere procesamiento y verificación independientes.',
+          'The catalogue provides acquisition dates and metadata. Ecological change assessment requires separate processing and validation.')}</p>
       </section>
     </div>
 
@@ -158,24 +158,24 @@ export default function ResearchWorkspace({records,current}:Props){
           downloadFile('PantheraLAB_investigacion.geojson',
             JSON.stringify(toGeoJSON(rows),null,2),'application/geo+json')}>GeoJSON ↓</button>
       </div>
-      <p className="sci-warning">{tx('GeoJSON conserva coordenadas exactas. Antes de compartir con terceros, generalizá u ocultá puntos de especies vulnerables.',
-        'GeoJSON includes exact coordinates. Generalize or remove sensitive wildlife locations before sharing with third parties.')}</p>
+      <p className="sci-warning">{tx('Protección de datos: GeoJSON incluye coordenadas exactas. Generalizá u ocultá ubicaciones de especies sensibles antes de compartir resultados.',
+        'Data protection: GeoJSON contains exact coordinates. Generalize or remove locations of sensitive species before sharing results.')}</p>
       <h3>{tx('Formatos institucionales','Institutional outputs')}</h3>
       <div className="sci-stats">
         <div><span>SINAC / GIS</span><strong>GeoJSON</strong></div>
         <div><span>{tx('Investigadores','Researchers')}</span><strong>CSV / JSON</strong></div>
-        <div><span>CNE / Bomberos</span><strong>{tx('CAP pendiente','CAP planned')}</strong></div>
-        <div><span>{tx('Guardaparques','Rangers')}</span><strong>{tx('API pendiente','API planned')}</strong></div>
+        <div><span>CNE / Bomberos</span><strong>{tx('Integración futura','Future integration')}</strong></div>
+        <div><span>{tx('Guardaparques','Rangers')}</span><strong>{tx('Integración futura','Future integration')}</strong></div>
       </div>
       <p className="sci-muted">{tx('Son formatos de exportación disponibles, no conexiones automáticas con instituciones.',
         'These are available export formats, not automatic institutional connections.')}</p>
     </section>
 
-    <section className="sci-panel">
-      <h3>{tx('Alcance y límites metodológicos','Scope and methodological limits')}</h3>
-      <p className="sci-muted">{tx(
-        'Los gráficos de confianza, precisión y presencia animal requieren un modelo de detección real y validación independiente. En Render Free solo hay filtrado visual de OpenCV. El seguimiento de individuos depende de revisión humana; las métricas 5G son estimaciones con entradas configurables.',
-        'Detection confidence, accuracy and animal-presence charts require actual AI inference and independent validation. Render Free only runs OpenCV visual screening. Individual tracking needs human review; 5G metrics are estimates from configurable inputs.')}</p>
-    </section>
+    <details className="method-details research-method-details">
+      <summary>{tx('Alcance y criterios metodológicos','Scope and methodological guidance')}</summary>
+      <p>{tx(
+        'La consulta Sentinel devuelve metadatos del catálogo, no índices ambientales calculados. La evaluación de presencia animal y las estadísticas de confianza requieren modelos de detección validados; el análisis visual disponible utiliza OpenCV. Los identificadores individuales provienen de anotaciones de investigadores. Los indicadores 4G/5G son estimaciones a partir de valores proporcionados.',
+        'Sentinel queries return catalogue metadata, not derived environmental indices. Wildlife presence and detection-confidence statistics require validated models; the available visual analysis uses OpenCV. Individual identifiers are researcher annotations. 4G/5G values are estimates based on supplied inputs.')}</p>
+    </details>
   </div>;
 }
