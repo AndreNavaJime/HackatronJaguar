@@ -389,6 +389,28 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
         <p>{tx('El procesamiento utiliza OpenCV para comparar la variación de brillo entre fotogramas; no emplea un modelo de detección animal. El movimiento de vegetación, la lluvia o los cambios de iluminación pueden generar alertas y la ausencia de cambios no descarta fauna. Los porcentajes son variación visual, no confianza de identificación. Revisá todas las muestras.',
           'Processing uses OpenCV to compare brightness changes between frames; it does not use an animal detection model. Vegetation, rain or changing light can trigger alerts, and unchanged frames do not rule out wildlife. Percentages indicate visual change, not identification confidence. Review every sample.')}</p>
       </details>
+      {onRecordEvidence&&<div className="workflow-end-action" role="group"
+        aria-label={tx('Continuar con el registro científico','Continue scientific registration')}>
+        <span className="workflow-end-title">{tx('Continuar con la investigación','Continue your research')}</span>
+        <p>{selectedSamples.length>0
+          ?tx('Tus fotogramas están seleccionados y listos para el registro.',
+            'Your selected frames are ready to be registered.')
+          :tx('Primero elegí uno o más fotogramas como evidencia para continuar.',
+            'Select one or more frames as evidence before continuing.')}</p>
+        <button type="button" className="workflow-next-button workflow-end-next"
+          onClick={()=>{
+            if(selectedSamples.length){continueReview();return;}
+            const target=document.getElementById('lite-video-gallery');
+            target?.scrollIntoView({behavior:'smooth',block:'center'});
+            const input=target?.querySelector<HTMLInputElement>('input[type="checkbox"]:not(:disabled)');
+            input?.focus({preventScroll:true});
+          }}>
+          <span>{selectedSamples.length>0
+            ?tx('Siguiente: registrar captura','Next: record capture')
+            :tx('Siguiente: seleccionar fotogramas','Next: select frames')}</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>}
     </div>}
   </section>;
 }
