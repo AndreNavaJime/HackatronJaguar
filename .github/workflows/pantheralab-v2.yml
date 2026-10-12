@@ -1,13 +1,13 @@
-name: PantheraLAB v2 checks
+name: PantheraLAB v2 and v3 checks
 
 on:
   push:
-    branches: [pantheraid-v2]
+    branches: [pantheraid-v2, pantheralab-3.0]
     paths:
       - "v2/**"
       - ".github/workflows/pantheralab-v2.yml"
   pull_request:
-    branches: [pantheraid-v2]
+    branches: [pantheraid-v2, pantheralab-3.0]
 
 permissions:
   contents: read
