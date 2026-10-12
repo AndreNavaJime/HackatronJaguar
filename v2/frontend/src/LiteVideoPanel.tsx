@@ -23,8 +23,10 @@ async function readResponse(response:Response) {
   return value;
 }
 
-export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boolean;
-  onRecordEvidence?:(item:VideoEvidenceBatch)=>void}) {
+export type VideoWorkflowState={hasResult:boolean;selectedCount:number};
+export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState,nextRequest=0}:{enabled:boolean;
+  onRecordEvidence?:(item:VideoEvidenceBatch)=>void;
+  onWorkflowState?:(state:VideoWorkflowState)=>void;nextRequest?:number}) {
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [file,setFile]=React.useState<File|null>(null);
@@ -109,6 +111,18 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
     void saveVideoSession(snapshot).catch(()=>{/* Frame data is also passed in memory. */});
     onRecordEvidence(selectionBatch(snapshot));
   }
+
+  // The same Next command is available in a fixed mobile/desktop workflow dock.
+  React.useEffect(()=>{
+    onWorkflowState?.({hasResult:!!result,selectedCount:selectedSamples.length});
+  },[!!result,selectedSamples.length,onWorkflowState]);
+  React.useEffect(()=>{
+    if(!nextRequest)return;
+    if(result&&selectedSamples.length){continueReview();return;}
+    const target=result?'lite-video-gallery':'lite-video';
+    document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'center'});
+    if(!result)document.getElementById('lite-video')?.focus();
+  },[nextRequest]);
 
   React.useEffect(()=>{
     if(!file){setPreview('');return;}
