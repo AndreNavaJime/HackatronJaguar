@@ -99,6 +99,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
     previous.length>=6?previous:[...previous,sample]);
   function continueReview(samplesToSend=selectedSamples){
     if(!onRecordEvidence||!result||!analysisId||!jobId||!samplesToSend.length)return;
+    setSelectedSamples(samplesToSend);
     const snapshot:VideoSession={
       id:analysisId,jobId,filename:latestFilename,
       createdAt:createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),
@@ -119,7 +120,13 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
     let active=true;
     const poll=async()=>{
       try{
-        const next=await readResponse(await fetch('/api/videos/jobs/'+encodeURIComponent(jobId),{cache:'no-store'})) as Job;
+        const response=await fetch('/api/videos/jobs/'+encodeURIComponent(jobId),{cache:'no-store'});
+        if(response.status===404||response.status===410){
+          if(active){setError(tx('El proceso del servidor expiró. Podés iniciar un nuevo análisis.',
+            'The server job expired. You can start a new analysis.'));setState('failed');}
+          return;
+        }
+        const next=await readResponse(response) as Job;
         if(!active)return;
         setJob(next);
         if(next.state==='completed'){
@@ -177,6 +184,8 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
   };
   const pct=(value:number)=>(value*100).toFixed(1)+'%';
   const base=jobId?'/api/videos/jobs/'+encodeURIComponent(jobId)+'/download?kind=':'';
+  const hasServerDownloads=!!jobId&&(!createdAt||
+    !Number.isFinite(Date.parse(createdAt))||Date.now()-Date.parse(createdAt)<50*60*1000);
 
   return <section className="video-panel lite-panel" aria-label={tx('Análisis exploratorio de video','Exploratory video analysis')}>
     <div className="panel-heading">
@@ -230,7 +239,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
       <div className="video-input">
         <label htmlFor="lite-video">{tx('Video de cámara trampa (hasta 60 MB, máximo 3 min)','Camera-trap video (up to 60 MB, max 3 min)')}</label>
         <input id="lite-video" type="file" accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo"
-          disabled={busy} onChange={e=>reset(e.target.files?.[0]??null)}/>
+          disabled={busy||restoring} onChange={e=>reset(e.target.files?.[0]??null)}/>
         {file&&<small>{file.name} · {(file.size/1048576).toFixed(2)} MB</small>}
         {!file&&persistedFilename&&<small>{tx('Análisis recuperado:', 'Recovered analysis:')} {persistedFilename} · {tx('video original no guardado', 'original video not stored')}</small>}
         {preview&&<video controls preload="metadata" src={preview} className="video-preview"
@@ -248,7 +257,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
         <label htmlFor="lite-samples">{tx('Máximo de fotogramas','Maximum frames')}: {samples}</label>
         <input id="lite-samples" type="range" min="2" max="12" step="1"
           value={samples} disabled={busy} onChange={e=>setSamples(Number(e.target.value))}/>
-        <button type="button" className="action-button" disabled={!file||!enabled||busy} onClick={()=>void analyze()}>
+        <button type="button" className="action-button" disabled={!file||!enabled||busy||restoring} onClick={()=>void analyze()}>
           {busy?tx('Procesando…','Processing…'):tx('Iniciar análisis ↗','Start analysis ↗')}
         </button>
         {!enabled&&<small>{tx('El servicio de análisis no está disponible en este momento. Intentá nuevamente en unos minutos.','The analysis service is currently unavailable. Please try again shortly.')}</small>}
@@ -298,7 +307,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
       </div>
       {onRecordEvidence&&<div className="video-next-actions">
         <button type="button" className="sci-secondary" disabled={!selectedSamples.length}
-          onClick={()=>setSelectedSamples([])}>{tx('Anterior · Revisar selección','Back · Review selection')}</button>
+          onClick={()=>setSelectedSamples([])}>{tx('Limpiar selección','Clear selection')}</button>
         <button type="button" className="action-button" disabled={!selectedSamples.length}
           onClick={()=>continueReview()}>
           {tx('Siguiente: registrar captura →','Next: record capture →')} ({selectedSamples.length})
@@ -306,11 +315,12 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
       </div>}
       <div className="video-downloads">
         <h4>{tx('Descargas para revisión científica','Downloads for scientific review')}</h4>
-        <div className="preview-controls">
+        {hasServerDownloads?<div className="preview-controls">
           <a className="download-link" href={base+'zip'}>{tx('Todas las imágenes · ZIP ↓','All frames · ZIP ↓')}</a>
           <a className="download-link" href={base+'csv'}>{tx('Cambios por fotograma · CSV ↓','Frame changes · CSV ↓')}</a>
           <a className="download-link" href={base+'pdf'}>{tx('Informe técnico · PDF ↓','Technical report · PDF ↓')}</a>
-        </div>
+        </div>:<p className="sci-muted">{tx('Los archivos temporales del servidor ya no están disponibles. Los fotogramas recuperados siguen en la galería y pueden descargarse individualmente.',
+          'Temporary server exports are no longer available. Saved gallery frames can still be downloaded individually.')}</p>}
         <small>{tx('El ZIP contiene TODAS las muestras, no solo las marcadas. Los archivos caducan en aproximadamente una hora.',
           'The ZIP includes ALL frames, not only flagged ones. Files expire in approximately one hour.')}</small>
       </div>
