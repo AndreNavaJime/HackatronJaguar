@@ -3,9 +3,10 @@ import {useLanguage} from './language';
 import {EdgeEvent,Observation,apiJson,downloadFile,toCsv} from './scienceShared';
 
 type Props={events:EdgeEvent[];onEvent:(event:EdgeEvent)=>void;
-  current:Observation;setCurrent:(record:Observation)=>void};
+  current:Observation;setCurrent:(record:Observation)=>void;
+  onUseEvent?:(event:EdgeEvent)=>void};
 
-export default function EdgeWorkspace({events,onEvent,current,setCurrent}:Props){
+export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [camera,setCamera]=React.useState('CAM-DEMO-01');
   const [latitude,setLatitude]=React.useState('');
@@ -149,8 +150,9 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent}:Props)
               camera_latitude:event.latitude,camera_longitude:event.longitude,
               altitude_m:event.altitude,temperature_c:event.temperature,
               humidity_percent:event.humidity,edge_event_id:event.event_id});
-            setNotice(tx('Metadatos copiados al formulario de PantheraMONITORING. Revisá y guardá la observación allí.',
-              'Metadata copied to PantheraMONITORING form. Review and save the observation there.'));
+            onUseEvent?.(event);
+            setNotice(tx('Metadatos enviados a PantheraMONITORING. Vinculá el evento con una estación y revisá los datos.',
+              'Metadata sent to PantheraMONITORING. Link the event to a deployment and review it.'));
           }}>{tx('Usar en MONITORING','Send to MONITORING')}</button></td></tr>)}</tbody>
       </table></div>
       <div className="sci-actions">
