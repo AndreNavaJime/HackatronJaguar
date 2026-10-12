@@ -108,8 +108,9 @@ async def search_sentinel(query: SatelliteQuery):
 def module_capabilities():
     return {
         "satellite_catalogue": "available_on_request",
-        "scientific_reports": "pdf_json_csv_geojson",
-        "observation_storage": "browser_session_only",
+        "scientific_reports": "observation_pdf_and_full_study_pdf_zip",
+        "observation_storage": "browser_local_persistent_not_synced",
+        "research_schema": "studies_deployments_encounters_sightings_individuals",
         "supabase": "credentials_present_but_auth_pending" if
             os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_PUBLISHABLE_KEY") else "not_configured",
         "edge_cloud_ingestion": "manual_validated_demo_only",
