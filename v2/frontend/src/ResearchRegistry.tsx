@@ -124,7 +124,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     }else if(tab==='stations'){
       if(!stations.length){
         if(stationDraft.camera_id.trim()&&stationDraft.site.trim()){
-          saveStation();return;
+          saveStation(true);return;
         }
         setNotice(tx('Completá el ID de cámara y el sitio, y guardá la estación.',
           'Enter the camera ID and study site, then save the deployment.'));
@@ -389,7 +389,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     setStationDraft(initialStation(activeId));setMapDeployment('');
     saved('Estación eliminada.','Camera deployment deleted.');
   }
-  function saveStation(){
+  function saveStation(advance=false){
     const coords=stationDraft.latitude!==null||stationDraft.longitude!==null;
     if(!stationDraft.camera_id.trim()||!stationDraft.site.trim()){
       saved('Indicá cámara y sitio de estudio.','Camera ID and site are required.');return;}
@@ -401,7 +401,9 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       ?prev.deployments.map(d=>d.deployment_id===stationDraft.deployment_id?stationDraft:d)
       :[...prev.deployments,stationDraft]}));
     setStationDraft(initialStation(activeId));
-    saved('Estación incorporada al estudio.','Camera deployment added to the study.');
+    if(advance){setTab('captures');saved('Estación guardada. Continuá con la captura.',
+      'Deployment saved. Continue with capture events.');}
+    else saved('Estación incorporada al estudio.','Camera deployment added to the study.');
   }
   function saveIndividual(){
     const key=individualDraft.individual_id.trim();
