@@ -279,6 +279,15 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
     {result&&<div className="video-results lite-results">
       <h3>{tx('Resultados del análisis','Analysis results')}</h3>
       <p className="details-caption">{result.metadata.filename} · OpenCV / {tx('análisis de variación visual','visual-change analysis')}</p>
+      <div className="workflow-next-action workflow-next-video">
+        <button type="button" className="workflow-next-button" onClick={()=>
+          document.getElementById('lite-video-gallery')?.scrollIntoView({behavior:'smooth',block:'start'})}>
+          <span>{tx('Siguiente: revisar fotogramas','Next: review frames')}</span>
+          <span aria-hidden="true">→</span>
+        </button>
+        <small>{tx('El análisis terminó. Revisá las imágenes y seleccioná cuáles documentar.',
+          'Analysis complete. Review the frames and select the images to record.')}</small>
+      </div>
       <div className="video-metrics">
         <div><span>{tx('Fotogramas revisados','Frames reviewed')}</span><strong>{result.totals.sampled}</strong></div>
         <div><span>{tx('Con cambios visuales','With visual changes')}</span><strong>{result.totals.retained}</strong></div>
@@ -308,7 +317,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
       {onRecordEvidence&&<div className="video-next-actions">
         <button type="button" className="sci-secondary" disabled={!selectedSamples.length}
           onClick={()=>setSelectedSamples([])}>{tx('Limpiar selección','Clear selection')}</button>
-        <button type="button" className="action-button" disabled={!selectedSamples.length}
+        <button type="button" className="workflow-next-button" disabled={!selectedSamples.length}
           onClick={()=>continueReview()}>
           {tx('Siguiente: registrar captura →','Next: record capture →')} ({selectedSamples.length})
         </button>
@@ -330,7 +339,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
       <h4>{tx('Galería de fotogramas','Frame gallery')}</h4>
       <p>{tx('Se muestran todas las muestras para evitar omitir posibles animales inmóviles.',
         'All samples are shown to avoid overlooking stationary wildlife.')}</p>
-      <div className="video-gallery">
+      <div id="lite-video-gallery" className="video-gallery">
         {result.frames.map(frame=><article key={frame.sample} className="video-frame-card">
           <img src={frame.image} loading="lazy" alt={tx('Fotograma','Frame')+' '+frame.sample}/>
           <div className="video-frame-details">
