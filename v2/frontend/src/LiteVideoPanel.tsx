@@ -27,7 +27,9 @@ async function readResponse(response:Response) {
   return value;
 }
 
-export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
+type EvidenceSelection={fileName:string;frameDataUrl:string;timeSeconds:number;sample:number};
+export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boolean;
+  onRecordEvidence?:(item:EvidenceSelection)=>void}) {
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [file,setFile]=React.useState<File|null>(null);
@@ -214,6 +216,10 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
             <small>{tx('Píxeles cambiados','Changed pixels')}: {pct(frame.motion_score)}</small>
             <a className="download-link" download={'pantheraid_muestra_'+String(frame.sample).padStart(3,'0')+'.jpg'}
               href={frame.image}>{tx('Descargar fotograma ↓','Download frame ↓')}</a>
+            {onRecordEvidence&&<button type="button" className="sci-secondary"
+              onClick={()=>onRecordEvidence({fileName:file?.name||result.metadata.filename,
+                frameDataUrl:frame.image,timeSeconds:frame.time_seconds,sample:frame.sample})}>
+              {tx('Registrar en PantheraMONITORING ↗','Register in PantheraMONITORING ↗')}</button>}
           </div>
         </article>)}
       </div>
