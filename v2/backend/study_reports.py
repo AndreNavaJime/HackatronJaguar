@@ -68,6 +68,21 @@ async def parse_payload(request: Request):
     if any(s.get("individual_id") and s.get("individual_id") not in indexes["individuals"]
            for s in payload["sightings"]):
         raise HTTPException(422, "Observacion vinculada a individuo inexistente.")
+    linked_analysis_ids = [e.get("source_analysis_id") for e in payload["encounters"]
+                           if e.get("source_analysis_id")]
+    if len(linked_analysis_ids) != len(set(linked_analysis_ids)):
+        raise HTTPException(422, "Un mismo analisis fue vinculado a varias capturas.")
+    for event in payload["encounters"]:
+        extra = event.get("evidence_frames") or []
+        if not isinstance(extra, list) or len(extra) > 5:
+            raise HTTPException(422, "Maximo seis fotogramas por captura.")
+        for item in extra:
+            if not isinstance(item, dict) or not isinstance(item.get("data_url"), str) or len(item["data_url"]) > 75000:
+                raise HTTPException(422, "Fotograma adicional invalido.")
+            if not isinstance(item.get("sample"), int) or not isinstance(item.get("time_seconds"), (int, float)):
+                raise HTTPException(422, "Metadatos de fotograma invalidos.")
+            if not math.isfinite(item["time_seconds"]) or item["time_seconds"] < 0:
+                raise HTTPException(422, "Marca temporal de fotograma invalida.")
     return payload
 
 
@@ -131,6 +146,11 @@ def table_rows(p):
             "environment_source": e.get("environment_source", ""),
             "image_url": e.get("image_url", ""), "video_url": e.get("video_url", ""),
             "edge_event_id": e.get("edge_event_id", ""),
+            "analysis_id": e.get("source_analysis_id", ""),
+            "original_video": e.get("source_video_name", ""),
+            "analysis_method": e.get("analysis_method", ""),
+            "samples_reviewed": e.get("analysis_samples", ""),
+            "selected_frame_samples": ", ".join(str(x.get("sample")) for x in (e.get("evidence_frames") or [])),
         })
     return output
 
