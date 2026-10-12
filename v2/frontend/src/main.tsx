@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
+import './panthera3.css';
 import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
 import LiteVideoPanel from './LiteVideoPanel';
@@ -224,8 +225,8 @@ function App() {
   return <div className="shell">
     <aside>
       <div className="brand">
-        <img className="brand-symbol" src="/icons/jaguar-modern-512.png" alt="" />
-        <span className="brand-copy"><strong>PANTHERA<span>LAB</span></strong><small>WILDLIFE INTELLIGENCE</small></span>
+        <img className="brand-symbol" src="/icons/pantheralab-3-192.png" alt="" />
+        <span className="brand-copy"><strong>PANTHERA<span>LAB</span></strong><small>BLUE EDITION · 3.0</small></span>
       </div>
       <p className="sub">{t('Conservación inteligente')}</p>
       <p className="sidebar-label">{t('CENTRO DE CONTROL')}</p>
@@ -240,11 +241,11 @@ function App() {
         <span className="sidebar-connection-dot" aria-hidden="true" />
         <div><strong>Panthera API</strong><small>{t(apiState==='connected'?'En línea':apiState==='checking'?'Verificando…':'Sin conexión')}</small></div>
       </div>
-      <small className="sidebar-footer">PANTHERALAB / V2.0<br />{language==='en'?'SCIENTIFIC MONITORING':'MONITOREO CIENTÍFICO'}</small>
+      <small className="sidebar-footer">PANTHERALAB / V3.0<br />{language==='en'?'SCIENTIFIC MONITORING':'MONITOREO CIENTÍFICO'}</small>
     </aside>
     <main>
       <header className="app-header">
-        <span className="header-location"><span className="header-location-mark" aria-hidden="true">◉</span> PANTHERALAB <span className="header-divider">/</span> {t(section).toUpperCase()}</span>
+        <span className="header-location"><span className="header-location-mark" aria-hidden="true">◉</span> PANTHERALAB 3.0 <span className="header-divider">/</span> {t(section).toUpperCase()}</span>
         <div className="app-header-actions"><span className="top-status">● {t('SISTEMA CIENTÍFICO')}</span>
           <div className="language-switch" role="group" aria-label="Idioma / Language">
             <button type="button" onClick={() => setLanguage('es')} aria-pressed={language==='es'} className={language==='es'?'selected':''}>ES</button>
@@ -252,18 +253,19 @@ function App() {
           </div>
           <InstallControl /></div>
       </header>
-      <section className="hero-stage" aria-label="Introducción a PantheraID">
+      <section className="hero-stage panthera3-hero" aria-label="Introducción a PantheraLAB 3.0">
         <div className="hero-copy">
           <p className="hero-eyebrow"><span className="hero-eyebrow-line" /> {t('OBSERVAR · ANALIZAR · CONSERVAR')}</p>
+          <span className="panthera3-version">◈ PANTHERALAB 3.0 · BLUE EDITION</span>
           <h1>{t(section==='Resumen'?'Inteligencia para la vida silvestre':section)}</h1>
+          <p className="panthera3-tagline">De la intuición a la evidencia</p>
           <p className="lead">{t('Tecnología aplicada a cámaras trampa, evidencia científica y monitoreo de fauna.')}</p>
-          <div className="hero-chips"><span>◆ PANTHERAID 2.0</span><span>◈ {t('INVESTIGACIÓN')}</span><span>◉ COSTA RICA</span></div>
+          <div className="hero-chips"><span>◆ PANTHERAID 3.0</span><span>◈ {t('INVESTIGACIÓN')}</span><span>◉ COSTA RICA</span></div>
         </div>
-        <div className="hero-orbit" aria-hidden="true">
-          <div className="hero-orbit-outer" />
-          <div className="hero-orbit-inner"><img src="/icons/jaguar-modern-512.png" alt="" /></div>
-          <span className="orbit-code orbit-code-top">FIELD DATA · 01</span>
-          <span className="orbit-code orbit-code-bottom">WILDLIFE / INTELLIGENCE</span>
+        <div className="panthera3-poster">
+          <img src="/branding/pantheralab-3-original.webp"
+            alt="PantheraLAB: rostro de jaguar mitad natural en dorado y mitad circuitos digitales azules. De la intuición a la evidencia."
+            fetchPriority="high" />
         </div>
       </section>
       <section className={'api-status ' + apiState} aria-live="polite" aria-label="Estado de la API">
