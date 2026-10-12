@@ -195,7 +195,15 @@ const translations: Record<string, string> = {
   "Vista previa de la fotografía seleccionada": "Selected photo preview",
   "Con anotaciones de MegaDetector": "With MegaDetector annotations",
   "Recorte candidato": "Candidate crop",
-  "PantheraID · Espacio de trabajo": "PantheraID · Workspace"
+  "PantheraID · Espacio de trabajo": "PantheraID · Workspace",
+  "Estado del servicio": "Service status",
+  "Actualizar estado": "Refresh status",
+  "Verificando disponibilidad del servicio…": "Checking service availability…",
+  "Servicio de análisis operativo": "Analysis service operational",
+  "No se pudo establecer conexión con el servicio. Volvé a intentar en unos minutos.": "Could not connect to the analysis service. Please try again in a few minutes.",
+  "Organización de evidencia multimedia y análisis exploratorio de cámaras trampa.": "Media evidence management and exploratory camera-trap analysis.",
+  "Inspeccionar fotografía": "Inspect photograph",
+  "Fotografía verificada": "Photograph verified"
 };
 
 type I18n = { language: Language; setLanguage: (next: Language) => void; t: (spanish: string) => string };
