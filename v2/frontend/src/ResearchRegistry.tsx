@@ -78,11 +78,25 @@ const initialSighting=(encounter_id:string):Sighting=>({
 export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,pendingEvidence,onClearEvidence,
   reportRequested,onClearReportRequest,onNavigate}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
-  const [tab,setTab]=React.useState<Tab>('projects');
+  const [tab,setTab]=React.useState<Tab>(()=>{
+    try{const value=sessionStorage.getItem('pantheralab_registry_tab_v1');
+      if(value&&['projects','stations','captures','individuals','reports'].includes(value))return value as Tab;
+    }catch{/* local state still works */}
+    return 'projects';
+  });
+  React.useEffect(()=>{
+    try{sessionStorage.setItem('pantheralab_registry_tab_v1',tab);}catch{/* optional */}
+  },[tab]);
   React.useEffect(()=>{
     if(reportRequested){setTab('reports');onClearReportRequest?.();}
   },[reportRequested]);
-  const [selectedStudy,setSelectedStudy]=React.useState('');
+  const [selectedStudy,setSelectedStudy]=React.useState(()=>{
+    try{return localStorage.getItem('pantheralab_selected_study_v1')||'';}catch{return '';}
+  });
+  React.useEffect(()=>{
+    if(selectedStudy)try{localStorage.setItem('pantheralab_selected_study_v1',selectedStudy);}
+      catch{/* optional */}
+  },[selectedStudy]);
   const activeId=data.studies.some(s=>s.study_id===selectedStudy)?selectedStudy:data.studies[0]?.study_id||'';
   const study=data.studies.find(s=>s.study_id===activeId);
   const stations=data.deployments.filter(d=>d.study_id===activeId);
@@ -643,11 +657,32 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
                 setEventDraft(p=>({...p,thumbnail_data_url:'',thumbnail_filename:''}))}>
                 {tx('Quitar miniatura','Remove thumbnail')}</button>
             </div>}
+          {eventDraft.evidence_frames&&eventDraft.evidence_frames.length>0&&
+            <div className="registry-batch-frames sci-wide">
+              <strong>{tx('Fotogramas adicionales del mismo evento','Additional frames from the same capture')}</strong>
+              <div className="registry-batch-gallery">{eventDraft.evidence_frames.map((frame,index)=>
+                <figure key={frame.sample+'-'+index}>
+                  <img src={frame.data_url} alt={tx('Fotograma','Frame')+' '+frame.sample}/>
+                  <figcaption>{tx('Muestra','Sample')} {frame.sample} · {frame.time_seconds.toFixed(2)} s</figcaption>
+                </figure>)}</div>
+            </div>}
+          {eventDraft.source_analysis_id&&<div className="registry-source sci-wide">
+            <strong>{tx('Procedencia PantheraID','PantheraID provenance')}</strong>
+            <p>{eventDraft.source_video_name} · {eventDraft.source_analysis_id}
+              {' · '}{eventDraft.analysis_samples??'—'} {tx('muestras revisadas','sampled frames')}
+              {' · '}{tx('Método OpenCV','OpenCV method')}</p>
+            <small>{tx('Esta evidencia se agrega a una sola captura; la especie y la identidad se validan manualmente.',
+              'These frames belong to one capture; species and individual identities require human review.')}</small>
+          </div>}
           {textField('PantheraEDGE event ID',eventDraft.edge_event_id,v=>setEvent('edge_event_id',v))}
             {notesField(tx('Notas del evento','Capture notes'),eventDraft.notes,v=>setEvent('notes',v))}
           </div>
-          <button type="button" className="action-button" onClick={saveEvent}>
-            {tx('Guardar evento de captura','Save capture event')}</button>
+          <div className="sci-actions video-next-actions">
+            <button type="button" className="sci-secondary" onClick={()=>onNavigate?.('PantheraID')}>
+              {tx('← Anterior: revisar video','← Back: review video')}</button>
+            <button type="button" className="action-button" onClick={saveEvent}>
+              {tx('Guardar y continuar con animales →','Save and continue to animals →')}</button>
+          </div>
           <p className="sci-muted">{tx('Las miniaturas aparecen en los informes, pero no sustituyen la fotografía original. Las referencias URL no adjuntan archivos externos automáticamente.',
             'Thumbnails appear in reports but do not replace original photographs. URL references do not automatically attach external files.')}</p>
           {encounters.length>0&&<div className="sci-table-wrap"><table className="sci-table">
@@ -698,6 +733,10 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         </div>
         <div className="sci-actions"><button type="button" className="action-button" onClick={saveSighting}>
           {tx('Guardar observación de animal','Save animal sighting')}</button>
+          <button type="button" className="sci-secondary" disabled={!activeSightings.length}
+            onClick={()=>setTab('reports')}>{tx('Siguiente: informe del estudio →','Next: study report →')}</button>
+          <button type="button" className="sci-secondary"
+            onClick={()=>onNavigate?.('PantheraID')}>{tx('Analizar otro video ↗','Analyze another video ↗')}</button>
           <button type="button" className="sci-secondary"
             onClick={()=>{setSightingDraft(initialSighting(selectedEvent));setTab('individuals');}}>
             {tx('Crear individuo en catálogo','Create individual profile')}</button></div>
