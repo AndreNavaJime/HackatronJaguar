@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from './language';
 
 interface BrowserInstallPrompt extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +13,7 @@ function alreadyInstalled(): boolean {
 
 /** A real browser-install prompt on supported browsers; otherwise guided steps. */
 export default function InstallControl() {
+  const { t } = useLanguage();
   const [prompt, setPrompt] = React.useState<BrowserInstallPrompt | null>(null);
   const [installed, setInstalled] = React.useState(false);
   const [instructions, setInstructions] = React.useState(false);
@@ -57,23 +59,22 @@ export default function InstallControl() {
     }
   }
 
-  if (installed) return <span className="installed-indicator" role="status">✓ App instalada</span>;
+  if (installed) return <span className="installed-indicator" role="status">✓ {t('App instalada')}</span>;
 
   return <div className="pwa-install">
     <button type="button" className="install-button" onClick={() => void install()}
       aria-expanded={instructions} aria-controls="install-help">
-      <span aria-hidden="true">↧</span> Instalar app
+      <span aria-hidden="true">↧</span> {t('Instalar app')}
     </button>
     {instructions && <div className="install-help" id="install-help" role="region"
       aria-label="Instrucciones para instalar PantheraID">
-      <strong>Agregar PantheraID al celular</strong>
-      {ios ? <p>En <b>Safari</b>, tocá <b>Compartir</b> y seleccioná <b>Agregar a pantalla de inicio</b>.</p>
-        : <p>En <b>Chrome para Android</b>, abrí el menú <b>⋮</b> y elegí
-          <b> Instalar aplicación</b> o <b>Agregar a pantalla de inicio</b>.</p>}
-      <p>Necesitás abrir PantheraID mediante HTTPS. Los análisis con MegaDetector requieren
-        conexión al servidor Python, aunque la aplicación esté instalada.</p>
+      <strong>{t('Agregar PantheraID al celular')}</strong>
+      {ios
+        ? <p>{t('Para iPhone, abrí Safari, tocá Compartir y seleccioná Agregar a pantalla de inicio.')}</p>
+        : <p>{t('En Chrome para Android, abrí el menú ⋮ y elegí Instalar aplicación o Agregar a pantalla de inicio.')}</p>}
+      <p>{t('Necesitás abrir PantheraID mediante HTTPS. Los análisis con MegaDetector requieren conexión al servidor Python, aunque la aplicación esté instalada.')}</p>
       <button type="button" onClick={() => setInstructions(false)}
-        className="install-dismiss">Cerrar</button>
+        className="install-dismiss">{t('Cerrar')}</button>
     </div>}
   </div>;
 }
