@@ -371,10 +371,11 @@ def build_output(p, kind):
         e.pop("thumbnail_data_url", None)
         for item in e.get("evidence_frames") or []:
             thumb = evidence_jpeg({"thumbnail_data_url":item["data_url"]})
-            image_path = "reference_thumbnails/"+e["encounter_id"]+"_frame_"+str(item["sample"])+".jpg"
-            image_files[image_path] = thumb
             item.pop("data_url", None)
-            item["thumbnail_filename"] = image_path
+            if thumb:
+                image_path = "reference_thumbnails/"+e["encounter_id"]+"_frame_"+str(item["sample"])+".jpg"
+                image_files[image_path] = thumb
+                item["thumbnail_filename"] = image_path
     stations = data["deployments"]
     geo = {"type":"FeatureCollection", "features": [
         {"type":"Feature",
