@@ -5,6 +5,7 @@ import ResearchWorkspace from './ResearchWorkspace';
 import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
 import {ResearchData,loadResearch,persistResearch,flattenObservations} from './researchData';
+import {readStudyData,saveStudyData} from './researchDb';
 
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 type Props={section:string;onNavigate:(section:string)=>void;
@@ -14,6 +15,7 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
   const [research,setResearch]=React.useState<ResearchData>(loadResearch);
   const [persistError,setPersistError]=React.useState(false);
+  const [researchReady,setResearchReady]=React.useState(false);
   const [events,setEvents]=React.useState<EdgeEvent[]>(()=>{
     const value=loadSession<unknown>('pantheralab_session_edge_events_v1',[]);
     return Array.isArray(value)?value as EdgeEvent[]:[];
@@ -23,7 +25,22 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   const [openReport,setOpenReport]=React.useState(false);
   const records=React.useMemo(()=>flattenObservations(research),[research]);
 
-  React.useEffect(()=>{setPersistError(!persistResearch(research));},[research]);
+  React.useEffect(()=>{
+    let cancelled=false;
+    void readStudyData().then(stored=>{
+      if(!cancelled&&stored)setResearch(stored);
+    }).catch(()=>{
+      if(!cancelled)setPersistError(true);
+    }).finally(()=>{if(!cancelled)setResearchReady(true);});
+    return ()=>{cancelled=true;};
+  },[]);
+  React.useEffect(()=>{
+    if(!researchReady)return;
+    const metadataSaved=persistResearch(research);
+    void saveStudyData(research).then(()=>{
+      setPersistError(!metadataSaved);
+    }).catch(()=>setPersistError(true));
+  },[research,researchReady]);
   React.useEffect(()=>saveSession('pantheralab_session_edge_events_v1',events),[events]);
   const onEvent=(event:EdgeEvent)=>setEvents(previous=>[event,...previous].slice(0,100));
   const onUseEvent=(event:EdgeEvent)=>{
@@ -31,6 +48,12 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     onNavigate('PantheraMONITORING');
   };
 
+  if(!researchReady){
+    return section==='PantheraID'?null:<div className="sci-screen" role="status">
+      <p className="sci-muted">{tx('Restaurando el archivo científico local…',
+        'Restoring local scientific records…')}</p>
+    </div>;
+  }
   const sites=new Set(research.deployments.map(d=>d.site.trim()).filter(Boolean));
   const validated=new Set(research.sightings.filter(s=>s.identification_status==='verified'&&
     research.individuals.some(i=>i.individual_id===s.individual_id&&i.status==='verified'))
