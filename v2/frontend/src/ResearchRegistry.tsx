@@ -2,14 +2,14 @@ import React from 'react';
 import {useLanguage} from './language';
 import {downloadFile} from './scienceShared';
 import {ResearchData,Study,Deployment,Individual,Encounter,Sighting,uid,projectPackage} from './researchData';
+import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 
 type Tab='projects'|'stations'|'captures'|'individuals'|'reports';
-type VideoEvidence={fileName:string;frameDataUrl:string;timeSeconds:number;sample:number};
 type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<ResearchData>>;
   pendingEdge?:{camera_id:string;timestamp:string;event_id:string;latitude:number|null;
     longitude:number|null;temperature:number|null;humidity:number|null;image_url:string;
     clip_url:string;hmac_status?:string;source?:string}|null;onClearEdge?:()=>void;
-  pendingEvidence?:VideoEvidence|null;onClearEvidence?:()=>void;
+  pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
   reportRequested?:boolean;onClearReportRequest?:()=>void;
   onNavigate?:(section:string)=>void};
 const localTime=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
@@ -115,38 +115,59 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     if(!pendingEvidence)return;
     if(!activeId){
       setTab('projects');
-      setNotice(tx('Primero creá un estudio; luego podremos registrar el fotograma seleccionado.',
-        'Create a study first, then register the selected video frame.'));
+      setNotice(tx('Creá o seleccioná un estudio para asociar los fotogramas del análisis.',
+        'Create or choose a study to link the selected analysis frames.'));
       return;
     }
     if(!stations.length){
       setTab('stations');
-      setNotice(tx('Primero registrá una estación para asociar la evidencia.',
-        'Register a camera deployment first to associate the evidence.'));
+      setNotice(tx('Registrá una estación antes de asociar el video. La selección se conserva.',
+        'Register a camera deployment before linking the video. Your selection is retained.'));
       return;
     }
-    let cancelled=false;
+    let canceled=false;
     void (async()=>{
       try{
-        if(!pendingEvidence.frameDataUrl.startsWith('data:image/jpeg;base64,')||
-          pendingEvidence.frameDataUrl.length>2500000)throw new Error('Formato de fotograma no compatible.');
-        const blob=await (await fetch(pendingEvidence.frameDataUrl)).blob();
-        const photo=await makeEvidencePreview(new File([blob],'pantheraid_frame.jpg',{type:'image/jpeg'}));
-        if(cancelled)return;
-        setTab('captures');setSelectedEvent('');
-        setEventDraft({...initialEvent(activeId,stations[0].deployment_id),
-          notes:'PantheraID | archivo: '+pendingEvidence.fileName.slice(0,150)+
-            ' | fotograma: '+pendingEvidence.sample+' | tiempo: '+
-            pendingEvidence.timeSeconds.toFixed(2)+' s. Revisar especie e identidad manualmente.',
-          thumbnail_data_url:photo,thumbnail_filename:'pantheraid_frame_'+pendingEvidence.sample+'.jpg'});
-        setNotice(tx('Fotograma de PantheraID preparado. Elegí la estación correcta, indicá fecha/hora original del video y guardá la captura.',
-          'PantheraID frame prepared. Choose the correct deployment, enter original capture date/time and save the event.'));
+        if(!pendingEvidence.frames.length||pendingEvidence.frames.length>6)
+          throw new Error(tx('Seleccioná entre uno y seis fotogramas.','Select between one and six frames.'));
+        const prepared:{sample:number;time_seconds:number;motion_score:number;data_url:string}[]=[];
+        for(const frame of pendingEvidence.frames){
+          if(!frame.frameDataUrl.startsWith('data:image/jpeg;base64,')||
+             frame.frameDataUrl.length>2500000)throw new Error('Invalid frame image format');
+          const imageBlob=await (await fetch(frame.frameDataUrl)).blob();
+          const thumb=await makeEvidencePreview(new File([imageBlob],
+            'frame_'+frame.sample+'.jpg',{type:'image/jpeg'}));
+          prepared.push({sample:frame.sample,time_seconds:frame.timeSeconds,
+            motion_score:frame.motionScore,data_url:thumb});
+        }
+        if(canceled)return;
+        const previous=encounters.find(e=>e.source_analysis_id===pendingEvidence.analysisId);
+        const draft=previous?{...previous}:initialEvent(activeId,stations[0].deployment_id);
+        const first=prepared[0];
+        setTab('captures');setSelectedEvent(previous?.encounter_id||'');
+        setEventDraft({...draft,thumbnail_data_url:first.data_url,
+          thumbnail_filename:'pantheraid_frame_'+first.sample+'.jpg',
+          evidence_frames:prepared.slice(1),
+          source_analysis_id:pendingEvidence.analysisId,
+          source_job_id:pendingEvidence.jobId,
+          source_video_name:pendingEvidence.fileName.slice(0,150),
+          analysis_method:'OpenCV visual-change screening (no animal identification)',
+          analysis_sample_seconds:pendingEvidence.sampleSeconds,
+          analysis_threshold:pendingEvidence.motionThreshold,
+          analysis_samples:pendingEvidence.totalSamples,
+          video_duration_seconds:pendingEvidence.durationSeconds,
+          notes:previous?.notes||('PantheraID | '+pendingEvidence.fileName.slice(0,140)+
+            ' | segundos del video: '+prepared.map(v=>v.time_seconds.toFixed(2)).join(', ')+
+            ' | fotogramas: '+prepared.map(v=>v.sample).join(', ')+
+            '. Fecha original e identificación de fauna requieren revisión humana.')});
+        setNotice(tx('Se prepararon '+prepared.length+' fotogramas en una sola captura. Revisá estación y fecha; después guardá el evento.',
+          prepared.length+' frames prepared under one capture. Check camera and date, then save the event.'));
         onClearEvidence?.();
       }catch(error){
-        if(!cancelled)setNotice(error instanceof Error?error.message:String(error));
+        if(!canceled)setNotice(error instanceof Error?error.message:String(error));
       }
     })();
-    return ()=>{cancelled=true;};
+    return ()=>{canceled=true;};
   },[pendingEvidence,activeId,stations.length]);
   const setStudy=(key:keyof Study,v:string)=>setStudyDraft(p=>({...p,[key]:v}));
   const setStation=(key:keyof Deployment,v:string|number|null)=>setStationDraft(p=>({...p,[key]:v}));
