@@ -293,15 +293,8 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
     {result&&<div className="video-results lite-results">
       <h3>{tx('Resultados del análisis','Analysis results')}</h3>
       <p className="details-caption">{result.metadata.filename} · OpenCV / {tx('análisis de variación visual','visual-change analysis')}</p>
-      <div className="workflow-next-action workflow-next-video">
-        <button type="button" className="workflow-next-button" onClick={()=>
-          document.getElementById('lite-video-gallery')?.scrollIntoView({behavior:'smooth',block:'start'})}>
-          <span>{tx('Siguiente: revisar fotogramas','Next: review frames')}</span>
-          <span aria-hidden="true">→</span>
-        </button>
-        <small>{tx('El análisis terminó. Revisá las imágenes y seleccioná cuáles documentar.',
-          'Analysis complete. Review the frames and select the images to record.')}</small>
-      </div>
+      <p className="sci-muted">{tx('El análisis terminó. Revisá las imágenes y seleccioná cuáles documentar. El botón Siguiente permanece al pie de la pantalla.',
+        'Analysis complete. Review the frames and select which ones to record. The Next button remains at the bottom of the screen.')}</p>
       <div className="video-metrics">
         <div><span>{tx('Fotogramas revisados','Frames reviewed')}</span><strong>{result.totals.sampled}</strong></div>
         <div><span>{tx('Con cambios visuales','With visual changes')}</span><strong>{result.totals.retained}</strong></div>
@@ -380,28 +373,13 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
         <p>{tx('El procesamiento utiliza OpenCV para comparar la variación de brillo entre fotogramas; no emplea un modelo de detección animal. El movimiento de vegetación, la lluvia o los cambios de iluminación pueden generar alertas y la ausencia de cambios no descarta fauna. Los porcentajes son variación visual, no confianza de identificación. Revisá todas las muestras.',
           'Processing uses OpenCV to compare brightness changes between frames; it does not use an animal detection model. Vegetation, rain or changing light can trigger alerts, and unchanged frames do not rule out wildlife. Percentages indicate visual change, not identification confidence. Review every sample.')}</p>
       </details>
-      {onRecordEvidence&&<div className="workflow-end-action" role="group"
-        aria-label={tx('Continuar con el registro científico','Continue scientific registration')}>
-        <span className="workflow-end-title">{tx('Continuar con la investigación','Continue your research')}</span>
-        <p>{selectedSamples.length>0
-          ?tx('Tus fotogramas están seleccionados y listos para el registro.',
-            'Your selected frames are ready to be registered.')
-          :tx('Primero elegí uno o más fotogramas como evidencia para continuar.',
-            'Select one or more frames as evidence before continuing.')}</p>
-        <button type="button" className="workflow-next-button workflow-end-next"
-          onClick={()=>{
-            if(selectedSamples.length){continueReview();return;}
-            const target=document.getElementById('lite-video-gallery');
-            target?.scrollIntoView({behavior:'smooth',block:'center'});
-            const input=target?.querySelector<HTMLInputElement>('input[type="checkbox"]:not(:disabled)');
-            input?.focus({preventScroll:true});
-          }}>
-          <span>{selectedSamples.length>0
-            ?tx('Siguiente: registrar captura','Next: record capture')
-            :tx('Siguiente: seleccionar fotogramas','Next: select frames')}</span>
-          <span aria-hidden="true">→</span>
-        </button>
-      </div>}
+      {onRecordEvidence&&<p className="workflow-selection-count" aria-live="polite">
+        {selectedSamples.length>0
+          ?tx('La selección está lista. Usá el botón Siguiente de la barra inferior para registrar una captura.',
+            'Selection is ready. Use Next in the bottom bar to record a capture.')
+          :tx('Seleccioná al menos un fotograma; el botón Siguiente de abajo te llevará a la galería mientras tanto.',
+            'Select at least one frame; the bottom Next button will take you to the gallery until then.')}
+      </p>}
     </div>}
   </section>;
 }
