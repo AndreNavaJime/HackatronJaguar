@@ -287,18 +287,9 @@ function App() {
               <strong>✓ {t('Fotografía verificada')}</strong>
               <dl><dt>{t("Formato")}</dt><dd>{imageResult.format}</dd><dt>{t("Dimensiones")}</dt><dd>{imageResult.width} × {imageResult.height} px</dd><dt>{t("Tamaño")}</dt><dd>{(imageResult.size_bytes / 1024 / 1024).toFixed(2)} MB</dd><dt>{t("Almacenada")}</dt><dd>{t("No")}</dd></dl>
               <p>{language==='en'?'File validation completed. Species identification was not performed.':'Validación del archivo completada. No se ha realizado identificación de especies.'}</p>
-              <div className="workflow-next-action">
-                <button type="button" className="workflow-next-button"
-                  disabled={preparingEvidence} onClick={()=>void continueWithPhoto()}>
-                  <span>{preparingEvidence
-                    ?(language==='en'?'Preparing evidence…':'Preparando evidencia…')
-                    :(language==='en'?'Next: record observation':'Siguiente: registrar observación')}</span>
-                  <span aria-hidden="true">→</span>
-                </button>
-                <small>{language==='en'
-                  ?'The photo will become one capture awaiting scientific review.'
-                  :'La fotografía se incorporará como una captura pendiente de revisión científica.'}</small>
-              </div>
+              <p className="sci-muted">{language==='en'
+                ?'Use Next in the bottom bar to register this photo as one capture awaiting scientific review.'
+                :'Usá Siguiente en la barra inferior para registrar esta fotografía como una captura pendiente de revisión científica.'}</p>
             </div>}
           </div>
           <div className="image-frame">
@@ -330,9 +321,7 @@ function App() {
         pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)}
         monitoringNextRequest={monitorNextRequest} onRegistryTabChange={setRegistryTab}
         requestReport={reportRequest} />
-      {/* Once an analysis is ready, PantheraID has a single amber Next action at
-          the end of its evidence gallery. Do not duplicate it in the fixed dock. */}
-      {!(section==='PantheraID'&&(videoWorkflow.hasResult||!!imageResult))&&
+      {/* One primary Next control for every module, including completed video and image analyses. */}
       <div className="workflow-global-dock" role="region"
         aria-label={language==='en'?'Research workflow navigation':'Navegación del proceso científico'}>
         <div className="workflow-global-copy">
@@ -346,7 +335,7 @@ function App() {
           onClick={advanceWorkflow}>
           <span>{workflowLabel}</span><span aria-hidden="true">→</span>
         </button>
-      </div>}
+      </div>
     </main>
   </div>;
 }
