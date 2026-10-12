@@ -8,8 +8,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#10251e",
-  "theme_color": "#10251e",
+  "background_color": "#0b1421",
+  "theme_color": "#0b1421",
   "categories": [
     "education",
     "science",
@@ -17,19 +17,19 @@
   ],
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icons/jaguar-modern-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512-transparent.png",
+      "src": "/icons/jaguar-modern-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/maskable-512.png",
+      "src": "/icons/jaguar-modern-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
