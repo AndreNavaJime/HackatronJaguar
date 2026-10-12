@@ -1,0 +1,166 @@
+/* PantheraLAB 3.0 | independent blue / circuit-board edition.
+   This stylesheet is loaded LAST and exists ONLY on branch pantheralab-3.0.
+   The working 2.0 palette and logic are not changed. */
+:root{
+  color-scheme:dark;
+  --ps-bg:#060b17;
+  --ps-rail:#080e20;
+  --ps-card:#0e1b30;
+  --ps-card-2:#142a46;
+  --ps-text:#edf5ff;
+  --ps-sub:#a8bfd7;
+  --ps-line:#29496b;
+  --ps-teal:#30caff;
+  --ps-amber:#e6a63c;
+  --ps-violet:#637fff;
+  --ps-coral:#ff6e88;
+  --ps-accent:#30caff;
+  --ps-elevated:#142a45;
+}
+html,body{background:#060b17;color:#edf5ff}
+::selection{background:#0b69aa;color:#fff}
+.shell{
+  background:
+    radial-gradient(ellipse 82% 38% at 91% -5%,rgba(25,101,231,.18),transparent 70%),
+    radial-gradient(ellipse 78% 36% at -10% 100%,rgba(6,176,225,.09),transparent 75%),
+    #060b17;
+}
+.shell>aside{
+  background:linear-gradient(170deg,#09182b,#081227 42%,#050a17);
+  border-right-color:#18395c;
+}
+.brand-symbol{border:1px solid #2681c0!important;box-shadow:0 0 22px #009ee52b;object-fit:cover}
+.brand-copy strong{color:#fff}
+.brand-copy strong span{color:#39ccff}
+.brand-copy small{color:#82b9df;letter-spacing:.18em}
+.sidebar-label,.header-location-mark{color:#29c6ff}
+.shell nav button.active,.shell nav button:hover{
+  background:linear-gradient(100deg,#102e50,#0b2647)!important;
+  border-color:rgba(46,191,255,.5)!important;color:#eaf8ff;
+}
+.shell nav button.active .nav-symbol{color:#45cfff;border-color:#307db0;background:#102b4b}
+.sidebar-connection{border-color:#1e496c;background:#081b32}
+.sidebar-connection.connected .sidebar-connection-dot{background:#3ed2ff;box-shadow:0 0 14px #3ed2ff}
+.shell aside .sidebar-footer{color:#84a7c4}
+.app-header{border-bottom-color:rgba(56,138,196,.28)}
+.header-location,.top-status{color:#accae5}
+.language-switch{background:#0a1e36;border-color:#28577a}
+.language-switch button.selected{background:#22bff5;color:#051525}
+.install-button{background:linear-gradient(105deg,#1a9edc,#55d8ff);border-color:#62e2ff;color:#061827;
+  box-shadow:0 8px 26px rgba(27,170,252,.2)}
+.install-button:hover{background:#78e8ff;color:#061827}
+.installed-indicator{color:#4fddff}
+.hero-stage.panthera3-hero{
+  position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(215px,.69fr);
+  gap:30px;align-items:center;min-height:410px;
+  background:radial-gradient(circle at 79% 40%,rgba(0,94,199,.21),transparent 55%),
+    linear-gradient(115deg,#0d1c31 0%,#071020 71%,#040816 100%);
+  border-color:#245682;
+  box-shadow:0 12px 53px #0008,inset 0 1px #4fc7ff16;
+}
+.panthera3-hero::before{background:linear-gradient(90deg,#f2b64b,#26c3ff,transparent)!important}
+.panthera3-hero .hero-copy{max-width:none;z-index:1}
+.panthera3-hero .hero-eyebrow,.panthera3-hero .hero-eyebrow-line{color:#39c9fb}
+.panthera3-hero h1{font-size:clamp(32px,3.9vw,57px);line-height:1.05;color:#effaff}
+.panthera3-version{display:inline-flex;align-items:center;gap:7px;margin-bottom:13px;
+  border:1px solid rgba(46,195,255,.5);background:rgba(16,98,158,.20);padding:7px 12px;
+  border-radius:999px;color:#8be8ff;font-size:11px;font-weight:850;letter-spacing:.12em}
+.panthera3-tagline{color:#e9b953!important;font-size:clamp(14px,1.45vw,18px)!important;
+  font-weight:600;margin:8px 0 13px!important}
+.panthera3-hero .lead{color:#a5c1dc}
+.panthera3-hero .hero-chips span{border-color:#305777;color:#b4d8eb;background:#0a1d36}
+.panthera3-hero .hero-chips span:first-child{color:#f2c05a;border-color:#825c30}
+.panthera3-poster{
+  display:flex;justify-content:center;align-items:center;min-height:300px;z-index:1;
+  background:radial-gradient(ellipse,rgba(16,117,203,.18),transparent 67%);
+}
+.panthera3-poster img{
+  display:block;width:auto;height:min(405px,34vw);max-width:100%;object-fit:contain;
+  filter:drop-shadow(0 16px 31px rgba(0,8,35,.63));
+  border-radius:4px;
+}
+.hero-stage::after{background-image:
+  linear-gradient(rgba(68,155,238,.10) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(68,155,238,.10) 1px,transparent 1px)}
+.api-status{border-color:#2e5375;background:linear-gradient(100deg,#0e253f,#0b182d)}
+.api-status.connected{background:linear-gradient(100deg,#0a3958,#0e1b31);border-color:#2f94cc}
+.api-status button{background:#102e50;border-color:#267bb1;color:#b6eeff}
+.api-status button:hover{background:#17466e}
+.status-dot,.connected .status-dot{background:#30cbff}
+.section-kicker,.sci-kicker,.sci-heading .sci-kicker,.hero-eyebrow{color:#38caff}
+.panel,article,.detector-panel,.video-panel,.sci-panel{
+  border-color:#264767;
+  background:linear-gradient(150deg,#0d1d35,#0a1628);
+}
+.metric-card,.sci-stats>div{
+  background:linear-gradient(155deg,#122945,#0c1930);
+  border-color:#2a4b70;
+}
+.metric-card-a{--tile-color:#26caff}
+.metric-card-b{--tile-color:#e4a847}
+.metric-card-c{--tile-color:#6b8bff}
+.workspace-panel{background:linear-gradient(115deg,#0b2947,#101c36);border-color:#295276}
+.workspace-button,.action-button,.detection-button{
+  background:linear-gradient(115deg,#0793d3,#31cdff)!important;color:#061427!important;
+  border-color:#55dfff!important;box-shadow:0 8px 25px #067cc124;
+}
+.action-button:hover:not(:disabled),.detection-button:hover:not(:disabled){
+  background:linear-gradient(115deg,#2bb6ee,#67dfff)!important;
+}
+.sci-actions .action-button,.sci-panel>.action-button{
+  background:#126a9b!important;border-color:#42caff!important;color:#f0faff!important;
+}
+.sci-actions .action-button:hover,.sci-panel>.action-button:hover{background:#218bbb!important}
+.sci-field input,.sci-field select,.sci-field textarea,.upload-controls input,.video-input input{
+  border-color:#365c7e;background:#08182c;color:#f4fbff;
+}
+.sci-field input:focus,.sci-field select:focus,.sci-field textarea:focus{
+  border-color:#47d6ff;box-shadow:0 0 0 2px #30caff25}
+.sci-stats>div strong,.lite-results .video-metrics strong,.sci-inline,.sci-tag{color:#3bd2ff}
+.sci-tag{border-color:#32699a;background:#0c2b4b}
+.sci-secondary,.download-link,.preview-controls button{
+  background:#102944;color:#c3eaff;border-color:#325e80
+}
+.sci-secondary:hover,.download-link:hover{background:#174269;border-color:#47cfff}
+.video-frame-card,.lite-panel .video-frame-card{border-color:#33679a;background:#08162a}
+.video-frame-card img{background:#060d1c}
+.video-selection-summary,.registry-review-ready{border-color:#287dae;background:#0c2c4c}
+.video-frame-select{background:#0d3453;color:#c6ebff}
+.video-frame-select input{accent-color:#37bfff}
+.registry-management-actions,.registry-management{border-color:#315478}
+.registry-manage-trigger{background:#102944;border-color:#3371a1;color:#e1f6ff}
+.registry-manage-trigger span:first-child{color:#41d4ff}
+.registry-management-actions button{background:#102841;border-color:#315b86}
+.registry-management-actions .registry-manage-delete,.registry-delete-button{
+  background:#512039;color:#ffd2da;border-color:#d85575;
+}
+.registry-management-actions .registry-manage-delete:hover,.registry-delete-button:hover{background:#a03357;color:#fff}
+.workflow-global-dock{
+  background:rgba(4,14,30,.97);border-top-color:rgba(64,159,222,.56);
+  box-shadow:0 -14px 43px #0009;
+}
+.workflow-global-copy>span{color:#58d5ff}
+.workflow-next-button,.sci-actions .workflow-next-button,.video-next-actions .workflow-next-button{
+  background:linear-gradient(105deg,#ffd477,#f3ac41 52%,#db792d)!important;
+  color:#221404!important;border-color:#ffe19b!important;box-shadow:0 8px 25px #b7782938;
+}
+.workflow-next-button:not(:disabled):hover{
+  background:linear-gradient(105deg,#ffe39c,#ffba5c 55%,#e28a39)!important;
+  color:#221404!important
+}
+@media(max-width:900px){
+ .hero-stage.panthera3-hero{grid-template-columns:minmax(0,1fr) minmax(150px,.62fr);min-height:310px}
+ .panthera3-poster img{height:280px}
+}
+@media(max-width:620px){
+ .hero-stage.panthera3-hero{display:flex;flex-direction:column-reverse;align-items:stretch;padding:18px 19px 24px;gap:9px}
+ .panthera3-poster{min-height:200px}
+ .panthera3-poster img{height:220px;width:auto;max-width:100%}
+ .panthera3-hero h1{font-size:clamp(29px,7vw,39px)}
+ .panthera3-hero .lead{font-size:12px}
+ .panthera3-hero .hero-chips{margin-top:13px;gap:6px}
+ .panthera3-hero .hero-chips span{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ .panthera3-poster img{transition:none}
+}
