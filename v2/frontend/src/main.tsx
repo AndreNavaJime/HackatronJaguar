@@ -6,6 +6,7 @@ import VideoPanel from './VideoPanel';
 import LiteVideoPanel from './LiteVideoPanel';
 import {createAnalysisId} from './videoWorkspaceDb';
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
+import type {VideoWorkflowState} from './LiteVideoPanel';
 import ScientificWorkspace from './ScientificWorkspace';
 import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
@@ -79,6 +80,14 @@ function App() {
   const [preparingEvidence,setPreparingEvidence]=React.useState(false);
   const [imageEvidenceId,setImageEvidenceId]=React.useState('');
   const [evidenceDraft,setEvidenceDraft]=React.useState<VideoEvidenceBatch|null>(null);
+  const [videoWorkflow,setVideoWorkflow]=React.useState<VideoWorkflowState>({hasResult:false,selectedCount:0});
+  const [registryTab,setRegistryTab]=React.useState<'projects'|'stations'|'captures'|'individuals'|'reports'>('projects');
+  const [videoNextRequest,setVideoNextRequest]=React.useState(0);
+  const [monitorNextRequest,setMonitorNextRequest]=React.useState(0);
+  const [reportRequest,setReportRequest]=React.useState(0);
+  const onVideoWorkflow=React.useCallback((next:VideoWorkflowState)=>{
+    setVideoWorkflow(prev=>prev.hasResult===next.hasResult&&prev.selectedCount===next.selectedCount?prev:next);
+  },[]);
 
   const checkApi = React.useCallback(async () => {
     setApiState('checking');
@@ -174,6 +183,44 @@ function App() {
     }finally{setPreparingEvidence(false);}
   }
 
+  const workflowLabel=(()=>{
+    const en=language==='en';
+    if(section==='Resumen')return en?'Next: analyze evidence':'Siguiente: analizar evidencia';
+    if(section==='PantheraID'){
+      if(videoWorkflow.hasResult&&videoWorkflow.selectedCount>0)
+        return en?'Next: record capture':'Siguiente: registrar captura';
+      if(videoWorkflow.hasResult)return en?'Next: review frames':'Siguiente: revisar fotogramas';
+      if(imageResult)return en?'Next: record observation':'Siguiente: registrar observación';
+      return en?'Next: upload evidence':'Siguiente: cargar evidencia';
+    }
+    if(section==='PantheraMONITORING'){
+      const labels:{[key:string]:[string,string]}={
+        projects:['Siguiente: configurar estaciones','Next: configure stations'],
+        stations:['Siguiente: registrar capturas','Next: record captures'],
+        captures:['Siguiente: identificar individuos','Next: identify individuals'],
+        individuals:['Siguiente: informe del estudio','Next: study report'],
+        reports:['Siguiente: investigación','Next: research'],
+      };
+      const entry=labels[registryTab]||labels.projects;
+      return en?entry[1]:entry[0];
+    }
+    if(section==='PantheraEDGE')return en?'Next: explore research':'Siguiente: explorar investigación';
+    return en?'Next: consolidated report':'Siguiente: informe integral';
+  })();
+  function advanceWorkflow(){
+    if(section==='Resumen'){setSection('PantheraID');return;}
+    if(section==='PantheraID'){
+      if(videoWorkflow.hasResult){setVideoNextRequest(n=>n+1);return;}
+      if(imageResult){void continueWithPhoto();return;}
+      document.getElementById(selectedImage?'panthera-image':'lite-video')
+        ?.scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    if(section==='PantheraMONITORING'){setMonitorNextRequest(n=>n+1);return;}
+    if(section==='PantheraEDGE'){setSection('Investigación');return;}
+    setReportRequest(n=>n+1);
+  }
+
   return <div className="shell">
     <aside>
       <div className="brand">
@@ -260,6 +307,7 @@ function App() {
           </div>
         </div>
         <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable}
+          onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
           onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
         <details className="method-details ai-method-details">
           <summary>{language==='en'?'Automatic detection · MegaDetector V6':'Detección automática · MegaDetector V6'}
@@ -279,7 +327,23 @@ function App() {
         </details>
       </section>
       <ScientificWorkspace section={section} onNavigate={setSection}
-        pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)} />
+        pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)}
+        monitoringNextRequest={monitorNextRequest} onRegistryTabChange={setRegistryTab}
+        requestReport={reportRequest} />
+      <div className="workflow-global-dock" role="region"
+        aria-label={language==='en'?'Research workflow navigation':'Navegación del proceso científico'}>
+        <div className="workflow-global-copy">
+          <span>{language==='en'?'SCIENTIFIC WORKFLOW':'FLUJO CIENTÍFICO'}</span>
+          <strong>{section==='PantheraID'
+            ?language==='en'?'Multimedia analysis':'Análisis multimedia'
+            :t(section)}</strong>
+        </div>
+        <button type="button" className="workflow-next-button workflow-global-next"
+          disabled={section==='PantheraID'&&preparingEvidence}
+          onClick={advanceWorkflow}>
+          <span>{workflowLabel}</span><span aria-hidden="true">→</span>
+        </button>
+      </div>
     </main>
   </div>;
 }
