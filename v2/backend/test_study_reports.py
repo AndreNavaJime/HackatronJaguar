@@ -1,0 +1,142 @@
+"""Integration tests for the longitudinal PantheraLAB study export pipeline."""
+import base64
+import io
+import json
+import zipfile
+
+from fastapi.testclient import TestClient
+from PIL import Image
+
+from main import app
+
+client = TestClient(app)
+
+
+def study_data(redact=True, thumbnail=False):
+    image = io.BytesIO()
+    Image.new("RGB", (100, 70), color=(30, 90, 53)).save(image, format="JPEG")
+    photo = "data:image/jpeg;base64," + base64.b64encode(image.getvalue()).decode()
+    return {
+        "study": {"study_id": "STUDY-OSA", "title": "Monitoreo de jaguares - Osa",
+                  "lead": "Investigadora", "organization": "Laboratorio", "methodology": "Camaras trampa",
+                  "objectives": "Registrar encuentros", "start_date": "2026-01-01", "end_date": "2026-10-12"},
+        "deployments": [{
+            "deployment_id": "DEP-01", "study_id": "STUDY-OSA", "camera_id": "CT-07",
+            "site": "Corcovado", "latitude": 8.493, "longitude": -83.58,
+            "altitude_m": 90, "operational_days": 14, "deployed_at": "2026-01-01",
+            "retrieved_at": "2026-01-15",
+        }],
+        "individuals": [{
+            "individual_id": "JAG-003", "study_id": "STUDY-OSA", "species": "Panthera onca",
+            "sex": "male", "age_class": "adult", "marks": "Rosetas laterales derechas",
+            "status": "verified", "validated_by": "Investigadora",
+            "reference_image_url": "https://example.org/jaguar.jpg",
+        }, {
+            "individual_id": "JAG-004", "study_id": "STUDY-OSA", "species": "Panthera onca",
+            "sex": "unknown", "status": "provisional",
+        }],
+        "encounters": [{
+            "encounter_id": "EVT-01", "study_id": "STUDY-OSA", "deployment_id": "DEP-01",
+            "occurred_at": "2026-10-08T12:00:00Z", "observer": "Investigadora",
+            "temperature_c": 24, "humidity_percent": 86,
+            "environment_source": "manual", "image_url": "https://example.org/raw_01.jpg",
+            "thumbnail_data_url": photo if thumbnail else "",
+        }, {
+            "encounter_id": "EVT-02", "study_id": "STUDY-OSA", "deployment_id": "DEP-01",
+            "occurred_at": "2026-10-10T12:00:00Z", "temperature_c": None,
+            "humidity_percent": None, "environment_source": "unprovided",
+        }],
+        "sightings": [{
+            "sighting_id": "OBS-01", "encounter_id": "EVT-01", "species": "Panthera onca",
+            "individual_id": "JAG-003", "identification_status": "verified",
+            "behavior": "walking", "reviewer": "Investigadora",
+        }, {
+            "sighting_id": "OBS-02", "encounter_id": "EVT-01", "species": "Panthera onca",
+            "individual_id": "JAG-004", "identification_status": "tentative",
+            "behavior": "resting",
+        }, {
+            "sighting_id": "OBS-03", "encounter_id": "EVT-02", "species": "Panthera onca",
+            "individual_id": "JAG-003", "identification_status": "verified",
+            "behavior": "marking", "reviewer": "Investigadora",
+        }],
+        "redact_coordinates": redact, "language": "es",
+    }
+
+
+def test_report_contains_full_study_and_multiple_animals():
+    response = client.post("/api/science/studies/report?kind=pdf", json=study_data())
+    assert response.status_code == 200, response.text[:240]
+    assert response.content.startswith(b"%PDF-")
+    assert len(response.content) > 1500
+    assert "no-store" in response.headers["cache-control"]
+
+
+def test_study_zip_exports_relations_without_coordinates_by_default():
+    response = client.post("/api/science/studies/report?kind=zip", json=study_data())
+    assert response.status_code == 200, response.text[:250]
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    assert set(["PantheraLAB_informe_integral.pdf", "study.json", "encounters.csv",
+                "sightings.csv", "individuals.csv", "deployments.csv",
+                "stations.geojson", "observations_flat.csv"]).issubset(archive.namelist())
+    records = json.loads(archive.read("study.json"))
+    assert records["deployments"][0]["latitude"] is None
+    assert records["deployments"][0]["longitude"] is None
+    assert len(records["sightings"]) == 3
+    assert len(records["encounters"]) == 2
+    assert "JAG-003" in archive.read("individuals.csv").decode()
+    assert "EVT-02" in archive.read("observations_flat.csv").decode()
+    geo = json.loads(archive.read("stations.geojson"))
+    assert geo["features"][0]["geometry"] is None
+
+
+def test_private_report_can_include_precise_locations_only_by_explicit_flag():
+    response = client.post("/api/science/studies/report?kind=zip", json=study_data(False))
+    assert response.status_code == 200
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    geo = json.loads(archive.read("stations.geojson"))
+    assert geo["features"][0]["geometry"]["coordinates"] == [-83.58, 8.493]
+
+
+def test_reference_thumbnail_is_in_pdf_and_archival_zip():
+    response = client.post("/api/science/studies/report?kind=zip", json=study_data(thumbnail=True))
+    assert response.status_code == 200, response.text[:300]
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    assert "reference_thumbnails/EVT-01.jpg" in archive.namelist()
+    assert archive.read("reference_thumbnails/EVT-01.jpg").startswith(b"\xff\xd8\xff")
+    data = json.loads(archive.read("study.json"))
+    assert data["encounters"][0]["thumbnail_filename"] == "reference_thumbnails/EVT-01.jpg"
+    assert "thumbnail_data_url" not in data["encounters"][0]
+    assert archive.read("PantheraLAB_informe_integral.pdf").startswith(b"%PDF-")
+
+
+def test_links_cannot_reference_other_study_records():
+    data = study_data()
+    data["sightings"][0]["individual_id"] = "UNKNOWN"
+    response = client.post("/api/science/studies/report", json=data)
+    assert response.status_code == 422
+    data = study_data()
+    data["encounters"][0]["deployment_id"] = "DEP-MISSING"
+    response = client.post("/api/science/studies/report", json=data)
+    assert response.status_code == 422
+    data = study_data()
+    data["individuals"][0]["study_id"] = "SOMEONE-ELSE"
+    response = client.post("/api/science/studies/report", json=data)
+    assert response.status_code == 422
+
+
+def test_duplicate_sightings_rejected_and_invalid_thumbnail_fails():
+    data = study_data()
+    data["sightings"][0]["sighting_id"] = "OBS-02"
+    response = client.post("/api/science/studies/report", json=data)
+    assert response.status_code == 422
+    data = study_data()
+    data["encounters"][0]["thumbnail_data_url"] = "data:image/jpeg;base64,MALFORMED"
+    response = client.post("/api/science/studies/report", json=data)
+    assert response.status_code == 422
+
+
+def test_report_kind_and_oversize_guard():
+    data = study_data()
+    assert client.post("/api/science/studies/report?kind=docx", json=data).status_code == 422
+    data["study"]["objectives"] = "X" * 2_410_000
+    assert client.post("/api/science/studies/report", json=data).status_code == 413
