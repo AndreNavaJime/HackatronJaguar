@@ -38,7 +38,76 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
   const [job,setJob]=React.useState<Job|null>(null);
   const [result,setResult]=React.useState<LiteResult|null>(null);
   const [error,setError]=React.useState('');
+  const [analysisId,setAnalysisId]=React.useState('');
+  const [createdAt,setCreatedAt]=React.useState('');
+  const [persistedFilename,setPersistedFilename]=React.useState('');
+  const [selectedSamples,setSelectedSamples]=React.useState<number[]>([]);
+  const [history,setHistory]=React.useState<VideoSession[]>([]);
+  const [restoring,setRestoring]=React.useState(true);
+  const [storageNotice,setStorageNotice]=React.useState('');
   const busy=state==='uploading'||state==='processing';
+  const latestFilename=file?.name||persistedFilename||result?.metadata.filename||'';
+
+  async function refreshHistory(){
+    try{setHistory((await listVideoSessions()).slice(0,15));}
+    catch{setStorageNotice(tx('El historial del navegador no está disponible. Descargá tus resultados.',
+      'Browser history is unavailable. Download your results.'));}
+  }
+  async function restoreAnalysis(id:string){
+    const saved=await getVideoSession(id);
+    if(!saved)throw new Error(tx('Análisis guardado no encontrado.','Saved analysis not found.'));
+    setFile(null);setAnalysisId(saved.id);setJobId(saved.jobId);setResult(saved.result);
+    setPersistedFilename(saved.filename);setCreatedAt(saved.createdAt);
+    setSelectedSamples(saved.selectedSamples||[]);setMotionThreshold(saved.motionThreshold);
+    setSeconds(saved.sampleSeconds);setSamples(saved.maxSamples);
+    setState(saved.stage==='processing'?'processing':saved.stage==='completed'?'completed':'failed');
+    setError(saved.error||'');setJob(null);setUploaded(0);
+    setActiveVideoId(saved.id);
+  }
+  React.useEffect(()=>{
+    let canceled=false;
+    void (async()=>{
+      try{
+        const active=getActiveVideoId();
+        const stored=await listVideoSessions();
+        if(!canceled&&stored.length)await restoreAnalysis(
+          active&&stored.some(v=>v.id===active)?active:stored[0].id);
+        if(!canceled)setHistory(stored.slice(0,15));
+      }catch{if(!canceled)setStorageNotice(tx(
+        'No se pudo recuperar el historial; podés continuar con un análisis nuevo.',
+        'History could not be restored. You can start a new analysis.'));}
+      finally{if(!canceled)setRestoring(false);}
+    })();
+    return ()=>{canceled=true;};
+  },[]);
+  React.useEffect(()=>{
+    if(restoring||!analysisId||!jobId||state==='idle'||state==='uploading')return;
+    const now=new Date().toISOString();
+    const snapshot:VideoSession={
+      id:analysisId,jobId,filename:latestFilename,createdAt:createdAt||now,
+      updatedAt:now,stage:state==='completed'?'completed':state==='failed'?'failed':'processing',
+      motionThreshold,sampleSeconds:seconds,maxSamples:samples,selectedSamples,result,
+      error:state==='failed'?error:undefined,
+    };
+    setActiveVideoId(analysisId);
+    void saveVideoSession(snapshot).then(()=>refreshHistory()).catch(()=>setStorageNotice(tx(
+      'No se pudieron guardar los fotogramas localmente. Descargá el ZIP antes de salir.',
+      'Frames could not be saved locally. Download the ZIP before leaving.')));
+  },[analysisId,jobId,state,result,selectedSamples,restoring,error]);
+  const changeSelection=(sample:number)=>setSelectedSamples(previous=>
+    previous.includes(sample)?previous.filter(x=>x!==sample):
+    previous.length>=6?previous:[...previous,sample]);
+  function continueReview(samplesToSend=selectedSamples){
+    if(!onRecordEvidence||!result||!analysisId||!jobId||!samplesToSend.length)return;
+    const snapshot:VideoSession={
+      id:analysisId,jobId,filename:latestFilename,
+      createdAt:createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),
+      stage:'completed',motionThreshold,sampleSeconds:seconds,maxSamples:samples,
+      selectedSamples:samplesToSend,result,
+    };
+    void saveVideoSession(snapshot).catch(()=>{/* Frame data is also passed in memory. */});
+    onRecordEvidence(selectionBatch(snapshot));
+  }
 
   React.useEffect(()=>{
     if(!file){setPreview('');return;}
