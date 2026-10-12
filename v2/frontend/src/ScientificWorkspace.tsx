@@ -50,7 +50,7 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
       <h2>{tx('Centro de control científico','Scientific control center')}</h2>
       <p>{tx('De la cámara trampa a la evidencia: captura, filtrado, contexto ambiental y revisión.',
         'From camera traps to evidence: capture, filtering, environmental context and review.')}</p>
-    </div><span className="sci-tag">{tx('PROTOTIPO GRATUITO','FREE PROTOTYPE')}</span></div>
+    </div><span className="sci-tag">{tx('PANEL DE INVESTIGACIÓN','RESEARCH WORKSPACE')}</span></div>
     <div className="sci-stats">
       <div><span>{tx('Observaciones en esta sesión','Observations in this session')}</span>
         <strong>{records.length}</strong></div>
@@ -64,7 +64,7 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
         <h3>PantheraID</h3>
         <p>{tx('Carga de fotografías y videos, preselección de fotogramas con OpenCV y exportación de evidencia.',
           'Photo/video uploads, OpenCV frame screening and evidence exports.')}</p>
-        <small>{tx('OpenCV activo · MegaDetector requiere más recursos','OpenCV active · MegaDetector requires more resources')}</small>
+        <small>{tx('Análisis de secuencias · OpenCV','Sequence analysis · OpenCV')}</small>
         <button type="button" onClick={()=>onNavigate('PantheraID')}>{tx('Abrir identificación ↗','Open identification ↗')}</button>
       </article>
       <article className="sci-launch sci-launch-b">
@@ -72,7 +72,7 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
         <h3>PantheraMONITORING</h3>
         <p>{tx('Fichas científicas, variables ambientales, mapa de cámara, historial temporal e informes PDF.',
           'Scientific records, environmental fields, camera maps, temporary history and PDF reports.')}</p>
-        <small>{tx('Registro temporal del navegador; Supabase pendiente','Browser-session registry; Supabase pending')}</small>
+        <small>{tx('Observaciones · PDF / GeoJSON','Observations · PDF / GeoJSON')}</small>
         <button type="button" onClick={()=>onNavigate('PantheraMONITORING')}>
           {tx('Abrir monitoreo ↗','Open monitoring ↗')}</button>
       </article>
@@ -81,7 +81,7 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
         <h3>PantheraEDGE</h3>
         <p>{tx('Simulación PantheraCAM, validación de eventos JSON y cálculos ilustrativos de transferencia 4G/5G.',
           'PantheraCAM simulation, JSON event validation and illustrative 4G/5G transfer calculations.')}</p>
-        <small>{tx('Nodo de campo sin integración automática','Field node not automatically connected')}</small>
+        <small>{tx('Eventos de campo · HTTP / JSON','Field events · HTTP / JSON')}</small>
         <button type="button" onClick={()=>onNavigate('PantheraEDGE')}>
           {tx('Abrir Edge ↗','Open Edge ↗')}</button>
       </article>
@@ -90,7 +90,7 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
         <h3>{tx('Investigación','Research')}</h3>
         <p>{tx('Búsquedas reales en el catálogo Copernicus Sentinel-1/2, exportaciones CSV, JSON y GeoJSON.',
           'Real Copernicus Sentinel-1/2 catalogue queries and CSV, JSON and GeoJSON exports.')}</p>
-        <small>{tx('Metadatos satelitales; NDVI aún no disponible','Satellite metadata; NDVI not yet available')}</small>
+        <small>{tx('Catálogo de adquisiciones · Sentinel-1/2','Acquisition catalogue · Sentinel-1/2')}</small>
         <button type="button" onClick={()=>onNavigate('Investigación')}>
           {tx('Abrir investigación ↗','Open research ↗')}</button>
       </article>
@@ -106,8 +106,8 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
           <small>{tx('Formatos exportables','Export formats')}</small></div>
       </div>
       <p className="sci-muted">{tx(
-        'El diagrama muestra el flujo objetivo. Las etapas con hardware, 5G real y Supabase requieren integrar equipos, permisos y servicios externos.',
-        'The diagram shows the target flow. Hardware, real 5G and Supabase still require external equipment, permissions and services.')}</p>
+        'Arquitectura de referencia. La conexión a dispositivos físicos, la telemetría 5G y la persistencia en nube requieren habilitar sus respectivas integraciones.',
+        'Reference architecture. Physical devices, 5G telemetry and cloud persistence require their respective integrations to be enabled.')}</p>
     </section>
   </div>;
 }
