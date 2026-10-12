@@ -5,6 +5,8 @@ Every sighting links an encounter; every encounter links a deployment.
 """
 from __future__ import annotations
 
+import base64
+import binascii
 import csv
 import html
 import io
@@ -20,7 +22,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 
 router = APIRouter(prefix="/api/science/studies", tags=["Scientific study reports"])
-MAX_BODY = 700_000
+MAX_BODY = 2_400_000
 MAX_LENGTHS = {"deployments": 80, "individuals": 200, "encounters": 300, "sightings": 600}
 ID_PATTERN = re.compile(r"^[\w.-]{1,90}$", re.UNICODE)
 
@@ -67,6 +69,30 @@ async def parse_payload(request: Request):
            for s in payload["sightings"]):
         raise HTTPException(422, "Observacion vinculada a individuo inexistente.")
     return payload
+
+
+def evidence_jpeg(event):
+    """Validate compact JPEG thumbnail data; never fetch external URLs."""
+    text = event.get("thumbnail_data_url")
+    if not text:
+        return None
+    if not isinstance(text, str) or len(text) > 75_000 or not text.startswith("data:image/jpeg;base64,"):
+        raise ValueError("Miniatura invalida o demasiado grande.")
+    try:
+        raw = base64.b64decode(text.split(",", 1)[1], validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ValueError("Miniatura con formato base64 invalido.") from exc
+    if len(raw) > 55_000 or not raw.startswith(b"\xff\xd8\xff"):
+        raise ValueError("Miniatura JPEG invalida.")
+    from PIL import Image as PillowImage, UnidentifiedImageError
+    try:
+        with PillowImage.open(io.BytesIO(raw)) as check:
+            if check.format != "JPEG" or check.width > 640 or check.height > 640 or check.width < 1 or check.height < 1:
+                raise ValueError("Dimensiones de imagen no permitidas.")
+            check.verify()
+    except (UnidentifiedImageError, OSError) as exc:
+        raise ValueError("Miniatura dañada.") from exc
+    return raw
 
 
 def flatten(data, private=False):
@@ -127,7 +153,7 @@ def pdf_document(p):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, TableStyle, KeepTogether
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, TableStyle, Image as ReportImage
 
     lang = p.get("language", "es")
     english = lang == "en"
@@ -239,8 +265,17 @@ def pdf_document(p):
                           tr("Fuente ambiental", "Environmental data source")+": "+
                           str(e.get("environment_source", "")), styles["PantheraSmall"]))
         story.append(para(tr("Notas", "Field notes")+": "+str(e.get("notes", "")), styles["PantheraSmall"], 1000))
-        story.append(para(tr("Evidencia visual (referencias, archivos no adjuntos)", 
-                             "Visual evidence (references only; files not attached)")+": "+
+        thumb = evidence_jpeg(e)
+        if thumb:
+            from PIL import Image as PillowImage
+            with PillowImage.open(io.BytesIO(thumb)) as image:
+                w, h = image.size
+            scale = min(1.0, 7.5*cm/w, 5.5*cm/h)
+            story.append(ReportImage(io.BytesIO(thumb), width=w*scale, height=h*scale))
+            story.append(para(tr("Miniatura de referencia; conservar original por separado.",
+                                 "Reference thumbnail; archive original separately."), styles["PantheraMicro"]))
+        story.append(para(tr("Evidencia visual (referencias de archivos externos)",
+                             "Visual evidence (external file references)")+": "+
                           " | ".join(v for v in [str(e.get("image_url","")),str(e.get("video_url",""))] if v),
                           styles["PantheraMicro"], 1100))
         related = [s for s in p["sightings"] if s["encounter_id"] == e["encounter_id"]]
@@ -274,7 +309,15 @@ def build_output(p, kind):
     pdf = pdf_document(data)
     if kind == "pdf":
         return pdf, "application/pdf", "PantheraLAB_informe_integral.pdf"
-    # The archive includes structured tables, interoperable spatial data, and source references.
+    # The archive includes compact reference thumbnails, not original media.
+    image_files = {}
+    for e in data["encounters"]:
+        image = evidence_jpeg(e)
+        if image:
+            path = "reference_thumbnails/" + e["encounter_id"] + ".jpg"
+            image_files[path] = image
+            e["thumbnail_filename"] = path
+        e.pop("thumbnail_data_url", None)
     stations = data["deployments"]
     geo = {"type":"FeatureCollection", "features": [
         {"type":"Feature",
@@ -286,7 +329,7 @@ def build_output(p, kind):
         "format":"PantheraLAB v1 study export (NOT Camtrap DP certified)",
         "generated_at":datetime.now(timezone.utc).isoformat(),
         "coordinate_privacy":"redacted" if private else "precise_coordinates_included",
-        "evidence":"external URL references only; media files NOT embedded",
+        "evidence":"uploaded JPEG reference thumbnails included when supplied; original media only cited by URL",
         "scientific_notes":"Descriptive counts only. Human-reviewed identities. No population estimate.",
     }
     files = {
@@ -301,8 +344,9 @@ def build_output(p, kind):
         "stations.geojson": json.dumps(geo, ensure_ascii=False, allow_nan=False).encode("utf-8"),
         "LEEME.txt": ("PantheraLAB: estudio exportado. Coordenadas "+
             ("omitidas" if private else "incluidas bajo responsabilidad del investigador")+
-            ". Los archivos multimedia NO estan incluidos: ver referencias URL en las tablas.\n").encode("utf-8")
+            ". Las miniaturas JPEG cargadas se incluyen; los videos y fotografias originales se referencian por URL.\n").encode("utf-8")
     }
+    files.update(image_files)
     result = io.BytesIO()
     with zipfile.ZipFile(result, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for path, body in files.items():
