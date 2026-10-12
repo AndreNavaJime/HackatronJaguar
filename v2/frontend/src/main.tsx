@@ -4,6 +4,7 @@ import './style.css';
 import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
 import LiteVideoPanel from './LiteVideoPanel';
+import {createAnalysisId} from './videoWorkspaceDb';
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 import ScientificWorkspace from './ScientificWorkspace';
 import InstallControl from './InstallControl';
@@ -28,6 +29,41 @@ type ImageResult = {
   note: string;
 };
 
+
+/** Prepare a compact JPEG research preview; the original uploaded photo remains with the researcher. */
+function photoPreviewJpeg(file:File):Promise<string>{
+  return new Promise((resolve,reject)=>{
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
+      reject(new Error('Formato de fotografía no compatible.'));return;
+    }
+    const url=URL.createObjectURL(file);
+    const picture=new Image();
+    picture.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('No se pudo preparar la fotografía.'));};
+    picture.onload=()=>{
+      URL.revokeObjectURL(url);
+      try{
+        const scale=Math.min(1,480/Math.max(picture.naturalWidth,picture.naturalHeight));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(picture.naturalWidth*scale));
+        canvas.height=Math.max(1,Math.round(picture.naturalHeight*scale));
+        const ctx=canvas.getContext('2d');
+        if(!ctx)throw new Error('El navegador no puede procesar esta imagen.');
+        ctx.fillStyle='#ffffff';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(picture,0,0,canvas.width,canvas.height);
+        let value='';
+        for(const q of [.72,.57,.42,.30]){
+          value=canvas.toDataURL('image/jpeg',q);
+          if(value.length<72000)break;
+        }
+        if(value.length>=72000)throw new Error('No fue posible comprimir la imagen para el registro.');
+        resolve(value);
+      }catch(error){reject(error);}
+    };
+    picture.src=url;
+  });
+}
+
 function App() {
   const { language, setLanguage, t } = useLanguage();
   const [section, setSection] = React.useState('Resumen');
@@ -40,6 +76,7 @@ function App() {
   const [imageResult, setImageResult] = React.useState<ImageResult | null>(null);
   const [imageError, setImageError] = React.useState('');
   const [uploading, setUploading] = React.useState(false);
+  const [preparingEvidence,setPreparingEvidence]=React.useState(false);
   const [evidenceDraft,setEvidenceDraft]=React.useState<VideoEvidenceBatch|null>(null);
 
   const checkApi = React.useCallback(async () => {
@@ -115,6 +152,25 @@ function App() {
     }
   }
 
+
+  async function continueWithPhoto(){
+    if(!selectedImage||!imageResult||uploading||preparingEvidence)return;
+    setPreparingEvidence(true);setImageError('');
+    try{
+      const jpg=await photoPreviewJpeg(selectedImage);
+      const draft:VideoEvidenceBatch={
+        sourceType:'image',sourceSha256:imageResult.sha256,
+        analysisId:createAnalysisId(),jobId:'',fileName:selectedImage.name,
+        sampleSeconds:0,motionThreshold:0,totalSamples:1,durationSeconds:0,
+        frames:[{sample:1,timeSeconds:0,motionScore:0,frameDataUrl:jpg}],
+      };
+      setEvidenceDraft(draft);
+      setSection('PantheraMONITORING');
+    }catch(error){
+      setImageError(error instanceof Error?error.message:String(error));
+    }finally{setPreparingEvidence(false);}
+  }
+
   return <div className="shell">
     <aside>
       <div className="brand">
@@ -181,6 +237,18 @@ function App() {
               <strong>✓ {t('Fotografía verificada')}</strong>
               <dl><dt>{t("Formato")}</dt><dd>{imageResult.format}</dd><dt>{t("Dimensiones")}</dt><dd>{imageResult.width} × {imageResult.height} px</dd><dt>{t("Tamaño")}</dt><dd>{(imageResult.size_bytes / 1024 / 1024).toFixed(2)} MB</dd><dt>{t("Almacenada")}</dt><dd>{t("No")}</dd></dl>
               <p>{language==='en'?'File validation completed. Species identification was not performed.':'Validación del archivo completada. No se ha realizado identificación de especies.'}</p>
+              <div className="workflow-next-action">
+                <button type="button" className="workflow-next-button"
+                  disabled={preparingEvidence} onClick={()=>void continueWithPhoto()}>
+                  <span>{preparingEvidence
+                    ?(language==='en'?'Preparing evidence…':'Preparando evidencia…')
+                    :(language==='en'?'Next: record observation':'Siguiente: registrar observación')}</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+                <small>{language==='en'
+                  ?'The photo will become one capture awaiting scientific review.'
+                  :'La fotografía se incorporará como una captura pendiente de revisión científica.'}</small>
+              </div>
             </div>}
           </div>
           <div className="image-frame">
