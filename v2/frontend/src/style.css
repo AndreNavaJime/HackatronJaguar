@@ -443,3 +443,26 @@ article,.panel,.detector-panel,.video-panel{background:#111e2c;border:1px solid 
   .shell nav button,.metric-card,.nav-arrow{transition:none}
   .metric-card:hover,.shell nav button:hover{transform:none}
 }
+
+
+/* PantheraID language selector: contrast-safe, keyboard accessible and mobile-friendly. */
+.language-switch{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:4px;background:#101f31;border:1px solid #3c536b;border-radius:12px;flex:none
+}
+.language-switch button{
+  display:grid;place-items:center;min-width:40px;min-height:34px;padding:6px 9px;
+  font-size:11px;font-weight:850;letter-spacing:.08em;color:#b8c7d6;
+  border-radius:8px;background:transparent;border:1px solid transparent;
+  transition:background .16s,color .16s,border-color .16s
+}
+.language-switch button:hover{color:#fff;background:#22364d}
+.language-switch button.selected,.language-switch button[aria-pressed="true"]{
+  color:#00181c;background:#00e1c2;border-color:#00e1c2;box-shadow:0 0 13px rgba(0,225,194,.12)
+}
+@media(max-width:660px){
+  .app-header{flex-wrap:wrap}
+  .app-header-actions{gap:7px}
+  .language-switch{padding:3px}
+  .language-switch button{min-width:36px;min-height:34px;font-size:11px}
+}
