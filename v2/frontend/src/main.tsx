@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './style.css';
 import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
+import LiteVideoPanel from './LiteVideoPanel';
 import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
@@ -29,6 +30,7 @@ function App() {
   const { language, setLanguage, t } = useLanguage();
   const [section, setSection] = React.useState('Resumen');
   const [apiState, setApiState] = React.useState<ApiState>('checking');
+  const [aiAvailable, setAiAvailable] = React.useState(false);
   const [apiMessage, setApiMessage] = React.useState('Comprobando conexión con Python…');
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
@@ -48,7 +50,14 @@ function App() {
       }
       setApiState('connected');
       setApiMessage('Python conectado · PantheraID API responde correctamente');
+      try {
+        const caps=await fetch('/api/capabilities',{cache:'no-store'});
+        const data:unknown=await caps.json();
+        setAiAvailable(caps.ok && typeof data==='object' && data!==null
+          && 'animal_detection' in data && data.animal_detection==='optional_dependencies_installed');
+      } catch { setAiAvailable(false); }
     } catch {
+      setAiAvailable(false);
       setApiState('disconnected');
       setApiMessage('No se pudo conectar con Python. Verificá que FastAPI siga ejecutándose en el puerto 8000.');
     }
@@ -172,8 +181,15 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-        <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />
-        <VideoPanel enabled={apiState === 'connected'} />
+        <LiteVideoPanel enabled={apiState === 'connected'} />
+        <div className="ai-module-note" role="note">
+          <strong>{language==='en'?'AI analysis · MegaDetector V6':'Análisis con IA · MegaDetector V6'}</strong>
+          <p>{aiAvailable
+            ? (language==='en'?'The Python server reports that AI dependencies are installed. AI inference may still require more memory.':'El servidor indica que las dependencias de IA están instaladas. La inferencia podría necesitar más memoria.')
+            : (language==='en'?'Not available on Render Free. The video screening above is real OpenCV processing, but does NOT identify animals.':'No disponible en Render Free. El análisis de video anterior funciona con OpenCV, pero NO identifica animales.')}</p>
+        </div>
+        {aiAvailable && <VideoPanel enabled={apiState === 'connected'} />}
+        {aiAvailable && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
         <p className="scientific-note">{t("La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en el servidor Python y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.")}</p>
       </section> : <>
         <div className="section-heading"><div><span className="section-kicker">{t("PANEL DE CONTROL")}</span><h2>{t("Estado de la plataforma")}</h2></div><span className="section-counter">{t("03 MÓDULOS EN SEGUIMIENTO")}</span></div>
