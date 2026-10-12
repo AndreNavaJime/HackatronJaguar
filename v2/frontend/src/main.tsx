@@ -330,6 +330,9 @@ function App() {
         pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)}
         monitoringNextRequest={monitorNextRequest} onRegistryTabChange={setRegistryTab}
         requestReport={reportRequest} />
+      {/* Once an analysis is ready, PantheraID has a single amber Next action at
+          the end of its evidence gallery. Do not duplicate it in the fixed dock. */}
+      {!(section==='PantheraID'&&(videoWorkflow.hasResult||!!imageResult))&&
       <div className="workflow-global-dock" role="region"
         aria-label={language==='en'?'Research workflow navigation':'Navegación del proceso científico'}>
         <div className="workflow-global-copy">
@@ -343,7 +346,7 @@ function App() {
           onClick={advanceWorkflow}>
           <span>{workflowLabel}</span><span aria-hidden="true">→</span>
         </button>
-      </div>
+      </div>}
     </main>
   </div>;
 }
