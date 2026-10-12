@@ -72,7 +72,7 @@ export default function InstallControl() {
       {ios
         ? <p>{t('Para iPhone, abrí Safari, tocá Compartir y seleccioná Agregar a pantalla de inicio.')}</p>
         : <p>{t('En Chrome para Android, abrí el menú ⋮ y elegí Instalar aplicación o Agregar a pantalla de inicio.')}</p>}
-      <p>{t('Necesitás abrir PantheraID mediante HTTPS. Los análisis con MegaDetector requieren conexión al servidor Python, aunque la aplicación esté instalada.')}</p>
+      <p>{t('El análisis de videos y las consultas satelitales requieren conexión a Internet, incluso con la aplicación instalada.')}</p>
       <button type="button" onClick={() => setInstructions(false)}
         className="install-dismiss">{t('Cerrar')}</button>
     </div>}
