@@ -1,4 +1,5 @@
 import React from 'react';
+import type { EdgeSummary } from './ScientificWorkspace';
 
 type Detection = {
   class_name: string;
@@ -18,7 +19,7 @@ type DetectionResult = {
 
 const labels: Record<string, string> = { animal: 'Animal', person: 'Persona', vehicle: 'Vehículo' };
 
-export default function DetectionPanel({ file, enabled }: { file: File | null; enabled: boolean }) {
+export default function DetectionPanel({ file, enabled, onAnalysisComplete }: { file: File | null; enabled: boolean; onAnalysisComplete?: (summary: EdgeSummary | null) => void }) {
   const [result, setResult] = React.useState<DetectionResult | null>(null);
   const [threshold, setThreshold] = React.useState(0.25);
   const [processing, setProcessing] = React.useState(false);
@@ -29,6 +30,7 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
     setResult(null);
     setError('');
     setAnnotated(true);
+    onAnalysisComplete?.(null);
   }, [file]);
 
   async function detect() {
@@ -73,7 +75,23 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
         || !payload.annotated_image.startsWith('data:image/')) {
         throw new Error('El servidor respondió sin datos completos. Revisá la terminal de Python y su memoria disponible.');
       }
-      setResult(payload as DetectionResult);
+      const detected = payload as DetectionResult;
+      setResult(detected);
+      const animalDetections = detected.detections.filter(d => d.class_name === 'animal');
+      onAnalysisComplete?.({
+        source: 'image', filename: file.name, model: detected.model,
+        threshold: detected.threshold,
+        mean_confidence: animalDetections.length ? animalDetections.reduce((sum, d) => sum + d.confidence, 0) / animalDetections.length : 0,
+        input_jpeg_bytes: null, retained_jpeg_bytes: null,
+        rows: [{ time_seconds: 0,
+          confidence: Math.max(0, ...animalDetections.map(d => d.confidence)),
+          retained: animalDetections.length > 0 }],
+        sampled: 1, retained: detected.counts.animal > 0 ? 1 : 0,
+        animals: detected.counts.animal, persons: detected.counts.person,
+        vehicles: detected.counts.vehicle,
+        max_confidence: Math.max(0, ...detected.detections.filter(d => d.class_name === 'animal').map(d => d.confidence)),
+        note: 'Detecciones preliminares. Especie e individuo requieren revisión humana.',
+      });
       setAnnotated(true);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'No se pudo ejecutar MegaDetector.';

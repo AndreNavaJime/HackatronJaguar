@@ -80,8 +80,8 @@ La web de Codespaces se abre por puerto 5173. FastAPI documenta sus endpoints en
 
 ## Análisis de video y privacidad
 - Entrá a **PantheraID** en el puerto 5173, seleccioná un video y elegí umbral, intervalo (0,5 a 5 s) y máximo de fotogramas (1 a 24).
-- El prototipo acepta archivos de hasta **250 MB** y videos con duración informada de hasta **10 minutos**, resolución máxima 3840 × 2160. El análisis se realiza sobre copias redimensionadas, lado mayor 960 px, y las coordenadas de los recuadros corresponden a esa resolución de análisis.
-- El video se envía desde el navegador en **solicitudes independientes de 5 MiB**, mediante `POST /api/videos/uploads`, `PUT /api/videos/uploads/{id}/chunks?offset=...` y `POST /api/videos/uploads/{id}/complete`. Esto reduce el riesgo de rechazo por límites de tamaño de petición del proxy. FastAPI almacena los bloques directamente en disco, sin cargar los 250 MB completos en RAM; se necesita espacio libre y archivos grandes pueden tardar más. Una carga incompleta puede cancelarse con `DELETE /api/videos/uploads/{id}`. No se envía a Supabase. El video original se borra al finalizar el trabajo; resultados y archivos ZIP/CSV/PDF vencen aproximadamente a la hora y se eliminan al atender nuevas solicitudes. Una caída inesperada puede dejar temporales y el almacenamiento temporal **no es un mecanismo de seguridad ni retención formal**.
+- El prototipo acepta archivos de hasta **1 GiB (1024 MiB)** y videos con duración informada de hasta **60 minutos**, resolución máxima 3840 × 2160. El análisis se realiza sobre copias redimensionadas, lado mayor 960 px, y las coordenadas de los recuadros corresponden a esa resolución de análisis.
+- El video se envía desde el navegador en **solicitudes independientes de 5 MiB**, mediante `POST /api/videos/uploads`, `PUT /api/videos/uploads/{id}/chunks?offset=...` y `POST /api/videos/uploads/{id}/complete`. Esto reduce el riesgo de rechazo por límites de tamaño de petición del proxy. FastAPI almacena los bloques directamente en disco, sin cargar el archivo completo en RAM; se necesita espacio libre y archivos grandes pueden tardar más. Una carga incompleta puede cancelarse con `DELETE /api/videos/uploads/{id}`. No se envía a Supabase. El video original se borra al finalizar el trabajo; resultados y archivos ZIP/CSV/PDF vencen aproximadamente a la hora y se eliminan al atender nuevas solicitudes. Una caída inesperada puede dejar temporales y el almacenamiento temporal **no es un mecanismo de seguridad ni retención formal**.
 - **Solo un video a la vez por proceso.** Los trabajos y las sesiones de carga se almacenan en memoria del proceso FastAPI; reiniciar FastAPI cancela o pierde seguimiento de esos trabajos. Las cargas incompletas se consideran abandonadas tras 30 minutos de inactividad; los reportes finalizados vencen después de una hora. No implementar como servicio público sin autenticación, control de uso, cifrado y cola de tareas persistente.
 - **RETAIN**: al menos una detección animal en el fotograma muestreado; **DISCARD**: no se detectó un animal sobre el umbral. Esta clasificación no verifica especie ni ausencia ecológica.
 - El indicador de reducción es una **estimación de bytes JPEG de fotogramas muestreados frente a los retenidos**, no representa tráfico 5G real ni ahorro de red medido. El recuento de animales suma detecciones por fotograma, **no individuos únicos**.
@@ -91,7 +91,7 @@ La web de Codespaces se abre por puerto 5173. FastAPI documenta sus endpoints en
 ## Error de proxy al subir videos grandes
 Si aparece «respuesta no JSON» o un HTTP 413/502, puede ser que un servidor intermediario bloquee una petición. Desde esta versión, el navegador divide la carga en trozos de 5 MiB e informa cuántos MB han llegado a FastAPI. Si falla un bloque, la interfaz muestra el código HTTP en vez de afirmar que Python produjo JSON inválido. Los límites externos de Codespaces no están bajo control de este repositorio; comprobar en las terminales de Vite y FastAPI si continúan los errores.
 
-Para activar los cambios después de `git pull`, reiniciar FastAPI con `python -m uvicorn main:app --host 0.0.0.0 --port 8000`; Vite debe permanecer ejecutándose en el puerto 5173. **No se ha comprobado todavía una subida real de 118 MB ni 250 MB en este entorno**.
+Para activar los cambios después de `git pull`, reiniciar FastAPI con `python -m uvicorn main:app --host 0.0.0.0 --port 8000`; Vite debe permanecer ejecutándose en el puerto 5173. **La capacidad de hasta 1 GiB requiere espacio libre real, un códec compatible y el modelo de IA instalado; no se ha completado aún una subida de 1 GiB en Codespaces**.
 
 ## Pruebas de API
 Se añadieron pruebas con un modelo simulado para no descargar pesos durante los tests:
@@ -114,3 +114,212 @@ MegaDetector detecta **animales, personas y vehículos**, no identifica la espec
 6. Preparar PWA; más adelante evaluar Capacitor/Tauri para tiendas y escritorio.
 
 No publicar credenciales, datos confidenciales ni identificaciones científicas no validadas. Antes de desplegar fuera del entorno de desarrollo, implementar autenticación, control de uso y límites de concurrencia.
+
+## PantheraEDGE científico en la aplicación móvil (rama de integración)
+
+La PWA `v2/frontend` incorpora un espacio para investigadores en las pestañas
+**PantheraEDGE** e **Investigación**, manteniendo las funciones actuales de PantheraID.
+
+- Identificación de campaña, investigador, institución, protocolo, cámara y esfuerzo de muestreo.
+- Anotaciones manuales de especie/individuo, método, calidad de evidencia, sexo, edad,
+  perspectiva, conducta, hábitat, notas y limitaciones.
+- Coordenadas opcionales WGS84 con procedencia explícita y valores ambientales
+  opcionales **sin ejemplos inventados**. El servidor requiere fuente para cualquier
+  altitud, temperatura o humedad introducidas.
+- Vinculación **explícita** del último resultado de MegaDetector (imagen/video)
+  mediante un resumen; no implica identificación de especies ni de individuos.
+- Registro **temporal en memoria del navegador**, con exportación de respaldo
+  CSV, JSON y GeoJSON; el PDF se genera mediante FastAPI.
+- Consulta bajo demanda de metadatos STAC Sentinel-1 y Sentinel-2 en torno a
+  coordenadas de cámara introducidas por el usuario. No calcula NDVI,
+  deforestación, inundaciones ni parámetros ambientales en suelo.
+
+**No hay sincronización automática con Supabase, ni ingesta real de VIGÍA,
+ni almacenamiento duradero** en esta fase. El investigador debe descargar su
+registro antes de recargar o cerrar la página. El servicio FastAPI debe
+estar activo para validar observaciones, exportar PDF o consultar Sentinel.
+La PWA instalada solo almacena recursos de interfaz, no datos científicos.
+
+### Probar sin alterar `pantheraid-v2`
+
+En Codespaces, usar una carpeta Git worktree separada para esta rama, tal como
+se hizo con la prueba de Streamlit. Si ya está instalado el entorno de backend,
+arrancarlo desde la carpeta nueva en puerto 8000 y Vite en puerto 5173;
+si hay otros procesos en esos puertos, detenerlos o elegir puertos libres
+y ajustar el proxy de Vite. Dentro de la carpeta de prueba:
+
+```bash
+cd v2/backend
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+En otra terminal:
+
+```bash
+cd v2/frontend
+npm install
+npm run dev -- --port 5173 --strictPort
+```
+
+Comprobar `/api/health` y las pestañas PantheraEDGE e Investigación.
+Registrar una observación sin ubicación y descargar GeoJSON: la geometría
+debe ser `null`. Confirmar error si se introduce temperatura sin fuente.
+Vincular una detección de video solo si corresponde a la misma observación,
+guardar, exportar PDF y probar la consulta Sentinel con coordenadas **reales**.
+No activar persistencia en nube en esta prueba.
+
+## Ampliación móvil de módulos de `app.py` Streamlit (rama PR #3)
+
+**PantheraEDGE** contiene ahora la interfaz de análisis de imagen/video (única
+instancia persistente entre pestañas), visualización de fotogramas anotados,
+recortes y descargas científicas ya implementadas por la API de video,
+el dashboard de resultados con perfil temporal de confianza, distribución de
+muestras positivas y reducción JPEG estimada. Se agregaron el flujo conceptual
+PantheraCAM→Edge→5G→Nube→Investigadores, visualización opcional del mapa OSM,
+simulación local de evento y recepción optativa del puente HTTP, así como
+estimaciones de transferencia para 5G y respaldo 4G.
+
+**Investigación** ofrece los registros temporales, salida por observación
+PDF/GeoJSON, respaldo CSV/JSON/GeoJSON del registro, protocolos, investigador,
+ONG, calidad y metodología, fuentes ambientales, sesgos, y encuentros anotados
+por individuo.
+
+**PantheraMONITORING** muestra un dashboard **de los registros de esta sesión**:
+conteo total, validados, estaciones, sitios, ubicación, estados y especies
+anotadas. Todavía no es el dashboard externo de nube.
+
+### Puente HTTP opcional del nodo
+
+El modo local funciona sin conectividad con nodo real. Para consultar un
+endpoint configurado por el operador de FastAPI, definir en el entorno del
+servidor (no en React ni en el repositorio):
+
+```bash
+export PANTHERA_EDGE_BRIDGE_URL="https://ENDPOINT-REAL-DEL-NODO/evento"
+# Opcional, solo si el emisor firma con el mismo contrato JSON canónico:
+export PANTHERA_HMAC_SECRET="SECRETO-COMPARTIDO"
+```
+
+El botón **Consultar puente HTTP configurado** llama a
+`GET /api/edge/bridge`. No admite URLs arbitrarias desde el navegador.
+El backend normaliza evento/ubicación/detección y valida HMAC cuando hay
+secreto. La asociación con el formulario es **explícita** y solo copia ID,
+marca temporal y transporte, no coordenadas ni sensores como datos verificados.
+Sin variable, muestra "no configurado" y sigue disponible el simulador.
+Conectar un endpoint requiere configuración segura del servidor, políticas de
+red y autenticación antes de exponerlo fuera de desarrollo.
+
+### Alcance y límites
+
+- El esquema de datos y los formularios científicos se han migrado, pero **no
+  se ha embebido Streamlit dentro de React**: es una implementación web móvil
+  compatible con FastAPI.
+- El modo de detección depende de que `PytorchWildlife`, OpenCV, pesos y
+  variantes de MegaDetector estén operativos en FastAPI. Las dependencias
+  mínimas de formulario/PDF **no instalan** esas librerías.
+- La consulta Sentinel usa metadatos reales del catálogo STAC pero no extrae
+  NDVI, hábitat, temperatura terrestre ni pérdida forestal.
+- 5G/4G usa tiempos **estimados** con tasas y latencias ingresadas. Marcar
+  "medidos" solo indica procedencia declarada del input; no mide la red.
+- La ubicación precisa en el mapa se envía a OpenStreetMap **solo si la
+  persona pulsa "Mostrar mapa"**. Para ubicaciones de especies sensibles,
+  omitir el mapa o generalizar la posición según el protocolo.
+- No se transmite ni almacena automáticamente ningún registro a Supabase.
+  No se implementa una plataforma de alertas de guardaparques/SINAC o
+  identificación individual validada. Exportar registros **antes de cerrar
+  o recargar**. Los botones existentes de registro no guardan en disco.
+- La PWA puede instalarse en móvil, pero **MegaDetector, PDFs y Sentinel
+  requieren conexión a FastAPI**. Codespaces no es un despliegue estable.
+
+### Actualizar la copia de pruebas
+
+Una vez que las comprobaciones automáticas se completen, desde la carpeta
+`/workspaces/PantheraLAB-ciencia` (worktree detached de esta rama):
+
+```bash
+git -C /workspaces/PantheraLAB-ciencia fetch origin
+git -C /workspaces/PantheraLAB-ciencia switch --detach origin/feature/pantheralab-mobile-science-20261011
+```
+
+Reiniciar FastAPI para cargar `edge_bridge.py` y el nuevo esquema de API; Vite
+normalmente detecta cambios de frontend al actualizar el worktree. Si la
+interfaz del teléfono conserva recursos anteriores, refrescar con conexión.
+No fusionar PR #3 hasta terminar pruebas funcionales.
+
+
+### Si falla un video AVI: comprobación previa (PR #3)
+
+Se agregó `GET /api/videos/preflight` y un indicador en el formulario
+de video. Comprueba que el proceso **actual** de FastAPI encuentre OpenCV,
+PyTorchWildlife/PyTorch y ReportLab **antes de recibir hasta 1 GiB**. No carga
+pesos de IA, no verifica códec concreto y no promete detecciones.
+
+Un fallo de Python antes de ejecutar inferencia puede mostrarse como
+"Faltan bibliotecas" en lugar del antiguo mensaje genérico. Los trabajos
+asíncronos ahora indican su fase (lectura del video, carga de modelo,
+fotograma N o informe) y un `error_code` no sensible. Los rastros completos
+quedan **solo en la terminal** de FastAPI.
+
+**Instalación de IA sin mezclar entornos:** primero, verificar que la terminal
+está en `/workspaces/PantheraLAB-ciencia/v2/backend` y con el mismo Python
+`(.venv)` usado para iniciar Uvicorn. Luego ejecutar solo si el preflight
+reporta que faltan componentes:
+
+```bash
+python -m pip install -r requirements-ai.txt
+```
+
+PyTorchWildlife y PyTorch pueden descargar varios GB. Esperar y
+verificar espacio libre y memoria; no lanzar una segunda instalación
+en paralelo. Si **todavía** figura OpenCV ausente, ejecutar:
+
+```bash
+python -m pip install opencv-python-headless
+```
+
+Reiniciar FastAPI y pulsar **Comprobar dependencias otra vez** en la PWA.
+Si pasa la comprobación, comenzar con un video de prueba corto y
+`max_samples=1` antes de volver a subir 117 MB. Las pruebas en Actions
+ejercitan AVI/MJPEG y un detector **simulado**; no prueban pesos reales
+de MegaDetector ni códecs específicos de cámaras trampa. No afirmar
+que un archivo `.avi` es decodificable por extensión solamente.
+
+### Archivos de video de hasta 1 GB (1 GiB = 1024 MiB)
+
+Los límites de PWA y FastAPI son ahora `MAX_VIDEO_BYTES = 1024**3`.
+El navegador mantiene un `File` local y transmite segmentos de **5 MiB**
+con `Blob.slice`; el servidor escribe cada bloque en disco. **No lee
+el archivo de 1 GiB completo en memoria**. Las cargas de red temporariamente
+fallidas vuelven a consultar `GET /api/videos/jobs/{id}` para saber el
+número de bytes confirmados por el servidor antes de intentar reenviar un
+bloque. Esta recuperación sirve durante la sesión actual, no después de
+cerrar el navegador o de reiniciar FastAPI.
+
+- Formatos aceptados: MP4, MOV, AVI o MKV. La extensión no confirma que
+  OpenCV disponga del códec de cámara correspondiente.
+- La duración máxima de esta versión es **60 minutos**; se analizan **1–24
+  fotogramas seleccionados**, no todos los fotogramas del video.
+- `GET /api/videos/preflight?expected_bytes=N` comprueba dependencias de IA
+  y espacio libre en el volumen temporal, calculado como bytes declarados del
+  video + **512 MiB de margen para resultados** + **1 GiB de reserva**. Si
+  no hay espacio, FastAPI rechaza la carga con HTTP 507.
+- Los pesos de PyTorchWildlife/PyTorch pueden requerir varios GB extra.
+  El espacio libre de 9,27 GiB del Codespaces observado **antes** de
+  instalar IA no garantiza que persista para un archivo de 1 GiB.
+  Se debe comprobar nuevamente tras la instalación de bibliotecas.
+- Las cargas se almacenan temporalmente en Codespaces, no en Supabase, y
+  los reportes de trabajos terminados vencen aproximadamente a una hora.
+- `POST /api/videos/jobs` (carga directa heredada) se limita a 8 MiB;
+  para videos grandes es obligatorio `/api/videos/uploads` por bloques.
+- El video original del investigador no se modifica: el servidor procesa
+  una copia temporal que elimina al completar o fallar el trabajo.
+  No subas coordenadas o evidencia sensible a endpoints públicos sin controles.
+
+**Validación:** GitHub Actions comprueba que el servidor acepte una
+sesión *declarada* de 1 GiB, bloquee un archivo mayor y rechace cargas
+con poco disco; también ejercita transferencias pequeñas y analiza un AVI
+con detector simulado. **No se subió realmente un archivo de 1 GiB ni se
+verificó MegaDetector con el AVI original.** Hace falta una prueba de campo
+en Codespaces y posiblemente un despliegue de infraestructura con más
+almacenamiento y tiempo de sesión para uso habitual.

@@ -4,6 +4,7 @@ Tests use a fake detector, not actual MegaDetector weights. OpenCV writes
 a tiny local AVI and the background task is polled until completion.
 """
 import base64
+import errno
 import io
 import time
 import zipfile
@@ -43,15 +44,141 @@ def _short_avi():
         return path.read_bytes()
 
 
+@pytest.fixture(autouse=True)
+def isolate_model_prerequisites(monkeypatch):
+    """Video tests use a fake detector; don't require heavyweight AI weights."""
+    monkeypatch.setattr(video_api, "_video_prerequisites", lambda: {
+        "ready_for_attempt": True,
+        "modules": {"opencv": True, "pytorchwildlife": True, "torch": True, "reportlab": True},
+        "missing": [], "message": "Bibliotecas disponibles para pruebas simuladas.",
+        "instructions": [], "model_weights_checked": False, "codec_checked": False,
+    })
+
+
+def test_missing_dependencies_decline_upload_before_file_transfer(client, monkeypatch):
+    monkeypatch.setattr(video_api, "_video_prerequisites", lambda: {
+        "ready_for_attempt": False,
+        "modules": {"opencv": False, "pytorchwildlife": False, "torch": False, "reportlab": True},
+        "missing": ["opencv", "pytorchwildlife", "torch"],
+        "message": "No se puede analizar video: faltan dependencias.",
+        "instructions": ["Instalá MegaDetector: python -m pip install -r requirements-ai.txt"],
+        "model_weights_checked": False, "codec_checked": False,
+    })
+    report = client.get("/api/videos/preflight")
+    assert report.status_code == 200
+    assert not report.json()["ready_for_attempt"]
+    response = client.post("/api/videos/uploads",
+                           headers={"X-Video-Name": "camara.avi", "X-Video-Size": "125000000"})
+    assert response.status_code == 503
+    assert "faltan dependencias" in response.json()["detail"]
+
+
+def test_unexpected_video_failure_has_diagnostic_stage(client, monkeypatch):
+    def broken_detector(_image, _threshold):
+        raise RuntimeError("unexpected mock runtime issue")
+
+    monkeypatch.setattr(video_api, "detect_image", broken_detector)
+    response = client.post("/api/videos/jobs",
+                           headers={"X-Video-Name": "camera.avi"}, content=_short_avi())
+    assert response.status_code == 202
+    identifier = response.json()["job_id"]
+    for _ in range(100):
+        payload = client.get(f"/api/videos/jobs/{identifier}").json()
+        if payload["state"] in ("completed", "failed"):
+            break
+        time.sleep(0.1)
+    assert payload["state"] == "failed"
+    assert payload["error_code"] == "unexpected_error"
+    assert "Analizando fotograma" in payload["error"]
+    assert "RuntimeError" in payload["error"]
+    assert "unexpected mock runtime issue" not in payload["error"]
+
+
 def test_video_size_limit(client):
-    assert video_api.MAX_VIDEO_BYTES == 250 * 1024 * 1024
+    assert video_api.MAX_VIDEO_BYTES == 1024 * 1024 * 1024
+    assert video_api.MAX_DURATION_SECONDS == 3600
     response = client.post(
         '/api/videos/uploads',
         headers={'X-Video-Name': 'muy_grande.mp4',
                  'X-Video-Size': str(video_api.MAX_VIDEO_BYTES + 1)},
     )
     assert response.status_code == 413
-    assert '250 MB' in response.json()['detail']
+    assert '1 GB' in response.json()['detail']
+
+
+
+def test_one_gib_upload_session_does_not_allocate_video_in_ram(client, monkeypatch):
+    """Accept the max declared size without creating or uploading a 1-GiB fixture."""
+    monkeypatch.setattr(video_api, "_disk_capacity_for_upload", lambda size: {
+        "can_accept": True, "free_bytes": 10 * 1024**3,
+        "required_bytes": size + 2 * 1024**3, "message": "Espacio adecuado",
+    })
+    size = 1024**3
+    response = client.post(
+        "/api/videos/uploads",
+        headers={"X-Video-Name": "camaratrampa.avi", "X-Video-Size": str(size)},
+    )
+    assert response.status_code == 201, response.text
+    upload_id = response.json()["upload_id"]
+    assert response.json()["expected_bytes"] == size
+    snapshot = client.get(f"/api/videos/jobs/{upload_id}").json()
+    assert snapshot["expected_bytes"] == size
+    assert snapshot["received_bytes"] == 0
+    canceled = client.delete(f"/api/videos/uploads/{upload_id}")
+    assert canceled.status_code == 204
+
+
+def test_insufficient_disk_rejects_large_upload(client, monkeypatch):
+    usage = type("Usage", (), {"free": 2 * 1024**3})()
+    monkeypatch.setattr(video_api.shutil, "disk_usage", lambda _: usage)
+    size = 1024**3
+    preflight = client.get("/api/videos/preflight", params={"expected_bytes": size})
+    assert preflight.status_code == 200
+    data = preflight.json()
+    assert data["max_video_bytes"] == size
+    assert not data["storage"]["can_accept"]
+    assert not data["ready_for_attempt"]
+    response = client.post(
+        "/api/videos/uploads",
+        headers={"X-Video-Name": "video.avi", "X-Video-Size": str(size)},
+    )
+    assert response.status_code == 507
+    assert "Espacio insuficiente" in response.json()["detail"]
+
+
+def test_disk_full_during_chunk_returns_actionable_error(client, monkeypatch):
+    """ENOSPC during an upload is reported as HTTP 507, not a vague 500."""
+    from pathlib import Path
+    monkeypatch.setattr(video_api, "_disk_capacity_for_upload", lambda size: {
+        "can_accept": True, "free_bytes": 10 * 1024**3,
+        "required_bytes": size, "message": "Espacio para comenzar.",
+    })
+    created = client.post("/api/videos/uploads",
+                          headers={"X-Video-Name": "test.avi", "X-Video-Size": "2000"})
+    assert created.status_code == 201, created.text
+    identifier = created.json()["upload_id"]
+    original_open = Path.open
+
+    def failed_write(path, mode="r", *args, **kwargs):
+        if path.name == "entrada.avi" and mode == "ab":
+            raise OSError(errno.ENOSPC, "No space left on device")
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", failed_write)
+    response = client.put(f"/api/videos/uploads/{identifier}/chunks?offset=0",
+                          content=b"x" * 500)
+    assert response.status_code == 507, response.text
+    assert "sin espacio" in response.json()["detail"]
+    assert client.delete(f"/api/videos/uploads/{identifier}").status_code == 204
+
+
+def test_large_single_post_must_use_chunked_endpoint(client):
+    response = client.post(
+        "/api/videos/jobs", headers={"X-Video-Name": "video.avi"},
+        content=b"x" * (video_api.MAX_UPLOAD_CHUNK_BYTES + 1)
+    )
+    assert response.status_code == 413
+    assert "bloques" in response.json()["detail"]
 
 
 def test_video_input_validation(client):

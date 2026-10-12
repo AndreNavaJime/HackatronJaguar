@@ -1,4 +1,5 @@
 import React from 'react';
+import type { EdgeSummary } from './ScientificWorkspace';
 
 type Counts = { animal: number; person: number; vehicle: number };
 type Frame = {
@@ -75,8 +76,21 @@ type JobSnapshot = {
   result: VideoAnalysis | null;
 };
 type LocalStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed';
+type VideoPreflight = {
+  ready_for_attempt: boolean;
+  modules: { opencv: boolean; pytorchwildlife: boolean; torch: boolean; reportlab: boolean };
+  missing: string[];
+  message: string;
+  instructions: string[];
+  model_weights_checked: boolean;
+  codec_checked: boolean;
+  max_video_bytes?: number;
+  max_duration_seconds?: number;
+  storage?: { can_accept: boolean; free_bytes: number | null; required_bytes: number; message: string };
+};
 
-const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 1024 * 1024 * 1024; // 1 GiB
+const MAX_VIDEO_LABEL = '1 GB (1024 MB)';
 const UPLOAD_CHUNK_BYTES = 5 * 1024 * 1024;
 const percentage = (value: number) => (value * 100).toFixed(1) + '%';
 const megabytes = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
@@ -153,7 +167,7 @@ function Download({ href, children, filename }: { href: string; children: React.
   return <a className="download-link" href={href} download={filename}>{children}</a>;
 }
 
-export default function VideoPanel({ enabled }: { enabled: boolean }) {
+export default function VideoPanel({ enabled, onAnalysisComplete }: { enabled: boolean; onAnalysisComplete?: (summary: EdgeSummary | null) => void }) {
   const [file, setFile] = React.useState<File | null>(null);
   const [videoUrl, setVideoUrl] = React.useState<string | null>(null);
   const [threshold, setThreshold] = React.useState(0.25);
@@ -165,6 +179,33 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
   const [result, setResult] = React.useState<VideoAnalysis | null>(null);
   const [error, setError] = React.useState('');
   const [uploadedBytes, setUploadedBytes] = React.useState(0);
+  const [preflight, setPreflight] = React.useState<VideoPreflight | null>(null);
+  const [preflightError, setPreflightError] = React.useState('');
+  const [checkingPrerequisites, setCheckingPrerequisites] = React.useState(false);
+
+  const checkVideoPrerequisites = React.useCallback(async (expectedBytes = 0): Promise<VideoPreflight | null> => {
+    setCheckingPrerequisites(true);
+    setPreflightError('');
+    try {
+      const data = await fetchJson(await fetch('/api/videos/preflight?expected_bytes=' + expectedBytes, { cache: 'no-store' })) as VideoPreflight;
+      if (typeof data.ready_for_attempt !== 'boolean' || !data.modules) {
+        throw new Error('La API devolvió un diagnóstico incompleto.');
+      }
+      setPreflight(data);
+      return data;
+    } catch (cause) {
+      setPreflight(null);
+      setPreflightError(cause instanceof Error ? cause.message : 'No se pudo comprobar el servidor.');
+      return null;
+    } finally {
+      setCheckingPrerequisites(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (enabled) void checkVideoPrerequisites(file && file.size <= MAX_VIDEO_BYTES ? file.size : 0);
+    else setPreflight(null);
+  }, [enabled, file, checkVideoPrerequisites]);
 
   React.useEffect(() => {
     if (!file) {
@@ -188,6 +229,22 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         if (data.state === 'completed') {
           if (!data.result) throw new Error('El análisis terminó sin resultados.');
           setResult(data.result);
+          onAnalysisComplete?.({
+            source: 'video', filename: data.result.metadata.filename, model: data.result.metadata.model,
+            threshold: data.result.metadata.threshold,
+            mean_confidence: data.result.totals.mean_confidence,
+            input_jpeg_bytes: data.result.totals.input_jpeg_bytes,
+            retained_jpeg_bytes: data.result.totals.retained_jpeg_bytes,
+            rows: data.result.rows.map(row => ({
+              time_seconds: row.video_time_seconds,
+              confidence: row.max_animal_confidence,
+              retained: row.edge_decision === 'RETAIN',
+            })),
+            sampled: data.result.totals.sampled, retained: data.result.totals.retained,
+            animals: data.result.totals.animals, persons: data.result.totals.persons,
+            vehicles: data.result.totals.vehicles, max_confidence: data.result.totals.max_confidence,
+            note: 'Conteos de detecciones, no individuos únicos. Requiere revisión científica.',
+          });
           setStatus('completed');
         } else if (data.state === 'failed') {
           setError(data.error || 'Falló el análisis. Revisá la terminal de Python.');
@@ -202,7 +259,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
     void poll();
     const timer = window.setInterval(() => { void poll(); }, 2000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [jobId, status]);
+  }, [jobId, status, onAnalysisComplete]);
 
   const busy = status === 'uploading' || status === 'processing';
 
@@ -212,14 +269,16 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
     setJob(null);
     setJobId(null);
     setResult(null);
-    setError('');
+    setError(event.target.files?.[0] && event.target.files[0].size > MAX_VIDEO_BYTES
+      ? 'El video supera el límite de ' + MAX_VIDEO_LABEL + '.' : '');
     setUploadedBytes(0);
+    onAnalysisComplete?.(null);
   }
 
   async function analyze() {
     if (!file || !enabled || busy) return;
     if (file.size > MAX_VIDEO_BYTES) {
-      setError('El video supera el límite de 250 MB.');
+      setError('El video supera el límite de 1 GB (1024 MB).');
       return;
     }
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -227,11 +286,22 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
       setError('Formato no admitido. Usá MP4, MOV, AVI o MKV.');
       return;
     }
-    setStatus('uploading');
-    setUploadedBytes(0);
     setError('');
     setResult(null);
     setJob(null);
+    // Verify prerequisites and available disk before transferring a large video.
+    // A file can remain selected while FastAPI has been restarted or updated.
+    const check = await checkVideoPrerequisites(file.size);
+    if (!check) {
+      setError('No se pudo verificar que el servidor pueda analizar el video. Revisá el diagnóstico de dependencias.');
+      return;
+    }
+    if (!check.ready_for_attempt) {
+      setError(check.message + ' ' + check.instructions.join(' · '));
+      return;
+    }
+    setStatus('uploading');
+    setUploadedBytes(0);
     let uploadId: string | null = null;
     try {
       const params = new URLSearchParams({
@@ -254,14 +324,39 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
       let offset = 0;
       while (offset < file.size) {
         const next = Math.min(offset + chunkSize, file.size);
-        const reply = await fetchJson(await fetch(
-          '/api/videos/uploads/' + uploadId + '/chunks?offset=' + offset,
-          { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' },
-            body: file.slice(offset, next) }
-        )) as { received_bytes?: number };
-        if (reply.received_bytes !== next) {
-          throw new Error('La cantidad de datos recibidos no coincide con el bloque enviado.');
+        let uploaded = false;
+        for (let attempt = 0; attempt < 3 && !uploaded; attempt++) {
+          try {
+            const reply = await fetchJson(await fetch(
+              '/api/videos/uploads/' + uploadId + '/chunks?offset=' + offset,
+              { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' },
+                body: file.slice(offset, next) }
+            )) as { received_bytes?: number };
+            uploaded = reply.received_bytes === next;
+            if (!uploaded) throw new Error('El servidor devolvió un desplazamiento de carga inesperado.');
+          } catch (cause) {
+            // The server may have committed the block even if its reply was lost.
+            // Check the saved offset to prevent uploading duplicate bytes.
+            let serverOffset: number | undefined;
+            try {
+              const progress = await fetchJson(await fetch('/api/videos/jobs/' + uploadId,
+                { cache: 'no-store' })) as { state?: string; received_bytes?: number };
+              if (progress.state !== 'uploading') {
+                throw new Error('La sesión de carga expiró o dejó de estar disponible.');
+              }
+              serverOffset = progress.received_bytes;
+            } catch (checkError) {
+              if (checkError instanceof Error && checkError.message.includes('expiró')) throw checkError;
+              if (attempt === 2) throw cause;
+            }
+            if (serverOffset === next) uploaded = true;
+            else if (serverOffset !== undefined && serverOffset !== offset) {
+              throw new Error('El avance informado por Python no coincide con la carga local.');
+            } else if (attempt === 2) throw cause;
+            else await new Promise<void>(resolve => window.setTimeout(resolve, 500 * (attempt + 1)));
+          }
         }
+        if (!uploaded) throw new Error('No se pudo confirmar el bloque de video.');
         offset = next;
         setUploadedBytes(offset);
       }
@@ -294,7 +389,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
 
     <div className="video-config">
       <div className="video-input">
-        <label htmlFor="panthera-video">Video de cámara trampa (MP4, MOV, AVI o MKV · máximo 250 MB)</label>
+        <label htmlFor="panthera-video">Video de cámara trampa (MP4, MOV, AVI o MKV · hasta 1 GB)</label>
         <input id="panthera-video" type="file" accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo"
           disabled={busy} onChange={onFileChange} />
         {file && <small>{file.name} · {megabytes(file.size)}</small>}
@@ -314,11 +409,35 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         <label htmlFor="video-samples">Máximo de fotogramas: {maxSamples}</label>
         <input id="video-samples" type="range" min={1} max={24} step={1} value={maxSamples}
           disabled={busy} onChange={e => setMaxSamples(Number(e.target.value))} />
-        <button className="action-button" type="button" disabled={!file || !enabled || busy}
+        <button className="action-button" type="button" disabled={!file || file.size > MAX_VIDEO_BYTES || !enabled || busy || checkingPrerequisites || !preflight?.ready_for_attempt}
           onClick={() => void analyze()}>
           {status === 'uploading' ? 'Enviando video…' : busy ? 'Analizando video…' : 'Analizar video con IA'}
         </button>
-        <small>Los archivos grandes se transfieren en bloques de 5 MB para evitar límites de la conexión. Después se analizan los fotogramas muestreados.</small>
+        <small>Hasta 1 GB por video y 60 minutos de duración; se transfieren bloques de 5 MB y se analizan como máximo 24 fotogramas. El tamaño permitido no garantiza que el códec AVI sea compatible.</small>
+        <div className="video-preflight" role="status" aria-live="polite">
+          <strong>Preparación del servidor de análisis</strong>
+          {checkingPrerequisites && <p>Comprobando OpenCV, PyTorch y MegaDetector…</p>}
+          {preflight && <><p className={preflight.ready_for_attempt ? 'video-ready' : 'upload-error'}>
+            {preflight.ready_for_attempt ? '✓ Servidor preparado para intentar el análisis' :
+              preflight.storage && !preflight.storage.can_accept ? 'Espacio de disco insuficiente para este video' : 'Faltan componentes para procesar videos'}
+          </p><div className="video-dependency-list">
+            {([['OpenCV (decodificación)', preflight.modules.opencv],
+              ['PyTorchWildlife / MegaDetector', preflight.modules.pytorchwildlife],
+              ['PyTorch', preflight.modules.torch],
+              ['ReportLab (PDF)', preflight.modules.reportlab]] as [string, boolean][]).map(([label, ok]) =>
+                <span key={label}>{ok ? '✓' : '✕'} {label}</span>)}
+          </div>{!preflight.ready_for_attempt && preflight.instructions.map(item =>
+            <p key={item} className="science-hint">{item}</p>)}
+            {preflight.ready_for_attempt && <small>Los pesos del modelo y el códec del video se verificarán al procesarlo; este estado no garantiza una inferencia exitosa.</small>}
+          </>}
+          {preflight?.storage && <p className={preflight.storage.can_accept ? 'video-ready' : 'upload-error'}>
+            Almacenamiento temporal: {preflight.storage.message}
+            {preflight.storage.free_bytes !== null && ' · libres ' + megabytes(preflight.storage.free_bytes)}
+          </p>}
+          {preflightError && <p className="upload-error">{preflightError}</p>}
+          <button type="button" onClick={() => void checkVideoPrerequisites(file && file.size <= MAX_VIDEO_BYTES ? file.size : 0)}
+            disabled={!enabled || busy || checkingPrerequisites}>Comprobar dependencias otra vez</button>
+        </div>
       </div>
     </div>
 
