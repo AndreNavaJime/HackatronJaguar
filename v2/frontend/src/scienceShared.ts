@@ -53,7 +53,7 @@ export function downloadFile(name:string,data:string|Blob,mime='text/plain;chars
 }
 function escapeCell(input:unknown):string {
   let value=input===null||input===undefined?'':String(input);
-  if(/^[=+@\-\t\r]/.test(value))value="'"+value;
+  if(typeof input==='string'&&/^[=+@\-\t\r]/.test(value))value="'"+value;
   return '"'+value.replace(/"/g,'""')+'"';
 }
 export function toCsv(rows:Record<string,unknown>[]):string{
