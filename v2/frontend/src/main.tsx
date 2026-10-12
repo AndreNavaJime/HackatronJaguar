@@ -77,6 +77,7 @@ function App() {
   const [imageError, setImageError] = React.useState('');
   const [uploading, setUploading] = React.useState(false);
   const [preparingEvidence,setPreparingEvidence]=React.useState(false);
+  const [imageEvidenceId,setImageEvidenceId]=React.useState('');
   const [evidenceDraft,setEvidenceDraft]=React.useState<VideoEvidenceBatch|null>(null);
 
   const checkApi = React.useCallback(async () => {
@@ -122,6 +123,7 @@ function App() {
     const file = event.target.files?.[0] ?? null;
     setSelectedImage(file);
     setImageResult(null);
+    setImageEvidenceId('');
     setImageError('');
   }
 
@@ -145,6 +147,7 @@ function App() {
         throw new Error(typeof payload.detail === 'string' ? payload.detail : t('Error al leer la imagen.'));
       }
       setImageResult(payload as ImageResult);
+      setImageEvidenceId(createAnalysisId());
     } catch (err) {
       setImageError(err instanceof Error ? err.message : t('No se pudo enviar la imagen.'));
     } finally {
@@ -160,7 +163,7 @@ function App() {
       const jpg=await photoPreviewJpeg(selectedImage);
       const draft:VideoEvidenceBatch={
         sourceType:'image',sourceSha256:imageResult.sha256,
-        analysisId:createAnalysisId(),jobId:'',fileName:selectedImage.name,
+        analysisId:imageEvidenceId||createAnalysisId(),jobId:'',fileName:selectedImage.name,
         sampleSeconds:0,motionThreshold:0,totalSamples:1,durationSeconds:0,
         frames:[{sample:1,timeSeconds:0,motionScore:0,frameDataUrl:jpg}],
       };
