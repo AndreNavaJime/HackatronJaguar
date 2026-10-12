@@ -2,9 +2,9 @@ import React from 'react';
 import {useLanguage} from './language';
 import {Observation,SatelliteData,SatelliteItem,apiJson,downloadFile,toCsv,toGeoJSON} from './scienceShared';
 
-type Props={records:Observation[];current:Observation};
+type Props={records:Observation[];current:Observation;onOpenReports?:()=>void};
 
-export default function ResearchWorkspace({records,current}:Props){
+export default function ResearchWorkspace({records,current,onOpenReports}:Props){
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
   const [latitude,setLatitude]=React.useState(String(current.camera_latitude??''));
   const [longitude,setLongitude]=React.useState(String(current.camera_longitude??''));
@@ -15,7 +15,7 @@ export default function ResearchWorkspace({records,current}:Props){
   const [error,setError]=React.useState('');
   const [satellite,setSatellite]=React.useState<SatelliteData|null>(null);
   const [selected,setSelected]=React.useState('all');
-  const available=records.filter(x=>x.validation_status==='researcher_validated'||x.validation_status==='field_verified');
+  const available=records.filter(x=>['researcher_validated','field_verified','verified'].includes(x.validation_status));
   const rows=selected==='validated'?available:records;
   const items=[...(satellite?.sentinel_1??[]),...(satellite?.sentinel_2??[])];
   const convertItem=(item:SatelliteItem):Record<string,unknown>=>({
@@ -128,6 +128,14 @@ export default function ResearchWorkspace({records,current}:Props){
       <p className="sci-muted">{satellite.disclaimer}</p>
     </section>}
 
+    <section className="sci-panel">
+      <div className="sci-panel-head"><h3>{tx('Informes y revisión científica','Scientific reporting and review')}</h3>
+        <span className="sci-tag">PDF · ZIP</span></div>
+      <p className="sci-muted">{tx('Generá un informe integral con el catálogo de jaguares, historial de encuentros, cámaras, notas y evidencias visuales; o descargá las tablas relacionadas para reproducibilidad.',
+        'Generate a consolidated report with jaguar profiles, encounter history, camera deployments, notes and visual evidence; or download linked datasets for reproducibility.')}</p>
+      {onOpenReports&&<button type="button" className="action-button" onClick={onOpenReports}>
+        {tx('Abrir informes del estudio ↗','Open study reports ↗')}</button>}
+    </section>
     <section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Datos científicos y exportaciones','Scientific data and exports')}</h3>
         <span className="sci-tag">JSON · CSV · GeoJSON</span></div>
