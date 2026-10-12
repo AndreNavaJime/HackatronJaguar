@@ -1,8 +1,9 @@
-/* PantheraID 2.0: cache ONLY public app-shell assets, NEVER API responses or wildlife data. */
-const CACHE_NAME = 'pantheraid-pwa-shell-v9';
+/* PantheraLAB 3.0 blue edition: cache ONLY public app-shell assets, NEVER API responses or wildlife data. */
+const CACHE_NAME = 'pantheralab-3-pwa-v1';
 const STATIC = ['/offline.html', '/manifest.webmanifest',
-  '/icons/jaguar-modern-180.png', '/icons/jaguar-modern-192.png',
-  '/icons/jaguar-modern-512.png', '/icons/jaguar-modern-maskable-512.png'];
+  '/icons/pantheralab-3-180.png', '/icons/pantheralab-3-192.png',
+  '/icons/pantheralab-3-512.png', '/icons/pantheralab-3-maskable-512.png',
+  '/branding/pantheralab-3-original.webp'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC))
@@ -12,7 +13,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(keys
-      .filter(key => key.startsWith('pantheraid-pwa-shell-') && key !== CACHE_NAME)
+      .filter(key => key.startsWith('pantheralab-3-pwa-') && key !== CACHE_NAME)
       .map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
@@ -34,7 +35,7 @@ self.addEventListener('fetch', event => {
               // Don't persist the Vite dev entrypoint in the SW cache.
               if (html.includes('/@vite/client')) return;
               return caches.open(CACHE_NAME).then(cache =>
-                cache.put('/__pantheraid_app_shell__', new Response(html, {
+                cache.put('/__pantheralab_3_app_shell__', new Response(html, {
                   headers: { 'Content-Type': 'text/html; charset=utf-8' }
                 })));
             }).catch(() => undefined)
