@@ -84,16 +84,19 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent}:Props)
       <h2>{tx('PantheraEDGE · Eventos y conectividad','PantheraEDGE · Events and connectivity')}</h2>
       <p>{tx('Simulación de cámaras, lectura de JSON del nodo y comparación de tiempos de transferencia.',
         'Camera simulation, node JSON reading and transfer-time comparison.')}</p></div>
-      <span className="sci-tag">{tx('SIMULACIÓN + VALIDACIÓN','SIMULATION + VALIDATION')}</span></div>
-    <p className="sci-warning">{tx(
-      'Las capturas simuladas NO provienen de hardware real. Los eventos HTTP se validan pero no se almacenan en la nube. HMAC sin clave configurada significa evento NO autenticado.',
-      'Simulated captures do NOT come from real hardware. HTTP events are validated but not saved to the cloud. An unset HMAC key means the event is NOT authenticated.')}</p>
+      <span className="sci-tag">{tx('EVENTOS DE CAMPO','FIELD EVENTS')}</span></div>
+    <div className="sci-inline-info" role="note"><span className="sci-info-dot" aria-hidden="true" />
+      <p><strong>{tx('Entorno de integración','Integration environment')}</strong> · {tx(
+        'Los eventos de prueba y los recibidos por JSON se conservan en esta sesión. La conexión automática a dispositivos físicos y la sincronización en nube aún no están habilitadas.',
+        'Test events and imported JSON events are retained in this session. Automatic field-device connections and cloud synchronization are not enabled.')}</p>
+    </div>
 
     <div className="sci-2col">
       <section className="sci-panel">
-        <div className="sci-panel-head"><h3>{tx('Simulador PantheraCAM','PantheraCAM simulator')}</h3><span className="sci-tag">DEMO</span></div>
-        <p className="sci-muted">{tx('Generá un aviso de captura sintético para probar la arquitectura, sin inventar mediciones.',
-          'Generate a synthetic capture notice to test the architecture without fabricating measurements.')}</p>
+        <div className="sci-panel-head"><h3>{tx('Generador de eventos PantheraCAM','PantheraCAM event generator')}</h3>
+          <span className="sci-tag">{tx('SIMULACIÓN','SIMULATION')}</span></div>
+        <p className="sci-muted">{tx('Creá un evento de prueba con datos de estación configurables para verificar el flujo de captura.',
+          'Create a test event using configurable station data to verify the capture workflow.')}</p>
         <div className="sci-fields sci-fields-2">
           <label className="sci-field"><span>{tx('ID de cámara','Camera ID')}</span>
             <input value={camera} onChange={e=>setCamera(e.target.value)}/></label>
@@ -159,10 +162,10 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent}:Props)
     </section>
 
     <section className="sci-panel">
-      <div className="sci-panel-head"><h3>{tx('Simulador de conectividad · 5G / 4G','Connectivity simulator · 5G / 4G')}</h3>
-        <span className="sci-tag">{tx('ESTIMACIÓN','ESTIMATE')}</span></div>
-      <p className="sci-muted">{tx('Implementa el cálculo original: tiempo = megabytes × 8 / Mbps + latencia / 1000. NO son medidas reales del testbed 5G.',
-        'Implements the original calculation: time = megabytes × 8 / Mbps + latency / 1000. NOT real 5G testbed measurements.')}</p>
+      <div className="sci-panel-head"><h3>{tx('Modelo de transmisión · 5G / 4G','Transmission model · 5G / 4G')}</h3>
+        <span className="sci-tag">{tx('ESCENARIO DE REFERENCIA','REFERENCE SCENARIO')}</span></div>
+      <p className="sci-muted">{tx('Compará escenarios de transmisión a partir de tamaños de archivo, velocidades y latencias configurables. Los tiempos son proyecciones, no mediciones de red en tiempo real.',
+        'Compare transmission scenarios using configurable payload sizes, speeds and latency. Results are projections, not live network measurements.')}</p>
       <div className="sci-switch" role="group" aria-label={tx('Fuente de datos','Data source')}>
         <button type="button" className={networkSource==='reference'?'selected':''}
           onClick={()=>setNetworkSource('reference')}>{tx('Supuestos de referencia','Reference assumptions')}</button>
@@ -170,10 +173,10 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent}:Props)
           onClick={()=>setNetworkSource('measured')}>{tx('Ingresar valores medidos','Enter measured inputs')}</button>
       </div>
       <p className="sci-warning">{networkSource==='reference'
-        ?tx('Estos valores son escenarios ilustrativos configurables, no pruebas de cobertura o latencia 5G.',
-          'These are configurable illustrative assumptions, not evidence of 5G coverage or latency.')
-        :tx('Los valores se declaran medidos únicamente porque los ingresaste; la aplicación no los verifica.',
-          'Inputs are labeled measured solely because you entered them; the app does not verify them.')}</p>
+        ?tx('Escenario calculado con parámetros de referencia; no corresponde a telemetría de red.',
+          'Scenario calculated from reference inputs, not network telemetry.')
+        :tx('Valores aportados por el usuario; su procedencia debe verificarse antes de utilizarlos en informes.',
+          'User-provided values; verify their source before using them in reports.')}</p>
       <div className="sci-fields">
         {numberInput(tx('Entrada sin filtrar','Unfiltered input'),rawMB,setRawMB,0,1000,'MB')}
         {numberInput(tx('Payload filtrado','Filtered payload'),filteredMB,setFilteredMB,0,1000,'MB')}
