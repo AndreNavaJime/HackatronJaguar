@@ -295,6 +295,11 @@ def pdf_document(p):
                           tr("Fuente ambiental", "Environmental data source")+": "+
                           str(e.get("environment_source", "")), styles["PantheraSmall"]))
         story.append(para(tr("Notas", "Field notes")+": "+str(e.get("notes", "")), styles["PantheraSmall"], 1000))
+        story.append(para(tr("Origen del video", "Source video")+": "+str(e.get("source_video_name",""))+
+             " · "+tr("Análisis", "Analysis")+": "+str(e.get("source_analysis_id",""))+
+             " · "+tr("Método", "Method")+": "+str(e.get("analysis_method",""))+
+             " · "+tr("Fotogramas revisados", "Frames sampled")+": "+str(e.get("analysis_samples","")),
+             styles["PantheraMicro"], 1150))
         thumb = evidence_jpeg(e)
         if thumb:
             from PIL import Image as PillowImage
@@ -304,6 +309,18 @@ def pdf_document(p):
             story.append(ReportImage(io.BytesIO(thumb), width=w*scale, height=h*scale))
             story.append(para(tr("Miniatura de referencia; conservar original por separado.",
                                  "Reference thumbnail; archive original separately."), styles["PantheraMicro"]))
+        for frame in e.get("evidence_frames") or []:
+            frame_img = evidence_jpeg({"thumbnail_data_url":frame["data_url"]})
+            if frame_img:
+                from PIL import Image as PillowImage
+                with PillowImage.open(io.BytesIO(frame_img)) as image:
+                    w, h = image.size
+                scale = min(1.0, 7.5*cm/w, 5.5*cm/h)
+                story.append(ReportImage(io.BytesIO(frame_img), width=w*scale, height=h*scale))
+                story.append(para(tr("Fotograma", "Frame")+" "+
+                    str(frame.get("sample",""))+" · "+str(frame.get("time_seconds",""))+" s · "+
+                    tr("Variación visual", "Visual change")+": "+
+                    str(frame.get("motion_score","")), styles["PantheraMicro"]))
         story.append(para(tr("Evidencia visual (referencias de archivos externos)",
                              "Visual evidence (external file references)")+": "+
                           " | ".join(v for v in [str(e.get("image_url","")),str(e.get("video_url",""))] if v),
@@ -352,6 +369,12 @@ def build_output(p, kind):
             image_files[path] = image
             e["thumbnail_filename"] = path
         e.pop("thumbnail_data_url", None)
+        for item in e.get("evidence_frames") or []:
+            thumb = evidence_jpeg({"thumbnail_data_url":item["data_url"]})
+            image_path = "reference_thumbnails/"+e["encounter_id"]+"_frame_"+str(item["sample"])+".jpg"
+            image_files[image_path] = thumb
+            item.pop("data_url", None)
+            item["thumbnail_filename"] = image_path
     stations = data["deployments"]
     geo = {"type":"FeatureCollection", "features": [
         {"type":"Feature",
