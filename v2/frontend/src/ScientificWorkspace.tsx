@@ -6,9 +6,9 @@ import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
 import {ResearchData,loadResearch,persistResearch,flattenObservations} from './researchData';
 
-type EvidenceSelection={fileName:string;frameDataUrl:string;timeSeconds:number;sample:number};
+import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 type Props={section:string;onNavigate:(section:string)=>void;
-  pendingEvidence?:EvidenceSelection|null;onClearEvidence?:()=>void};
+  pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void};
 
 export default function ScientificWorkspace({section,onNavigate,pendingEvidence,onClearEvidence}:Props){
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
@@ -31,32 +31,29 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     onNavigate('PantheraMONITORING');
   };
 
-  if(section==='PantheraMONITORING'){
-    return <>
-      {persistError&&<p className="sci-warning" role="alert">{tx(
-        'No fue posible guardar los cambios en este navegador. Exportá un respaldo privado antes de salir.',
-        'Browser storage is unavailable. Export a private backup before leaving.')}</p>}
-      <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
-        onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
-        onClearEvidence={onClearEvidence} reportRequested={openReport}
-        onClearReportRequest={()=>setOpenReport(false)} onNavigate={onNavigate}/>
-    </>;
-  }
-  if(section==='PantheraEDGE'){
-    return <EdgeWorkspace events={events} onEvent={onEvent} current={current}
-      setCurrent={setCurrent} onUseEvent={onUseEvent}/>;
-  }
-  if(section==='Investigación'){
-    return <ResearchWorkspace records={records} current={records[0]||current}
-      onOpenReports={()=>{setOpenReport(true);onNavigate('PantheraMONITORING');}}/>;
-  }
-  if(section!=='Resumen')return null;
-
   const sites=new Set(research.deployments.map(d=>d.site.trim()).filter(Boolean));
   const validated=new Set(research.sightings.filter(s=>s.identification_status==='verified'&&
     research.individuals.some(i=>i.individual_id===s.individual_id&&i.status==='verified'))
     .map(s=>s.individual_id)).size;
-  return <div className="sci-screen">
+  return <>
+    <div style={{display:section==='PantheraMONITORING'?'block':'none'}}>
+      {persistError&&<p className="sci-warning" role="alert">{tx(
+        'No fue posible guardar cambios en este navegador. Exportá un respaldo privado antes de salir.',
+        'Could not save changes in this browser. Export a private backup before leaving.')}</p>}
+      <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
+        onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
+        onClearEvidence={onClearEvidence} reportRequested={openReport}
+        onClearReportRequest={()=>setOpenReport(false)} onNavigate={onNavigate}/>
+    </div>
+    <div style={{display:section==='PantheraEDGE'?'block':'none'}}>
+      <EdgeWorkspace events={events} onEvent={onEvent} current={current}
+        setCurrent={setCurrent} onUseEvent={onUseEvent}/>
+    </div>
+    <div style={{display:section==='Investigación'?'block':'none'}}>
+      <ResearchWorkspace records={records} current={records[0]||current}
+        onOpenReports={()=>{setOpenReport(true);onNavigate('PantheraMONITORING');}}/>
+    </div>
+    {section==='Resumen'&&<div className="sci-screen">
     <div className="sci-heading"><div><span className="sci-kicker">PANTHERA LAB / COMMAND OVERVIEW</span>
       <h2>{tx('Centro de control científico','Scientific control center')}</h2>
       <p>{tx('De la cámara trampa a la evidencia: captura, filtrado, contexto ambiental y revisión.',
@@ -120,5 +117,6 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
         'Arquitectura de referencia. La conexión a dispositivos físicos, la telemetría 5G y la persistencia en nube requieren habilitar sus respectivas integraciones.',
         'Reference architecture. Physical devices, 5G telemetry and cloud persistence require their respective integrations to be enabled.')}</p>
     </section>
-  </div>;
+  </div>}
+  </>;
 }
