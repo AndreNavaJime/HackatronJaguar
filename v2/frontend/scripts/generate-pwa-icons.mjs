@@ -13,14 +13,16 @@ const COLORS = {
   gold: [225, 186, 120],
 };
 
-const makeIcon = (size, maskable = false) => {
-  const pixels = new Uint8Array(size * size * 3);
+const makeIcon = (size, maskable = false, transparentEdges = false) => {
+  const channels = transparentEdges ? 4 : 3;
+  const pixels = new Uint8Array(size * size * channels);
   const setPixel = (x, y, color) => {
     if (x < 0 || y < 0 || x >= size || y >= size) return;
-    const index = (y * size + x) * 3;
+    const index = (y * size + x) * channels;
     pixels[index] = color[0];
     pixels[index + 1] = color[1];
     pixels[index + 2] = color[2];
+    if (transparentEdges) pixels[index + 3] = 255;
   };
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) setPixel(x, y, COLORS.background);
@@ -93,12 +95,24 @@ const makeIcon = (size, maskable = false) => {
   path([[.5,.65],[.53,.67]],.015,COLORS.cream);
   for (const [x,y] of [[.36,.55],[.39,.60],[.64,.55],[.61,.60]]) dot(x,y,.011,COLORS.gold);
 
-  // Write PNG (8-bit RGB) compressed via Node's zlib.
-  const scanline = Buffer.alloc(size * (1 + size * 3));
+  // Only the high-resolution splash icon has transparent corners.
+  // The home-screen icons and original jaguar design remain unchanged.
+  if (transparentEdges) {
+    const outerRadius = .373 * size;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const radius = Math.hypot(x + .5 - size / 2, y + .5 - size / 2);
+        pixels[(y * size + x) * channels + 3] = Math.max(0, Math.min(255, Math.round((outerRadius - radius) * 255)));
+      }
+    }
+  }
+
+  // Write PNG (8-bit RGB or RGBA) compressed via Node's zlib.
+  const scanline = Buffer.alloc(size * (1 + size * channels));
   for (let y = 0; y < size; y++) {
-    const off = y * (1 + size * 3);
+    const off = y * (1 + size * channels);
     scanline[off] = 0;
-    scanline.set(pixels.subarray(y * size * 3, (y + 1) * size * 3), off + 1);
+    scanline.set(pixels.subarray(y * size * channels, (y + 1) * size * channels), off + 1);
   }
   const crcTable = Array.from({length: 256}, (_, i) => {
     let c = i;
@@ -116,13 +130,13 @@ const makeIcon = (size, maskable = false) => {
   };
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; ihdr[9] = 2; // 8 bits per channel, truecolor
+  ihdr[8] = 8; ihdr[9] = transparentEdges ? 6 : 2; // 8-bit RGBA or RGB
   const output = Buffer.concat([
     Buffer.from([137,80,78,71,13,10,26,10]),
     chunk('IHDR', ihdr), chunk('IDAT', deflateSync(scanline, {level: 9})),
     chunk('IEND', Buffer.alloc(0)),
   ]);
-  const name = maskable ? 'maskable-512.png' : `icon-${size}.png`;
+  const name = transparentEdges ? 'icon-512-transparent.png' : maskable ? 'maskable-512.png' : `icon-${size}.png`;
   writeFileSync(resolve(iconsDir, name), output);
   console.log('Ícono PWA:', name, `(${(output.length / 1024).toFixed(1)} KiB)`);
 };
@@ -130,4 +144,5 @@ const makeIcon = (size, maskable = false) => {
 makeIcon(180);
 makeIcon(192);
 makeIcon(512);
+makeIcon(512, false, true);
 makeIcon(512, true);
