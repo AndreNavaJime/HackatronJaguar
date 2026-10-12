@@ -22,6 +22,7 @@ export type VideoSession={
   selectedSamples:number[];result:VideoResult|null;error?:string;
 };
 export type VideoEvidenceBatch={
+  sourceType?:'video'|'image';sourceSha256?:string;
   analysisId:string;jobId:string;fileName:string;sampleSeconds:number;
   motionThreshold:number;totalSamples:number;durationSeconds:number;
   frames:{sample:number;timeSeconds:number;motionScore:number;frameDataUrl:string}[];
