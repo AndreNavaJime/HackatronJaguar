@@ -4,10 +4,13 @@ import {downloadFile} from './scienceShared';
 import {ResearchData,Study,Deployment,Individual,Encounter,Sighting,uid,projectPackage} from './researchData';
 
 type Tab='projects'|'stations'|'captures'|'individuals'|'reports';
+type VideoEvidence={fileName:string;frameDataUrl:string;timeSeconds:number;sample:number};
 type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<ResearchData>>;
   pendingEdge?:{camera_id:string;timestamp:string;event_id:string;latitude:number|null;
     longitude:number|null;temperature:number|null;humidity:number|null;image_url:string;
-    clip_url:string}|null;onClearEdge?:()=>void;onNavigate?:(section:string)=>void};
+    clip_url:string}|null;onClearEdge?:()=>void;
+  pendingEvidence?:VideoEvidence|null;onClearEvidence?:()=>void;
+  onNavigate?:(section:string)=>void};
 const localTime=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 async function makeEvidencePreview(file:File):Promise<string>{
   if(!file.type.startsWith('image/')||file.size>8*1024*1024){
@@ -65,7 +68,7 @@ const initialSighting=(encounter_id:string):Sighting=>({
   identification_status:'unidentified',sex:'unknown',age_class:'unknown',viewpoint:'unknown',
   behavior:'',reviewer:'',notes:''});
 
-export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,onNavigate}:Props){
+export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,pendingEvidence,onClearEvidence,onNavigate}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [tab,setTab]=React.useState<Tab>('projects');
   const [selectedStudy,setSelectedStudy]=React.useState('');
@@ -96,6 +99,43 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,o
     setEventDraft(initialEvent(activeId,''));setSightingDraft(initialSighting(''));
     setSelectedEvent('');setNotice('');
   },[activeId]);
+  React.useEffect(()=>{
+    if(!pendingEvidence)return;
+    if(!activeId){
+      setTab('projects');
+      setNotice(tx('Primero creá un estudio; luego podremos registrar el fotograma seleccionado.',
+        'Create a study first, then register the selected video frame.'));
+      return;
+    }
+    if(!stations.length){
+      setTab('stations');
+      setNotice(tx('Primero registrá una estación para asociar la evidencia.',
+        'Register a camera deployment first to associate the evidence.'));
+      return;
+    }
+    let cancelled=false;
+    void (async()=>{
+      try{
+        if(!pendingEvidence.frameDataUrl.startsWith('data:image/jpeg;base64,')||
+          pendingEvidence.frameDataUrl.length>2500000)throw new Error('Formato de fotograma no compatible.');
+        const blob=await (await fetch(pendingEvidence.frameDataUrl)).blob();
+        const photo=await makeEvidencePreview(new File([blob],'pantheraid_frame.jpg',{type:'image/jpeg'}));
+        if(cancelled)return;
+        setTab('captures');setSelectedEvent('');
+        setEventDraft({...initialEvent(activeId,stations[0].deployment_id),
+          notes:'PantheraID | archivo: '+pendingEvidence.fileName.slice(0,150)+
+            ' | fotograma: '+pendingEvidence.sample+' | tiempo: '+
+            pendingEvidence.timeSeconds.toFixed(2)+' s. Revisar especie e identidad manualmente.',
+          thumbnail_data_url:photo,thumbnail_filename:'pantheraid_frame_'+pendingEvidence.sample+'.jpg'});
+        setNotice(tx('Fotograma de PantheraID preparado. Elegí la estación correcta, indicá fecha/hora original del video y guardá la captura.',
+          'PantheraID frame prepared. Choose the correct deployment, enter original capture date/time and save the event.'));
+        onClearEvidence?.();
+      }catch(error){
+        if(!cancelled)setNotice(error instanceof Error?error.message:String(error));
+      }
+    })();
+    return ()=>{cancelled=true;};
+  },[pendingEvidence,activeId,stations.length]);
   const setStudy=(key:keyof Study,v:string)=>setStudyDraft(p=>({...p,[key]:v}));
   const setStation=(key:keyof Deployment,v:string|number|null)=>setStationDraft(p=>({...p,[key]:v}));
   const setPerson=(key:keyof Individual,v:string)=>setIndividualDraft(p=>({...p,[key]:v}));
