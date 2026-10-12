@@ -33,7 +33,7 @@ function App() {
   const [apiState, setApiState] = React.useState<ApiState>('checking');
   const [aiAvailable, setAiAvailable] = React.useState(false);
   const [liteAvailable, setLiteAvailable] = React.useState(false);
-  const [apiMessage, setApiMessage] = React.useState('Comprobando conexión con Python…');
+  const [apiMessage, setApiMessage] = React.useState('Verificando disponibilidad del servicio…');
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [imageResult, setImageResult] = React.useState<ImageResult | null>(null);
@@ -154,7 +154,7 @@ function App() {
         <div className="hero-orbit" aria-hidden="true">
           <div className="hero-orbit-outer" />
           <div className="hero-orbit-inner"><img src="/icons/jaguar-modern-512.png" alt="" /></div>
-          <span className="orbit-code orbit-code-top">SPECIES · 01</span>
+          <span className="orbit-code orbit-code-top">FIELD DATA · 01</span>
           <span className="orbit-code orbit-code-bottom">WILDLIFE / INTELLIGENCE</span>
         </div>
       </section>
