@@ -184,6 +184,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     catch{/* optional */}
   },[selectedEvent]);
   const [notice,setNotice]=React.useState('');
+  const [captureError,setCaptureError]=React.useState('');
+  const [captureToReview,setCaptureToReview]=React.useState('');
   const [manageOpen,setManageOpen]=React.useState(false);
   const [pdfBusy,setPdfBusy]=React.useState(false);
   const [mapDeployment,setMapDeployment]=React.useState('');
@@ -193,6 +195,17 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   const [endDate,setEndDate]=React.useState('');
   const fileRef=React.useRef<HTMLInputElement|null>(null);
   const opts=selectValues(tx);
+  // A newly saved event renders the observation form on the next React commit.
+  // Scroll only after that form exists, instead of racing its first render.
+  React.useEffect(()=>{
+    if(!captureToReview||tab!=='captures'||selectedEvent!==captureToReview||
+       !encounters.some(event=>event.encounter_id===captureToReview))return;
+    const target=document.getElementById('registry-sightings');
+    if(!target)return;
+    target.scrollIntoView({behavior:'smooth',block:'start'});
+    target.querySelector<HTMLElement>('input')?.focus({preventScroll:true});
+    setCaptureToReview('');
+  },[captureToReview,selectedEvent,encounters,tab]);
   React.useEffect(()=>{
     if(!eventDraft.study_id)return;
     try{sessionStorage.setItem('pantheralab_capture_draft_v1',JSON.stringify(eventDraft));}
@@ -432,20 +445,35 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     }catch(error){setNotice(error instanceof Error?error.message:String(error));}
   }
   function saveEvent(){
-    if(!stations.some(d=>d.deployment_id===eventDraft.deployment_id)||!eventDraft.occurred_at){
-      saved('Seleccioná una estación y la fecha/hora de la captura.',
-        'Select a camera deployment and capture date/time.');return;}
-    if(!Number.isFinite(new Date(eventDraft.occurred_at).getTime())){
-      saved('Fecha de captura inválida.','Invalid capture date.');return;}
+    let missingField='';
+    let message='';
+    if(!stations.some(d=>d.deployment_id===eventDraft.deployment_id)){
+      missingField='capture-camera';
+      message=tx('Seleccioná una estación de cámara antes de guardar.',
+        'Select a camera deployment before saving.');
+    }else if(!eventDraft.occurred_at){
+      missingField='capture-date';
+      message=tx('Falta la fecha y hora ORIGINAL de la captura. Indicá cuándo se grabó el video o la fotografía.',
+        'Original capture date and time are required. Enter when the video or photo was recorded.');
+    }else if(!Number.isFinite(new Date(eventDraft.occurred_at).getTime())){
+      missingField='capture-date';
+      message=tx('La fecha de captura no es válida. Revisala para continuar.',
+        'Invalid capture date. Please correct it to continue.');
+    }
+    if(missingField){
+      setCaptureError(message);setNotice(message);
+      document.getElementById(missingField)?.focus({preventScroll:false});
+      return;
+    }
+    setCaptureError('');setNotice('');
     setData(prev=>({...prev,encounters:prev.encounters.some(e=>e.encounter_id===eventDraft.encounter_id)
       ?prev.encounters.map(e=>e.encounter_id===eventDraft.encounter_id?eventDraft:e)
       :[...prev.encounters,eventDraft]}));
     setSelectedEvent(eventDraft.encounter_id);setTab('captures');
     setSightingDraft(initialSighting(eventDraft.encounter_id));
-    saved('Captura guardada. Registrá ahora cada animal observado.',
-      'Capture saved. Now record each observed animal.');
-    window.requestAnimationFrame(()=>document.getElementById('registry-sightings')
-      ?.scrollIntoView({behavior:'smooth',block:'start'}));
+    setCaptureToReview(eventDraft.encounter_id);
+    saved('Captura guardada. Ahora registrá los animales observados.',
+      'Capture saved. Now record the animals observed.');
   }
   function saveSighting(){
     if(!selectedEvent||!encounters.some(e=>e.encounter_id===selectedEvent)){
@@ -790,13 +818,24 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           <p className="sci-muted">{tx('Un video o ráfaga fotográfica representa un evento de captura; agregá una observación por cada animal visible.',
             'A video or image burst represents one capture event; add one sighting per visible animal.')}</p>
           <div className="sci-fields">
-            {choices(tx('Estación *','Camera deployment *'),eventDraft.deployment_id,
-              v=>setEvent('deployment_id',v),[['',tx('Seleccionar…','Choose…')],
-                ...stations.map(d=>[d.deployment_id,d.camera_id+' · '+d.site])])}
-            {textField(tx('Fecha y hora de captura *','Capture date and time *'),
-              inputTime(eventDraft.occurred_at),v=>{
-                setEvent('occurred_at',v?new Date(v).toISOString():'');
-              },'','datetime-local')}
+            <label className="sci-field"><span>{tx('Estación *','Camera deployment *')}</span>
+              <select id="capture-camera" value={eventDraft.deployment_id}
+                onChange={e=>{setEvent('deployment_id',e.target.value);setCaptureError('');}}>
+                <option value="">{tx('Seleccionar cámara…','Select camera…')}</option>
+                {stations.map(d=><option key={d.deployment_id} value={d.deployment_id}>
+                  {d.camera_id+' · '+d.site}</option>)}
+              </select>
+            </label>
+            <label className="sci-field"><span>{tx('Fecha y hora ORIGINAL de captura *','Original capture date and time *')}</span>
+              <input id="capture-date" type="datetime-local" required
+                value={inputTime(eventDraft.occurred_at)}
+                onChange={e=>{const v=e.target.value;
+                  setEvent('occurred_at',v?new Date(v).toISOString():'');
+                  setCaptureError('');
+                }}/>
+              <small>{tx('Usá la fecha real del registro; no se obtiene automáticamente del video.',
+                'Enter the actual recording date; it is not extracted automatically from the video.')}</small>
+            </label>
             {textField(tx('Investigador / anotador','Observer / annotator'),
               eventDraft.observer,v=>setEvent('observer',v))}
             {decimalField(tx('Temperatura de evento (°C)','Event temperature (°C)'),
@@ -850,6 +889,10 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           {textField('PantheraEDGE event ID',eventDraft.edge_event_id,v=>setEvent('edge_event_id',v))}
             {notesField(tx('Notas del evento','Capture notes'),eventDraft.notes,v=>setEvent('notes',v))}
           </div>
+          {captureError&&<div className="registry-capture-error" role="alert">
+            <strong>{tx('Falta información para continuar','Information needed to continue')}</strong>
+            <span>{captureError}</span>
+          </div>}
           <div className="sci-actions video-next-actions">
             <button type="button" className="sci-secondary" onClick={()=>onNavigate?.('PantheraID')}>
               {tx('← Anterior: revisar video','← Back: review video')}</button>
@@ -874,6 +917,11 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         </>}
       </section>
       {selectedEvent&&<section className="sci-panel" id="registry-sightings">
+        <div className="registry-review-ready" role="status">
+          <strong>{tx('Captura guardada','Capture saved')}</strong>
+          <span>{tx('Siguiente paso: identificá cada animal observado. Podés dejar su identidad como desconocida.',
+            'Next: record each animal observed. Individual identity can remain unknown.')}</span>
+        </div>
         <div className="sci-panel-head"><h3>{tx('Animales observados en esta captura','Animals observed in this capture')}</h3>
           <span className="sci-tag">{activeSightings.length} {tx('observaciones','sightings')}</span></div>
         <p className="sci-muted">{tx('Podés registrar dos o más jaguares en la misma captura sin duplicar el evento ni los datos de la cámara.',
