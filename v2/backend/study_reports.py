@@ -402,8 +402,8 @@ def scope_report(data, individual_id=None, encounter_id=None):
 
 @router.post("/report")
 async def study_report(request: Request, kind: str = Query("pdf", pattern="^(pdf|zip)$"),
-                       individual_id: str | None = Query(None, pattern=r"^[\\w.-]{1,90}$"),
-                       encounter_id: str | None = Query(None, pattern=r"^[\\w.-]{1,90}$")):
+                       individual_id: str | None = Query(None, pattern=r"^[\w.-]{1,90}$"),
+                       encounter_id: str | None = Query(None, pattern=r"^[\w.-]{1,90}$")):
     data = await parse_payload(request)
     if kind != "pdf" and (individual_id or encounter_id):
         raise HTTPException(422, "Los paquetes ZIP se generan para el estudio completo.")
