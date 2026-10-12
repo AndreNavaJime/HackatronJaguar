@@ -11,6 +11,7 @@ type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<Resear
     clip_url:string;hmac_status?:string;source?:string}|null;onClearEdge?:()=>void;
   pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
   reportRequested?:boolean;onClearReportRequest?:()=>void;
+  nextRequest?:number;onWorkflowTabChange?:(tab:'projects'|'stations'|'captures'|'individuals'|'reports')=>void;
   onNavigate?:(section:string)=>void};
 function recoverDraft<T>(key:string,idField:string,fallback:()=>T):T{
   try{
@@ -87,7 +88,7 @@ const initialSighting=(encounter_id:string):Sighting=>({
   behavior:'',reviewer:'',notes:''});
 
 export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,pendingEvidence,onClearEvidence,
-  reportRequested,onClearReportRequest,onNavigate}:Props){
+  reportRequested,onClearReportRequest,nextRequest=0,onWorkflowTabChange,onNavigate}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [tab,setTab]=React.useState<Tab>(()=>{
     try{const value=sessionStorage.getItem('pantheralab_registry_tab_v1');
@@ -101,6 +102,24 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   React.useEffect(()=>{
     if(reportRequested){setTab('reports');onClearReportRequest?.();}
   },[reportRequested]);
+  React.useEffect(()=>{onWorkflowTabChange?.(tab);},[tab,onWorkflowTabChange]);
+  React.useEffect(()=>{
+    if(!nextRequest)return;
+    if(tab==='projects'){
+      if(!activeId){setNotice(tx('Guardá primero un estudio para continuar.',
+        'Save a research study before continuing.'));return;}
+      setTab('stations');
+    }else if(tab==='stations'){
+      if(!stations.length){setNotice(tx('Guardá una estación para continuar.',
+        'Save a camera deployment before continuing.'));return;}
+      setTab('captures');
+    }else if(tab==='captures'){
+      if(!encounters.length){setNotice(tx('Guardá primero una captura antes de avanzar.',
+        'Save a capture event before advancing.'));return;}
+      setTab('individuals');
+    }else if(tab==='individuals')setTab('reports');
+    else onNavigate?.('Investigación');
+  },[nextRequest]);
   const [selectedStudy,setSelectedStudy]=React.useState(()=>{
     try{return localStorage.getItem('pantheralab_selected_study_v1')||'';}catch{return '';}
   });
