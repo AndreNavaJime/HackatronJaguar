@@ -520,8 +520,13 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         </div>
         <p className="sci-muted">{tx('Los días-cámara se declaran manualmente; la aplicación no presume actividad continua entre instalación y retiro.',
           'Camera-days are manually reported; continuous operation is not assumed between deployment and retrieval.')}</p>
-        <button className="action-button" type="button" onClick={saveStation}>
-          {tx('Guardar estación','Save deployment')}</button>
+        <div className="sci-actions video-next-actions">
+          <button className="action-button" type="button" onClick={saveStation}>
+            {tx('Guardar estación','Save deployment')}</button>
+          <button className="sci-secondary" type="button" disabled={!stations.length}
+            onClick={()=>setTab('captures')}>
+            {tx('Siguiente: registrar capturas →','Next: record captures →')}</button>
+        </div>
         {stations.length>0&&<div className="sci-table-wrap"><table className="sci-table">
           <thead><tr><th>{tx('Cámara','Camera')}</th><th>{tx('Sitio','Site')}</th><th>{tx('Días operativos','Operational days')}</th><th></th></tr></thead>
           <tbody>{stations.map(d=><tr key={d.deployment_id}><td>{d.camera_id}</td><td>{d.site}</td>
@@ -776,6 +781,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <p className="sci-muted">{tx('Por defecto se ocultan las coordenadas. El servidor genera el informe sin guardar los registros. El PDF y ZIP incluyen las miniaturas cargadas; las fotos y videos originales permanecen fuera del paquete y se citan mediante URL.',
           'Coordinates are hidden by default. Reports are generated without server-side storage. PDF and ZIP include uploaded thumbnails; original photos and videos remain outside the package and are referenced by URL.')}</p>
         <div className="sci-actions">
+          <button type="button" className="sci-secondary" onClick={()=>setTab('captures')}>
+            {tx('← Anterior: revisar capturas','← Back: review captures')}</button>
           <button type="button" className="action-button" disabled={pdfBusy} onClick={()=>void report('pdf')}>
             {pdfBusy?tx('Generando informe…','Generating report…'):
               tx('Descargar informe científico · PDF ↓','Download scientific report · PDF ↓')}</button>
