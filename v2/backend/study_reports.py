@@ -148,6 +148,8 @@ def table_rows(p):
             "edge_event_id": e.get("edge_event_id", ""),
             "analysis_id": e.get("source_analysis_id", ""),
             "original_video": e.get("source_video_name", ""),
+            "source_media_type": e.get("source_media_type", "video"),
+            "source_sha256": e.get("source_sha256", ""),
             "analysis_method": e.get("analysis_method", ""),
             "samples_reviewed": e.get("analysis_samples", ""),
             "selected_frame_samples": ", ".join(str(x.get("sample")) for x in (e.get("evidence_frames") or [])),
@@ -295,11 +297,13 @@ def pdf_document(p):
                           tr("Fuente ambiental", "Environmental data source")+": "+
                           str(e.get("environment_source", "")), styles["PantheraSmall"]))
         story.append(para(tr("Notas", "Field notes")+": "+str(e.get("notes", "")), styles["PantheraSmall"], 1000))
-        story.append(para(tr("Origen del video", "Source video")+": "+str(e.get("source_video_name",""))+
+        story.append(para(tr("Archivo de origen", "Source file")+": "+str(e.get("source_video_name",""))+
+             " · "+tr("Tipo", "Media type")+": "+str(e.get("source_media_type",""))+
              " · "+tr("Análisis", "Analysis")+": "+str(e.get("source_analysis_id",""))+
              " · "+tr("Método", "Method")+": "+str(e.get("analysis_method",""))+
-             " · "+tr("Fotogramas revisados", "Frames sampled")+": "+str(e.get("analysis_samples","")),
-             styles["PantheraMicro"], 1150))
+             " · "+tr("Muestras", "Samples")+": "+str(e.get("analysis_samples",""))+
+             " · SHA-256: "+str(e.get("source_sha256","")),
+             styles["PantheraMicro"], 1300))
         thumb = evidence_jpeg(e)
         if thumb:
             from PIL import Image as PillowImage
