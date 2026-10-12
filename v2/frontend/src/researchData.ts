@@ -133,7 +133,9 @@ export function flattenObservations(data:ResearchData):Observation[]{
 export function projectPackage(data:ResearchData,study_id:string,redact:boolean,language:'es'|'en'){
   const studies=data.studies.find(p=>p.study_id===study_id);
   if(!studies)throw new Error('Study not found');
-  const deployments=data.deployments.filter(x=>x.study_id===study_id);
+  // Privacy by default: do not even transmit exact station coordinates to the report API.
+  const deployments=data.deployments.filter(x=>x.study_id===study_id)
+    .map(x=>redact?{...x,latitude:null,longitude:null}:x);
   const individuals=data.individuals.filter(x=>x.study_id===study_id);
   const encounters=data.encounters.filter(x=>x.study_id===study_id);
   const encounterIds=new Set(encounters.map(e=>e.encounter_id));
