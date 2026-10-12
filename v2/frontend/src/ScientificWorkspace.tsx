@@ -20,6 +20,7 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   });
   const [current,setCurrent]=React.useState<Observation>(()=>newObservation());
   const [incoming,setIncoming]=React.useState<EdgeEvent|null>(null);
+  const [openReport,setOpenReport]=React.useState(false);
   const records=React.useMemo(()=>flattenObservations(research),[research]);
 
   React.useEffect(()=>{setPersistError(!persistResearch(research));},[research]);
@@ -37,7 +38,8 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
         'Browser storage is unavailable. Export a private backup before leaving.')}</p>}
       <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
         onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
-        onClearEvidence={onClearEvidence} onNavigate={onNavigate}/>
+        onClearEvidence={onClearEvidence} reportRequested={openReport}
+        onClearReportRequest={()=>setOpenReport(false)} onNavigate={onNavigate}/>
     </>;
   }
   if(section==='PantheraEDGE'){
@@ -45,7 +47,8 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       setCurrent={setCurrent} onUseEvent={onUseEvent}/>;
   }
   if(section==='Investigación'){
-    return <ResearchWorkspace records={records} current={records[0]||current}/>;
+    return <ResearchWorkspace records={records} current={records[0]||current}
+      onOpenReports={()=>{setOpenReport(true);onNavigate('PantheraMONITORING');}}/>;
   }
   if(section!=='Resumen')return null;
 
