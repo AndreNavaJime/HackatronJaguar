@@ -348,6 +348,47 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     setTab('stations');saved('Proyecto registrado. Configurá su primera estación.',
       'Study saved. Configure its first camera deployment.');
   }
+  function deleteStudy(target:Study){
+    const depIds=new Set(data.deployments.filter(d=>d.study_id===target.study_id).map(d=>d.deployment_id));
+    const eventIds=new Set(data.encounters.filter(e=>e.study_id===target.study_id).map(e=>e.encounter_id));
+    const linked=data.deployments.filter(d=>depIds.has(d.deployment_id)).length+
+      data.encounters.filter(e=>eventIds.has(e.encounter_id)).length+
+      data.sightings.filter(v=>eventIds.has(v.encounter_id)).length+
+      data.individuals.filter(v=>v.study_id===target.study_id).length;
+    if(linked>0){
+      setNotice(tx('Este estudio tiene '+linked+' registros vinculados. Descargá primero un respaldo privado.',
+        'This study has '+linked+' linked records. Download a private backup first.'));
+      if(!window.confirm(tx('ATENCIÓN: se eliminarán el estudio y sus '+linked+
+        ' registros asociados. Esta operación no se puede deshacer. ¿Continuar?',
+        'WARNING: this study and its '+linked+
+        ' linked records will be deleted permanently from this browser. Continue?')))return;
+    }else if(!window.confirm(tx('¿Eliminar el estudio «'+target.title+'» de este navegador?',
+      'Delete study “'+target.title+'” from this browser?')))return;
+    setData(prev=>({...prev,
+      studies:prev.studies.filter(v=>v.study_id!==target.study_id),
+      deployments:prev.deployments.filter(v=>v.study_id!==target.study_id),
+      individuals:prev.individuals.filter(v=>v.study_id!==target.study_id),
+      encounters:prev.encounters.filter(v=>v.study_id!==target.study_id),
+      sightings:prev.sightings.filter(v=>!eventIds.has(v.encounter_id)),
+    }));
+    setSelectedStudy('');setStudyDraft(initialStudy());setStationDraft(initialStation(''));
+    setEventDraft(initialEvent('',''));setSightingDraft(initialSighting(''));setSelectedEvent('');
+    try{localStorage.removeItem('pantheralab_selected_study_v1');}catch{/* optional */}
+    setTab('projects');
+    saved('Estudio eliminado de este navegador.','Study deleted from this browser.');
+  }
+  function deleteStation(target:Deployment){
+    const linked=encounters.filter(e=>e.deployment_id===target.deployment_id);
+    if(linked.length){
+      saved('Esta estación tiene capturas registradas. Eliminá o reasigná esas capturas antes de eliminar la estación.',
+        'This camera has linked captures. Delete or reassign those captures first.');return;
+    }
+    if(!window.confirm(tx('¿Eliminar esta estación del estudio?',
+      'Delete this camera deployment from the study?')))return;
+    setData(prev=>({...prev,deployments:prev.deployments.filter(d=>d.deployment_id!==target.deployment_id)}));
+    setStationDraft(initialStation(activeId));setMapDeployment('');
+    saved('Estación eliminada.','Camera deployment deleted.');
+  }
   function saveStation(){
     const coords=stationDraft.latitude!==null||stationDraft.longitude!==null;
     if(!stationDraft.camera_id.trim()||!stationDraft.site.trim()){
@@ -579,10 +620,17 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       </div>
       <button className="action-button" type="button" onClick={saveStudy}>
         {tx('Guardar ficha del estudio','Save study profile')}</button>
-      {data.studies.length>1&&<div className="registry-list">{data.studies.map(p=>
-        <button type="button" key={p.study_id} className="registry-record-button"
-          onClick={()=>{setSelectedStudy(p.study_id);setStudyDraft({...p});}}>
-          <strong>{p.title}</strong><small>{p.study_id}</small></button>)}</div>}
+      {data.studies.length>0&&<div className="registry-list">{data.studies.map(p=>
+        <div key={p.study_id} className="registry-record-button">
+          <strong>{p.title}</strong><small>{p.study_id}</small>
+          <div className="sci-actions">
+            <button type="button" className="sci-secondary" onClick={()=>{
+              setSelectedStudy(p.study_id);setStudyDraft({...p});}}>
+              {tx('Editar','Edit')}</button>
+            <button type="button" className="sci-secondary sci-danger" onClick={()=>deleteStudy(p)}>
+              {tx('Eliminar estudio','Delete study')}</button>
+          </div>
+        </div>)}</div>}
     </section>}
 
     {tab==='stations'&&<section className="sci-panel">
@@ -621,6 +669,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           <tbody>{stations.map(d=><tr key={d.deployment_id}><td>{d.camera_id}</td><td>{d.site}</td>
             <td>{d.operational_days??'—'}</td><td><button type="button" className="sci-inline"
               onClick={()=>setStationDraft({...d})}>{tx('Editar','Edit')}</button>
+              <button type="button" className="sci-inline sci-danger" onClick={()=>deleteStation(d)}>
+                {tx('Eliminar','Delete')}</button>
               {d.latitude!==null&&d.longitude!==null&&<button type="button" className="sci-inline"
                 onClick={()=>setMapDeployment(d.deployment_id===mapDeployment?'':d.deployment_id)}>
                 {tx('Ver mapa','Show map')}</button>}</td></tr>)}</tbody>
