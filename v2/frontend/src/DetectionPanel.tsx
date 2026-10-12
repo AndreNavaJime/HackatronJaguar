@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from './language';
 
 type Detection = {
   class_name: string;
@@ -19,6 +20,7 @@ type DetectionResult = {
 const labels: Record<string, string> = { animal: 'Animal', person: 'Persona', vehicle: 'Vehículo' };
 
 export default function DetectionPanel({ file, enabled }: { file: File | null; enabled: boolean }) {
+  const { t } = useLanguage();
   const [result, setResult] = React.useState<DetectionResult | null>(null);
   const [threshold, setThreshold] = React.useState(0.25);
   const [processing, setProcessing] = React.useState(false);
@@ -86,56 +88,57 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
   }
 
   return <section className="detector-panel">
-    <h3>Detección de fauna · MegaDetector V6</h3>
-    <p>Detecta animales, personas y vehículos. No identifica especies ni jaguares individuales.</p>
+    <h3>{t("Detección de fauna · MegaDetector V6")}</h3>
+    <p>{t("Detecta animales, personas y vehículos. No identifica especies ni jaguares individuales.")}</p>
     <div className="detector-actions">
-      <label htmlFor="confidence-threshold">Umbral de confianza: {Math.round(threshold * 100)}%</label>
+      <label htmlFor="confidence-threshold">{t("Umbral de confianza:")} {Math.round(threshold * 100)}%</label>
       <input id="confidence-threshold" type="range" min="0.1" max="0.9" step="0.05"
         value={threshold} onChange={event => setThreshold(Number(event.target.value))} />
       <button className="action-button detection-button" type="button" disabled={!file || processing || !enabled} onClick={() => void detect()}>
-        {processing ? 'Ejecutando MegaDetector…' : 'Detectar animales con IA'}
+        {t(processing ? 'Ejecutando MegaDetector…' : 'Detectar animales con IA')}
       </button>
       <small>La primera ejecución puede tardar porque se descargan los pesos del modelo.
-        Es necesario instalar PytorchWildlife en Python.</small>
+        {t('Es necesario instalar PytorchWildlife en Python.')}</small>
     </div>
     {error && <p className="upload-error" role="alert">{error}</p>}
     {result && <div className="detection-results" aria-live="polite">
-      <h3>Resultados científicos preliminares</h3>
+      <h3>{t("Resultados científicos preliminares")}</h3>
       <div className="detection-metrics">
-        <div><span>Animales</span><strong>{result.counts.animal}</strong></div>
-        <div><span>Personas</span><strong>{result.counts.person}</strong></div>
-        <div><span>Vehículos</span><strong>{result.counts.vehicle}</strong></div>
-        <div><span>Inferencia</span><strong>{result.inference_seconds.toFixed(2)} s</strong></div>
+        <div><span>{t("Animales")}</span><strong>{result.counts.animal}</strong></div>
+        <div><span>{t("Personas")}</span><strong>{result.counts.person}</strong></div>
+        <div><span>{t("Vehículos")}</span><strong>{result.counts.vehicle}</strong></div>
+        <div><span>{t("Inferencia")}</span><strong>{result.inference_seconds.toFixed(2)} s</strong></div>
       </div>
-      <p className="details-caption">{result.model} · {result.device.toUpperCase()} · Umbral {Math.round(result.threshold * 100)}%</p>
+      <p className="details-caption">{result.model} · {result.device.toUpperCase()} · {t('Umbral')} {Math.round(result.threshold * 100)}%</p>
       <div className="annotated-viewer">
         {annotated
-          ? <img src={result.annotated_image} alt="Fotografía con recuadros y confianza de las detecciones" />
+          ? <img src={result.annotated_image} alt={t("Fotografía con recuadros y confianza de las detecciones")} />
           : file && <OriginalPreview file={file} />}
         <div className="preview-controls">
-          <button type="button" className={annotated ? 'active' : ''} onClick={() => setAnnotated(true)}>Con recuadros</button>
-          <button type="button" className={!annotated ? 'active' : ''} onClick={() => setAnnotated(false)}>Original</button>
-          <a className="download-link" href={result.annotated_image} download="pantheraid_detecciones.jpg">Descargar anotada ↓</a>
+          <button type="button" className={annotated ? 'active' : ''} onClick={() => setAnnotated(true)}>{t("Con recuadros")}</button>
+          <button type="button" className={!annotated ? 'active' : ''} onClick={() => setAnnotated(false)}>{t("Original")}</button>
+          <a className="download-link" href={result.annotated_image} download="pantheraid_detecciones.jpg">{t("Descargar anotada ↓")}</a>
         </div>
       </div>
       {result.detections.length ? <div className="detection-list">
         {result.detections.map((det, index) => <div key={index}>
-          <strong>{labels[det.class_name] ?? det.class_name} {index + 1}</strong>
-          <span>Confianza {(det.confidence * 100).toFixed(1)}%</span>
-          <small>Recuadro: {det.bbox_xyxy.join(', ')}</small>
+          <strong>{t(labels[det.class_name] ?? det.class_name)} {index + 1}</strong>
+          <span>{t("Confianza")} {(det.confidence * 100).toFixed(1)}%</span>
+          <small>{t("Recuadro:")} {det.bbox_xyxy.join(', ')}</small>
         </div>)}
-      </div> : <p>No hubo detecciones por encima del umbral; esto no demuestra ausencia de fauna.</p>}
+      </div> : <p>{t("No hubo detecciones por encima del umbral; esto no demuestra ausencia de fauna.")}</p>}
       <p className="scientific-note">{result.note} La confianza del modelo no equivale a una exactitud científica validada.</p>
     </div>}
   </section>;
 }
 
 function OriginalPreview({ file }: { file: File }) {
+  const { t } = useLanguage();
   const [src, setSrc] = React.useState('');
   React.useEffect(() => {
     const url = URL.createObjectURL(file);
     setSrc(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
-  return src ? <img src={src} alt="Fotografía original sin anotaciones" /> : null;
+  return src ? <img src={src} alt={t("Fotografía original sin anotaciones")} /> : null;
 }
