@@ -10,6 +10,7 @@ type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<Resear
     longitude:number|null;temperature:number|null;humidity:number|null;image_url:string;
     clip_url:string;hmac_status?:string;source?:string}|null;onClearEdge?:()=>void;
   pendingEvidence?:VideoEvidence|null;onClearEvidence?:()=>void;
+  reportRequested?:boolean;onClearReportRequest?:()=>void;
   onNavigate?:(section:string)=>void};
 const localTime=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 async function makeEvidencePreview(file:File):Promise<string>{
@@ -74,9 +75,13 @@ const initialSighting=(encounter_id:string):Sighting=>({
   identification_status:'unidentified',sex:'unknown',age_class:'unknown',viewpoint:'unknown',
   behavior:'',reviewer:'',notes:''});
 
-export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,pendingEvidence,onClearEvidence,onNavigate}:Props){
+export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,pendingEvidence,onClearEvidence,
+  reportRequested,onClearReportRequest,onNavigate}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [tab,setTab]=React.useState<Tab>('projects');
+  React.useEffect(()=>{
+    if(reportRequested){setTab('reports');onClearReportRequest?.();}
+  },[reportRequested]);
   const [selectedStudy,setSelectedStudy]=React.useState('');
   const activeId=data.studies.some(s=>s.study_id===selectedStudy)?selectedStudy:data.studies[0]?.study_id||'';
   const study=data.studies.find(s=>s.study_id===activeId);
