@@ -190,7 +190,12 @@ const translations: Record<string, string> = {
   "Para iPhone, abrí Safari, tocá Compartir y seleccioná Agregar a pantalla de inicio.": "On iPhone, open Safari, tap Share, then Add to Home Screen.",
   "En Chrome para Android, abrí el menú": "In Chrome for Android, open the menu",
   "y elegí": "and choose",
-  "o": "or"
+  "o": "or",
+  "Análisis de video": "Video analysis",
+  "Vista previa de la fotografía seleccionada": "Selected photo preview",
+  "Con anotaciones de MegaDetector": "With MegaDetector annotations",
+  "Recorte candidato": "Candidate crop",
+  "PantheraID · Espacio de trabajo": "PantheraID · Workspace"
 };
 
 type I18n = { language: Language; setLanguage: (next: Language) => void; t: (spanish: string) => string };
