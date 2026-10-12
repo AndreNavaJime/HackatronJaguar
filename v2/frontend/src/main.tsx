@@ -75,7 +75,7 @@ function App() {
   async function inspectImage() {
     if (!selectedImage) return;
     if (selectedImage.size > 12 * 1024 * 1024) {
-      setImageError('El tamaño máximo permitido es de 12 MB.');
+      setImageError(t('El tamaño máximo permitido es de 12 MB.'));
       return;
     }
     setUploading(true);
@@ -89,11 +89,11 @@ function App() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(typeof payload.detail === 'string' ? payload.detail : 'Error al leer la imagen.');
+        throw new Error(typeof payload.detail === 'string' ? payload.detail : t('Error al leer la imagen.'));
       }
       setImageResult(payload as ImageResult);
     } catch (err) {
-      setImageError(err instanceof Error ? err.message : 'No se pudo enviar la imagen.');
+      setImageError(err instanceof Error ? err.message : t('No se pudo enviar la imagen.'));
     } finally {
       setUploading(false);
     }
@@ -158,7 +158,7 @@ function App() {
             <label htmlFor="panthera-image">{t("Seleccionar fotografía (JPEG, PNG o WebP; máximo 12 MB)")}</label>
             <input id="panthera-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
             <button className="action-button" disabled={!selectedImage || uploading || apiState !== 'connected'} onClick={() => void inspectImage()}>
-              {uploading ? 'Enviando…' : 'Enviar a Python'}
+              {t(uploading ? 'Enviando…' : 'Enviar a Python')}
             </button>
             {imageError && <p role="alert" className="upload-error">{imageError}</p>}
             {imageResult && <div className="image-result" role="status">
@@ -168,7 +168,7 @@ function App() {
             </div>}
           </div>
           <div className="image-frame">
-            {previewUrl ? <img src={previewUrl} alt="Vista previa de la fotografía seleccionada" /> : <div className="empty-preview">{t("Aquí aparecerá la fotografía seleccionada")}</div>}
+            {previewUrl ? <img src={previewUrl} alt={t('Vista previa de la fotografía seleccionada')} /> : <div className="empty-preview">{t("Aquí aparecerá la fotografía seleccionada")}</div>}
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
@@ -178,14 +178,14 @@ function App() {
       </section> : <>
         <div className="section-heading"><div><span className="section-kicker">{t("PANEL DE CONTROL")}</span><h2>{t("Estado de la plataforma")}</h2></div><span className="section-counter">{t("03 MÓDULOS EN SEGUIMIENTO")}</span></div>
         <div className="cards">
-          <article className="metric-card metric-card-a"><div className="metric-top"><span>{t("01 / IDENTIFICACIÓN")}</span><b aria-hidden="true">◎</b></div><strong>{t("En migración")}</strong><p>{t("Modelos de identificación individual pendientes de integración y validación.")}</p><div className="metric-footer"><i /> PENDIENTE DE VALIDACIÓN</div></article>
-          <article className="metric-card metric-card-b"><div className="metric-top"><span>{t("02 / EVENTOS DE CAMPO")}</span><b aria-hidden="true">⌁</b></div><strong>{t("Sin datos conectados")}</strong><p>{t("Preparado para integrar PantheraEDGE y el nodo VIGÍA.")}</p><div className="metric-footer"><i /> INTEGRACIÓN EN DESARROLLO</div></article>
-          <article className="metric-card metric-card-c"><div className="metric-top"><span>{t("03 / REVISIÓN CIENTÍFICA")}</span><b aria-hidden="true">✦</b></div><strong>{t("Pendiente")}</strong><p>{t("Espacio preparado para evidencias, métricas y exportaciones.")}</p><div className="metric-footer"><i /> PRÓXIMA ETAPA</div></article>
+          <article className="metric-card metric-card-a"><div className="metric-top"><span>{t("01 / IDENTIFICACIÓN")}</span><b aria-hidden="true">◎</b></div><strong>{t("En migración")}</strong><p>{t("Modelos de identificación individual pendientes de integración y validación.")}</p><div className="metric-footer"><i /> {t('PENDIENTE DE VALIDACIÓN')}</div></article>
+          <article className="metric-card metric-card-b"><div className="metric-top"><span>{t("02 / EVENTOS DE CAMPO")}</span><b aria-hidden="true">⌁</b></div><strong>{t("Sin datos conectados")}</strong><p>{t("Preparado para integrar PantheraEDGE y el nodo VIGÍA.")}</p><div className="metric-footer"><i /> {t('INTEGRACIÓN EN DESARROLLO')}</div></article>
+          <article className="metric-card metric-card-c"><div className="metric-top"><span>{t("03 / REVISIÓN CIENTÍFICA")}</span><b aria-hidden="true">✦</b></div><strong>{t("Pendiente")}</strong><p>{t("Espacio preparado para evidencias, métricas y exportaciones.")}</p><div className="metric-footer"><i /> {t('PRÓXIMA ETAPA')}</div></article>
         </div>
         <section className="panel workspace-panel">
           <div className="workspace-copy"><span className="section-kicker">WORKSPACE / PANTHERAID</span><h2>{t("De la cámara trampa a la evidencia")}</h2>
           <p>{t("El módulo PantheraID permite recibir fotografías y consultar el servidor Python. La detección con IA y las integraciones de campo dependen de las capacidades habilitadas en el backend.")}</p>
-          <button type="button" className="action-button workspace-button" onClick={() => setSection('PantheraID')}>Explorar módulo PantheraID <span aria-hidden="true">↗</span></button></div>
+          <button type="button" className="action-button workspace-button" onClick={() => setSection('PantheraID')}>{t('Explorar módulo PantheraID')} <span aria-hidden="true">↗</span></button></div>
           <div className="workspace-visual" aria-hidden="true"><span>{t("CAPTURA")}</span><i>→</i><span>{t("ANÁLISIS")}</span><i>→</i><span>{t("REVISIÓN")}</span></div>
         </section>
       </>}
