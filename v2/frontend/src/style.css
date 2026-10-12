@@ -902,3 +902,52 @@ button,a,input,select,textarea{transition-property:background,border-color,color
   .video-workflow-progress{gap:5px}
   .video-workflow-progress span{font-size:10px;padding:8px 9px}
 }
+
+
+/* PantheraLAB workflow primary action: amber → orange */
+.workflow-next-action{
+  display:flex;flex-direction:column;align-items:stretch;gap:8px;
+  max-width:100%;margin:17px 0 4px
+}
+.workflow-next-action small{
+  display:block;font-size:11px;line-height:1.6;color:#aebecb;
+  padding:0 3px
+}
+.workflow-next-button,
+.sci-actions .workflow-next-button,
+.research-registry .sci-panel>.workflow-next-button,
+.video-next-actions .workflow-next-button {
+  display:inline-flex;align-items:center;justify-content:center;gap:14px;
+  min-height:48px;padding:12px 19px;
+  background:linear-gradient(110deg,#f7c557 0%,#f5a82b 45%,#df7620 100%);
+  color:#30200f;border:1px solid #ffce69;border-radius:11px;
+  font:inherit;font-weight:800;font-size:13px;line-height:1.35;letter-spacing:.005em;
+  text-align:center;cursor:pointer;box-shadow:0 6px 19px rgba(232,142,33,.18);
+  transition:filter .18s ease,transform .18s ease,box-shadow .18s ease
+}
+.workflow-next-action .workflow-next-button{width:100%}
+.workflow-next-button:not(:disabled):hover,
+.sci-actions .workflow-next-button:not(:disabled):hover,
+.research-registry .sci-panel>.workflow-next-button:not(:disabled):hover,
+.video-next-actions .workflow-next-button:not(:disabled):hover {
+  background:linear-gradient(110deg,#ffce6b,#ffb13f 45%,#f18a2b);
+  border-color:#ffdb8c;color:#261608;
+  filter:brightness(1.025);
+  transform:translateY(-1px);
+  box-shadow:0 10px 23px rgba(232,142,33,.26)
+}
+.workflow-next-button:disabled,
+.sci-actions .workflow-next-button:disabled {
+  opacity:.48;cursor:not-allowed;filter:grayscale(.35);box-shadow:none
+}
+.workflow-next-button:focus-visible{outline:2px solid #ffe4a4;outline-offset:3px}
+.workflow-next-video{max-width:580px;margin:16px auto 22px}
+#lite-video-gallery{scroll-margin-top:22px}
+@media(max-width:670px){
+ .video-next-actions .workflow-next-button,.sci-actions .workflow-next-button{width:100%}
+ .workflow-next-button{min-height:50px}
+}
+@media(prefers-reduced-motion:reduce){
+ .workflow-next-button{transition:none!important}
+ .workflow-next-button:not(:disabled):hover{transform:none}
+}
