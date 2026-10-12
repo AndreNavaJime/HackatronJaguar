@@ -992,3 +992,23 @@ button,a,input,select,textarea{transition-property:background,border-color,color
   .workflow-global-copy>strong{font-size:10px}
   .workflow-global-next{font-size:11px}
 }
+
+
+/* Final unmissable video workflow step, placed after the last frame and notes */
+.workflow-end-action{
+ display:flex;flex-direction:column;gap:10px;
+ margin:26px 0 6px;padding:18px;
+ border:1px solid rgba(255,189,87,.5);border-radius:14px;
+ background:linear-gradient(135deg,rgba(242,163,47,.13),rgba(235,123,24,.045));
+ box-shadow:0 8px 28px rgba(17,13,8,.22)
+}
+.workflow-end-title{font-size:15px;font-weight:800;color:#fff0cb}
+.workflow-end-action p{font-size:12px;line-height:1.6;color:#d9c5a3;margin:0}
+.workflow-end-action .workflow-end-next{width:100%;min-height:54px;
+ background:linear-gradient(105deg,#ffd06d,#f4a12c 55%,#e67a21);
+ border-color:#ffd889;color:#241606;font-size:14px;font-weight:850;
+ box-shadow:0 7px 22px rgba(232,142,33,.28)}
+@media(max-width:650px){
+ .workflow-end-action{margin:20px 0 4px;padding:15px}
+ .workflow-end-action .workflow-end-next{min-height:56px;font-size:13px}
+}
