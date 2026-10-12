@@ -466,3 +466,28 @@ article,.panel,.detector-panel,.video-panel{background:#111e2c;border:1px solid 
   .language-switch{padding:3px}
   .language-switch button{min-width:36px;min-height:34px;font-size:11px}
 }
+
+
+/* PantheraID · orbital jaguar identity (second selected emblem). */
+.brand-symbol{
+  border:0;background:transparent;object-fit:contain;border-radius:50%;
+  box-shadow:none;filter:drop-shadow(0 0 8px rgba(0,225,194,.23));
+  transition:filter .3s ease,transform .3s ease;
+}
+.brand:hover .brand-symbol{filter:drop-shadow(0 0 15px rgba(0,225,194,.55));transform:scale(1.04)}
+.hero-orbit-outer{animation:panthera-orbit 28s linear infinite}
+.hero-orbit-inner img{
+  width:188px;height:188px;max-width:90%;max-height:90%;
+  border-radius:50%;object-fit:contain;
+  filter:drop-shadow(0 10px 22px rgba(0,225,194,.12));
+  animation:panthera-float 5.5s ease-in-out infinite
+}
+@keyframes panthera-orbit{to{transform:rotate(360deg)}}
+@keyframes panthera-float{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-4px) scale(1.025)}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-orbit-outer,.hero-orbit-inner img{animation:none}
+  .brand-symbol{transition:none}
+}
