@@ -569,7 +569,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <div className="sci-actions video-next-actions">
           <button className="action-button" type="button" onClick={saveStation}>
             {tx('Guardar estación','Save deployment')}</button>
-          <button className="sci-secondary" type="button" disabled={!stations.length}
+          <button className="workflow-next-button" type="button" disabled={!stations.length}
             onClick={()=>setTab('captures')}>
             {tx('Siguiente: registrar capturas →','Next: record captures →')}</button>
         </div>
@@ -733,7 +733,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           <div className="sci-actions video-next-actions">
             <button type="button" className="sci-secondary" onClick={()=>onNavigate?.('PantheraID')}>
               {tx('← Anterior: revisar video','← Back: review video')}</button>
-            <button type="button" className="action-button" onClick={saveEvent}>
+            <button type="button" className="action-button workflow-next-button" onClick={saveEvent}>
               {tx('Guardar y continuar con animales →','Save and continue to animals →')}</button>
           </div>
           <p className="sci-muted">{tx('Las miniaturas aparecen en los informes, pero no sustituyen la fotografía original. Las referencias URL no adjuntan archivos externos automáticamente.',
@@ -786,7 +786,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         </div>
         <div className="sci-actions"><button type="button" className="action-button" onClick={saveSighting}>
           {tx('Guardar observación de animal','Save animal sighting')}</button>
-          <button type="button" className="sci-secondary" disabled={!activeSightings.length}
+          <button type="button" className="workflow-next-button" disabled={!activeSightings.length}
             onClick={()=>setTab('reports')}>{tx('Siguiente: informe del estudio →','Next: study report →')}</button>
           <button type="button" className="sci-secondary"
             onClick={()=>onNavigate?.('PantheraID')}>{tx('Analizar otro video ↗','Analyze another video ↗')}</button>
@@ -831,7 +831,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <div className="sci-actions">
           <button type="button" className="sci-secondary" onClick={()=>setTab('captures')}>
             {tx('← Anterior: revisar capturas','← Back: review captures')}</button>
-          <button type="button" className="action-button" disabled={pdfBusy} onClick={()=>void report('pdf')}>
+          <button type="button" className="action-button workflow-next-button" disabled={pdfBusy} onClick={()=>void report('pdf')}>
             {pdfBusy?tx('Generando informe…','Generating report…'):
               tx('Descargar informe científico · PDF ↓','Download scientific report · PDF ↓')}</button>
           <button type="button" className="sci-secondary" disabled={pdfBusy} onClick={()=>void report('zip')}>
