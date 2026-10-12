@@ -304,7 +304,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       sightings:p.sightings.filter(s=>s.encounter_id!==e.encounter_id)}));
     if(selectedEvent===e.encounter_id)setSelectedEvent('');
   }
-  async function report(kind:'pdf'|'zip'){
+  async function report(kind:'pdf'|'zip',individualId='',encounterId=''){
     if(!study)return;
     if(includePrecise&&!window.confirm(tx(
       'Este archivo incluirá coordenadas precisas de cámaras. ¿Confirmás que su uso está autorizado?',
@@ -312,12 +312,17 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     setPdfBusy(true);setNotice('');
     try{
       const body=projectPackage(data,activeId,!includePrecise,language);
-      const response=await fetch('/api/science/studies/report?kind='+kind,{
+      const query=new URLSearchParams({kind});
+      if(individualId)query.set('individual_id',individualId);
+      if(encounterId)query.set('encounter_id',encounterId);
+      const response=await fetch('/api/science/studies/report?'+query.toString(),{
         method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
       if(!response.ok){let detail='HTTP '+response.status;
         try{const v=await response.json();if(v.detail)detail=String(v.detail);}catch{/* content */}throw new Error(detail);}
       const bytes=await response.blob();
-      downloadFile('PantheraLAB_'+study.study_id+(kind==='pdf'?'_informe.pdf':'_dataset.zip'),bytes);
+      const suffix=individualId?'_individuo_'+individualId:
+        encounterId?'_captura_'+encounterId:'_'+study.study_id;
+      downloadFile('PantheraLAB'+suffix+(kind==='pdf'?'_informe.pdf':'_dataset.zip'),bytes);
       saved('Informe generado. Revisá los archivos antes de distribuirlos.',
         'Report generated. Review files before distributing them.');
     }catch(err){setNotice(err instanceof Error?err.message:String(err));}
@@ -538,8 +543,13 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
                 return <p key={s.sighting_id}><strong>{e?.occurred_at.slice(0,16)||'—'}</strong>
                   {' · '+(dep?.camera_id||'—')+' · '+(s.behavior||'—')+' · '+s.identification_status}</p>;
               })}</div>}</details>
-            <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft({...ind})}>
-              {tx('Editar ficha','Edit profile')}</button>
+            <div className="sci-actions">
+              <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft({...ind})}>
+                {tx('Editar ficha','Edit profile')}</button>
+              <button type="button" className="sci-secondary" disabled={pdfBusy}
+                onClick={()=>void report('pdf',ind.individual_id)}>
+                {tx('Informe individual · PDF ↓','Individual report · PDF ↓')}</button>
+            </div>
           </article>;
         })}</div>
       </>}
@@ -611,6 +621,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
                 <td>{sightings.filter(s=>s.encounter_id===e.encounter_id).length}</td>
                 <td><button type="button" className="sci-inline" onClick={()=>chooseEvent(e)}>
                     {tx('Abrir / editar','Open / edit')}</button>
+                  <button type="button" className="sci-inline" disabled={pdfBusy}
+                    onClick={()=>void report('pdf','',e.encounter_id)}>{tx('Informe PDF ↓','PDF report ↓')}</button>
                   <button type="button" className="sci-inline sci-danger" onClick={()=>removeEncounter(e)}>
                     {tx('Eliminar','Delete')}</button></td></tr>)}</tbody></table></div>}
         </>}
