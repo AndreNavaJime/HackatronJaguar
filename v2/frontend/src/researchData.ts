@@ -11,7 +11,8 @@ export type Individual={individual_id:string;study_id:string;species:string;sex:
 export type Encounter={encounter_id:string;study_id:string;deployment_id:string;
   occurred_at:string;observer:string;temperature_c:number|null;humidity_percent:number|null;
   environment_source:'unprovided'|'sensor'|'manual'|'external';
-  image_url:string;video_url:string;edge_event_id:string;notes:string};
+  image_url:string;video_url:string;edge_event_id:string;notes:string;
+  thumbnail_data_url?:string;thumbnail_filename?:string};
 export type Sighting={sighting_id:string;encounter_id:string;species:string;individual_id:string;
   identification_status:'unidentified'|'tentative'|'verified';
   sex:string;age_class:string;viewpoint:string;behavior:string;reviewer:string;notes:string};
@@ -57,7 +58,8 @@ export function migrateOldRecords(old:Observation[]):ResearchData{
       humidity_percent:finite(row.humidity_percent,0,100),
       environment_source:row.temperature_c!==null||row.humidity_percent!==null?'manual':'unprovided',
       image_url:limit(row.image_url,1024),video_url:limit(row.video_url,1024),
-      edge_event_id:limit(row.edge_event_id),notes:limit(row.notes,1800)});
+      edge_event_id:limit(row.edge_event_id),notes:limit(row.notes,1800),
+      thumbnail_data_url:'',thumbnail_filename:''});
     let individualId='';
     if(row.individual_id&&row.individual_id.trim()){
       const external=limit(row.individual_id.trim(),90);
