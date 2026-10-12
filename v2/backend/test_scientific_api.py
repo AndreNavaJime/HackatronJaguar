@@ -19,7 +19,8 @@ def client():
 def test_scientific_capabilities_honestly_label_prototype(client):
     response = client.get("/api/science/capabilities")
     assert response.status_code == 200
-    assert response.json()["observation_storage"] == "browser_session_only"
+    assert response.json()["observation_storage"] == "browser_local_persistent_not_synced"
+    assert response.json()["research_schema"] == "studies_deployments_encounters_sightings_individuals"
     assert response.json()["live_5g_measurements"] is False
 
 
