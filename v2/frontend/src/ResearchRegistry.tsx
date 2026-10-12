@@ -184,6 +184,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     catch{/* optional */}
   },[selectedEvent]);
   const [notice,setNotice]=React.useState('');
+  const [manageOpen,setManageOpen]=React.useState(false);
   const [pdfBusy,setPdfBusy]=React.useState(false);
   const [mapDeployment,setMapDeployment]=React.useState('');
   const [includePrecise,setIncludePrecise]=React.useState(false);
@@ -577,6 +578,30 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         </select></label>
       {study&&<span className="sci-tag">{study.study_id}</span>}
     </div>
+    {study&&<div className="registry-management">
+      <button type="button" className="registry-manage-trigger"
+        aria-expanded={manageOpen} aria-controls="study-management-options"
+        onClick={()=>setManageOpen(value=>!value)}>
+        <span aria-hidden="true">⋮</span>
+        {tx('Gestionar estudio','Manage study')}
+        <span aria-hidden="true">{manageOpen?'▴':'▾'}</span>
+      </button>
+      {manageOpen&&<div id="study-management-options" className="registry-management-actions">
+        <button type="button" className="registry-manage-edit" onClick={()=>{
+          setStudyDraft({...study});setTab('projects');setManageOpen(false);
+          window.requestAnimationFrame(()=>document.querySelector<HTMLElement>('.registry-tabs')
+            ?.scrollIntoView({behavior:'smooth',block:'start'}));
+        }}>{tx('Editar estudio','Edit study')}</button>
+        <button type="button" className="registry-manage-export" onClick={()=>{
+          if(window.confirm(tx('El respaldo incluye coordenadas exactas y datos de todos los estudios. ¿Descargarlo?',
+            'The backup includes precise coordinates and data from every study. Download it?')))
+            downloadFile('PantheraLAB_respaldo_privado.json',JSON.stringify(data,null,2),'application/json');
+        }}>{tx('Descargar respaldo privado','Download private backup')}</button>
+        <button type="button" className="registry-manage-delete" onClick={()=>{
+          setManageOpen(false);deleteStudy(study);
+        }}><span aria-hidden="true">✕</span> {tx('Eliminar estudio','Delete study')}</button>
+      </div>}
+    </div>}
 
     <div className="sci-stats">
       <div><span>{tx('Estaciones registradas','Camera deployments')}</span><strong>{stations.length}</strong></div>
