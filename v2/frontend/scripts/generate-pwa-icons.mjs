@@ -1,5 +1,5 @@
 /** Generate installable PNG icons with Node built-ins (no extra dependencies). */
-import { deflateSync } from 'node:zlib';
+import { deflateSync, inflateSync } from 'node:zlib';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
@@ -7,11 +7,19 @@ import { resolve, dirname } from 'node:path';
 const iconsDir = resolve(dirname(fileURLToPath(import.meta.url)), '../public/icons');
 mkdirSync(iconsDir, { recursive: true });
 const COLORS = {
-  background: [16, 37, 30],
+  background: [13, 47, 31],
   green: [145, 227, 177],
   cream: [188, 233, 205],
   gold: [225, 186, 120],
 };
+
+// Side-profile jaguar selected for PantheraLAB. Indexed source, 160px, deflated.
+// No external asset URL: icons regenerate deterministically when Vite starts.
+const SOURCE_SIZE = 160;
+const PALETTE = [[13,47,31],[249,239,217],[217,171,95],[130,140,117],[231,219,196]];
+const compressedArtwork = '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';
+const artwork = inflateSync(Buffer.from(compressedArtwork, 'base64'));
+if (artwork.length !== SOURCE_SIZE * SOURCE_SIZE) throw new Error('Ícono base incompleto.');
 
 const makeIcon = (size, maskable = false) => {
   const pixels = new Uint8Array(size * size * 3);
@@ -77,21 +85,29 @@ const makeIcon = (size, maskable = false) => {
     }
   };
 
-  ring(.5,.5,.345,.024,COLORS.green);
-  path([[.29,.43],[.24,.28],[.34,.32],[.39,.27],[.5,.26],[.61,.27],[.66,.32],[.76,.28],[.71,.43]],.028,COLORS.green);
-  path([[.29,.43],[.27,.56],[.34,.65],[.44,.71],[.5,.73],[.56,.71],[.66,.65],[.73,.56],[.71,.43]],.03,COLORS.green);
-  path([[.32,.38],[.29,.33],[.37,.37]],.016,COLORS.gold);
-  path([[.68,.38],[.71,.33],[.63,.37]],.016,COLORS.gold);
-  path([[.42,.36],[.44,.40]],.014,COLORS.gold);
-  path([[.58,.36],[.56,.40]],.014,COLORS.gold);
-  path([[.35,.47],[.42,.46],[.46,.50]],.024,COLORS.cream);
-  path([[.65,.47],[.58,.46],[.54,.50]],.024,COLORS.cream);
-  dot(.415,.477,.01,COLORS.gold);
-  dot(.585,.477,.01,COLORS.gold);
-  triangle([[.46,.58],[.54,.58],[.5,.62]],COLORS.gold);
-  path([[.5,.62],[.5,.65],[.47,.67]],.015,COLORS.cream);
-  path([[.5,.65],[.53,.67]],.015,COLORS.cream);
-  for (const [x,y] of [[.36,.55],[.39,.60],[.64,.55],[.61,.60]]) dot(x,y,.011,COLORS.gold);
+  // Rasterize artwork in the available Android/iOS PWA sizes.
+  // Maskable version shrinks the figure into the launcher-safe zone.
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = (x + 0.5) / size;
+      const v = (y + 0.5) / size;
+      const sx = ((u - 0.5) / factor + 0.5) * (SOURCE_SIZE - 1);
+      const sy = ((v - 0.5) / factor + 0.5) * (SOURCE_SIZE - 1);
+      if (sx < 0 || sy < 0 || sx > SOURCE_SIZE - 1 || sy > SOURCE_SIZE - 1) continue;
+      const x0 = Math.floor(sx), y0 = Math.floor(sy);
+      const x1 = Math.min(SOURCE_SIZE - 1, x0 + 1);
+      const y1 = Math.min(SOURCE_SIZE - 1, y0 + 1);
+      const fx = sx - x0, fy = sy - y0;
+      const a = PALETTE[artwork[y0 * SOURCE_SIZE + x0]];
+      const b = PALETTE[artwork[y0 * SOURCE_SIZE + x1]];
+      const c = PALETTE[artwork[y1 * SOURCE_SIZE + x0]];
+      const d = PALETTE[artwork[y1 * SOURCE_SIZE + x1]];
+      const color = [0,1,2].map(k => Math.round(
+        (a[k] * (1 - fx) + b[k] * fx) * (1 - fy) +
+        (c[k] * (1 - fx) + d[k] * fx) * fy));
+      setPixel(x, y, color);
+    }
+  }
 
   // Write PNG (8-bit RGB) compressed via Node's zlib.
   const scanline = Buffer.alloc(size * (1 + size * 3));
