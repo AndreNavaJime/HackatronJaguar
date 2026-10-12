@@ -311,7 +311,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         <label htmlFor="video-threshold">{t("Umbral de confianza:")} {Math.round(threshold * 100)}%</label>
         <input id="video-threshold" type="range" min={0.1} max={0.9} step={0.05} value={threshold}
           disabled={busy} onChange={e => setThreshold(Number(e.target.value))} />
-        <label htmlFor="video-interval">{t("Muestreo cada")} {sampleSeconds.toFixed(1)} segundos</label>
+        <label htmlFor="video-interval">{t("Muestreo cada")} {sampleSeconds.toFixed(1)} {t('segundos')}</label>
         <input id="video-interval" type="range" min={0.5} max={5} step={0.5} value={sampleSeconds}
           disabled={busy} onChange={e => setSampleSeconds(Number(e.target.value))} />
         <label htmlFor="video-samples">{t("Máximo de fotogramas:")} {maxSamples}</label>
@@ -321,7 +321,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
           onClick={() => void analyze()}>
           {t(status === 'uploading' ? 'Enviando video…' : busy ? 'Analizando video…' : 'Analizar video con IA')}
         </button>
-        <small>{t("Los archivos grandes se transfieren en bloques de 5 MB para evitar límites de la conexión. Después se analizan los fotogramas muestreados.")}</small>
+        <small>{t('Los archivos grandes se transfieren en bloques de 5 MB para evitar límites de la conexión. Después se analizan los fotogramas muestreados.')}</small>
       </div>
     </div>
 
@@ -355,12 +355,12 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         <span>FPS: {result.metadata.fps.toFixed(1)}</span>
         <span>Original: {result.metadata.source_width} × {result.metadata.source_height} px</span>
         <span>{t("Análisis:")} {result.metadata.analysis_width} × {result.metadata.analysis_height} px</span>
-        <span>{t("Inferencia media:")} {result.totals.mean_inference_seconds.toFixed(2)} s/muestra</span>
+        <span>{t("Inferencia media:")} {result.totals.mean_inference_seconds.toFixed(2)} s/{t('muestra')}</span>
       </div>
       <div className="video-analytics">
         <div className="video-chart-panel">
           <h4>{t("Filtrado simulado de PantheraEDGE")}</h4>
-          <div className="filter-meter" aria-label={'Retenidos ' + result.totals.retained + '; descartados ' + result.totals.discarded}>
+          <div className="filter-meter" aria-label={t('Retenidos') + ' ' + result.totals.retained + '; ' + t('descartados') + ' ' + result.totals.discarded}>
             <div style={{ width: result.totals.positive_frame_rate + '%' }} />
           </div>
           <div className="filter-legend">
@@ -382,7 +382,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
           <Download href={downloadBase + 'csv'}>{t("Tabla por fotograma · CSV ↓")}</Download>
           <Download href={downloadBase + 'pdf'}>{t("Informe preliminar · PDF ↓")}</Download>
         </div>
-        <small>{t("Los archivos se conservan temporalmente en Codespaces hasta una hora. Descargalos antes de cerrar el servidor.")}</small>
+        <small>{t('Los archivos se conservan temporalmente en Codespaces hasta una hora. Descargalos antes de cerrar el servidor.')}</small>
       </div>
 
       <h4>{t("Galería de fotogramas anotados")}</h4>
@@ -393,14 +393,14 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
           <div className="video-frame-details">
             <strong>{t("Muestra")} {frame.sample} · {frame.time_seconds.toFixed(1)} s</strong>
             <span>{t(frame.retained ? 'RETENER · animal detectado' : 'DESCARTAR · sin detección animal')}</span>
-            <small>Animales: {frame.counts.animal} · Personas: {frame.counts.person} · Vehículos: {frame.counts.vehicle}</small>
+            <small>{t('Animales')}: {frame.counts.animal} · {t('Personas')}: {frame.counts.person} · {t('Vehículos')}: {frame.counts.vehicle}</small>
             <small>{t("Confianza animal máxima:")} {percentage(frame.max_animal_confidence)}</small>
             <Download href={frame.image} filename={'pantheraid_muestra_' + String(frame.sample).padStart(3, '0') + '.jpg'}>{t("Descargar fotograma ↓")}</Download>
           </div>
         </article>)}
       </div>
 
-      <h4>Recortes candidatos para revisión de fauna ({result.candidates.length})</h4>
+      <h4>{t('Recortes candidatos para revisión de fauna')} ({result.candidates.length})</h4>
       <p>{t("Estas imágenes requieren validación visual por personal científico; MegaDetector no puede confirmar que sean jaguares.")}</p>
       {result.candidates.length
         ? <div className="video-gallery video-candidates">
@@ -408,7 +408,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
             <img src={candidate.image} loading="lazy" alt={'Recorte candidato ' + (index + 1) + ' detectado en video'} />
             <div className="video-frame-details">
               <strong>{t("Candidato")} {index + 1} · {candidate.time_seconds.toFixed(1)} s</strong>
-              <small>Confianza: {percentage(candidate.confidence)} · Muestra {candidate.sample}</small>
+              <small>{t('Confianza')}: {percentage(candidate.confidence)} · {t('Muestra')} {candidate.sample}</small>
               <small>{t("Coordenadas del recuadro:")} {candidate.bbox_xyxy.join(', ')}</small>
               <Download href={candidate.image} filename={candidate.filename}>{t("Descargar candidato ↓")}</Download>
             </div>
@@ -417,7 +417,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         : <p>{t("No hubo recortes animales por encima del umbral elegido.")}</p>}
 
       <details className="video-table-details">
-        <summary>Ver tabla de resultados por fotograma ({result.rows.length})</summary>
+        <summary>{t('Ver tabla de resultados por fotograma')} ({result.rows.length})</summary>
         <div className="video-table-scroll">
           <table>
             <thead><tr><th>{t("Muestra")}</th><th>{t("Tiempo (s)")}</th><th>{t("Animales")}</th><th>{t("Personas")}</th><th>{t("Vehículos")}</th><th>{t("Confianza animal máx.")}</th><th>{t("Decisión")}</th></tr></thead>
