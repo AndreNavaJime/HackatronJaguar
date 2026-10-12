@@ -105,20 +105,44 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   React.useEffect(()=>{onWorkflowTabChange?.(tab);},[tab,onWorkflowTabChange]);
   React.useEffect(()=>{
     if(!nextRequest)return;
+    const focusMissing=()=>{
+      // The Next button is fixed at the bottom. Bring the missing form field into
+      // view instead of leaving the user looking at an apparently inert button.
+      window.requestAnimationFrame(()=>{
+        document.querySelector<HTMLElement>('.research-registry .sci-panel input:not([readonly])')
+          ?.focus({preventScroll:false});
+      });
+    };
     if(tab==='projects'){
-      if(!activeId){setNotice(tx('Guardá primero un estudio para continuar.',
-        'Save a research study before continuing.'));return;}
-      setTab('stations');
+      if(!activeId){
+        if(studyDraft.title.trim()){saveStudy();return;}
+        setNotice(tx('Primero ingresá el nombre del estudio para continuar.',
+          'Enter a study title to continue.'));
+        focusMissing();return;
+      }
+      setNotice('');setTab('stations');
     }else if(tab==='stations'){
-      if(!stations.length){setNotice(tx('Guardá una estación para continuar.',
-        'Save a camera deployment before continuing.'));return;}
-      setTab('captures');
+      if(!stations.length){
+        if(stationDraft.camera_id.trim()&&stationDraft.site.trim()){
+          saveStation();return;
+        }
+        setNotice(tx('Completá el ID de cámara y el sitio, y guardá la estación.',
+          'Enter the camera ID and study site, then save the deployment.'));
+        focusMissing();return;
+      }
+      setNotice('');setTab('captures');
     }else if(tab==='captures'){
-      if(!encounters.length){setNotice(tx('Guardá primero una captura antes de avanzar.',
-        'Save a capture event before advancing.'));return;}
-      setTab('individuals');
-    }else if(tab==='individuals')setTab('reports');
+      if(!encounters.length){
+        if(eventDraft.deployment_id&&eventDraft.occurred_at){saveEvent();return;}
+        setNotice(tx('Seleccioná la cámara y la fecha de captura para continuar.',
+          'Select a camera and capture date before continuing.'));
+        focusMissing();return;
+      }
+      setNotice('');setTab('individuals');
+    }else if(tab==='individuals'){setNotice('');setTab('reports');}
     else onNavigate?.('Investigación');
+    window.requestAnimationFrame(()=>document.querySelector<HTMLElement>('.research-registry .registry-tabs')
+      ?.scrollIntoView({behavior:'smooth',block:'start'}));
   },[nextRequest]);
   const [selectedStudy,setSelectedStudy]=React.useState(()=>{
     try{return localStorage.getItem('pantheralab_selected_study_v1')||'';}catch{return '';}
