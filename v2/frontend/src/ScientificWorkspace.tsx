@@ -6,9 +6,11 @@ import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
 import {ResearchData,loadResearch,persistResearch,flattenObservations} from './researchData';
 
-type Props={section:string;onNavigate:(section:string)=>void};
+type EvidenceSelection={fileName:string;frameDataUrl:string;timeSeconds:number;sample:number};
+type Props={section:string;onNavigate:(section:string)=>void;
+  pendingEvidence?:EvidenceSelection|null;onClearEvidence?:()=>void};
 
-export default function ScientificWorkspace({section,onNavigate}:Props){
+export default function ScientificWorkspace({section,onNavigate,pendingEvidence,onClearEvidence}:Props){
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
   const [research,setResearch]=React.useState<ResearchData>(loadResearch);
   const [persistError,setPersistError]=React.useState(false);
@@ -34,7 +36,8 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
         'No fue posible guardar los cambios en este navegador. Exportá un respaldo privado antes de salir.',
         'Browser storage is unavailable. Export a private backup before leaving.')}</p>}
       <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
-        onClearEdge={()=>setIncoming(null)} onNavigate={onNavigate}/>
+        onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
+        onClearEvidence={onClearEvidence} onNavigate={onNavigate}/>
     </>;
   }
   if(section==='PantheraEDGE'){
