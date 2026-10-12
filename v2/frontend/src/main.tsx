@@ -4,6 +4,7 @@ import './style.css';
 import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
 import LiteVideoPanel from './LiteVideoPanel';
+import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 import ScientificWorkspace from './ScientificWorkspace';
 import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
@@ -39,9 +40,7 @@ function App() {
   const [imageResult, setImageResult] = React.useState<ImageResult | null>(null);
   const [imageError, setImageError] = React.useState('');
   const [uploading, setUploading] = React.useState(false);
-  const [evidenceDraft,setEvidenceDraft]=React.useState<{
-    fileName:string;frameDataUrl:string;timeSeconds:number;sample:number
-  }|null>(null);
+  const [evidenceDraft,setEvidenceDraft]=React.useState<VideoEvidenceBatch|null>(null);
 
   const checkApi = React.useCallback(async () => {
     setApiState('checking');
@@ -165,7 +164,7 @@ function App() {
         <div><span className="status-dot" aria-hidden="true"></span><strong>{t("Estado del servicio")}</strong><p>{t(apiMessage)}</p></div>
         <button type="button" onClick={() => void checkApi()} disabled={apiState === 'checking'}>{t("Actualizar estado")}</button>
       </section>
-      {section === 'PantheraID' ? <section className="panel upload-panel">
+      <section className="panel upload-panel" style={{display:section==='PantheraID'?undefined:'none'}}>
         <div className="panel-heading">
           <div><h2>{t("PantheraID · Multimedia de cámaras trampa")}</h2><p>{t("Organización de evidencia multimedia y análisis exploratorio de cámaras trampa.")}</p></div>
           <span className="tag">{t("IMAGEN + VIDEO")}</span>
@@ -207,8 +206,9 @@ function App() {
           <summary>{language==='en'?'Evidence management and data retention':'Gestión de evidencia y conservación de datos'}</summary>
           <p>{language==='en'?'Image inspection does not perform species recognition or save images to Supabase. Video analysis uses temporary files that expire on the processing server. Biological identification requires independent scientific review.':'La inspección de fotografías no reconoce especies ni guarda imágenes en Supabase. El análisis de video utiliza archivos temporales que caducan en el servidor de procesamiento. La identificación biológica exige revisión científica independiente.'}</p>
         </details>
-      </section> : <ScientificWorkspace section={section} onNavigate={setSection}
-        pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)} />}
+      </section>
+      <ScientificWorkspace section={section} onNavigate={setSection}
+        pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)} />
     </main>
   </div>;
 }
