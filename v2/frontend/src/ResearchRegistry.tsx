@@ -12,6 +12,17 @@ type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<Resear
   pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
   reportRequested?:boolean;onClearReportRequest?:()=>void;
   onNavigate?:(section:string)=>void};
+function recoverDraft<T>(key:string,idField:string,fallback:()=>T):T{
+  try{
+    const text=sessionStorage.getItem(key);
+    if(text){
+      const value:unknown=JSON.parse(text);
+      if(value&&typeof value==='object'&&typeof (value as Record<string,unknown>)[idField]==='string')
+        return value as T;
+    }
+  }catch{/* Optional session draft storage. */}
+  return fallback();
+}
 const localTime=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 async function makeEvidencePreview(file:File):Promise<string>{
   if(!file.type.startsWith('image/')||file.size>8*1024*1024){
@@ -104,9 +115,12 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   const encounters=data.encounters.filter(e=>e.study_id===activeId);
   const eventIds=new Set(encounters.map(e=>e.encounter_id));
   const sightings=data.sightings.filter(s=>eventIds.has(s.encounter_id));
-  const [studyDraft,setStudyDraft]=React.useState<Study>(initialStudy);
-  const [stationDraft,setStationDraft]=React.useState<Deployment>(()=>initialStation(''));
-  const [individualDraft,setIndividualDraft]=React.useState<Individual>(()=>initialIndividual(''));
+  const [studyDraft,setStudyDraft]=React.useState<Study>(()=>
+    recoverDraft('pantheralab_study_draft_v1','study_id',initialStudy));
+  const [stationDraft,setStationDraft]=React.useState<Deployment>(()=>
+    recoverDraft('pantheralab_station_draft_v1','deployment_id',()=>initialStation('')));
+  const [individualDraft,setIndividualDraft]=React.useState<Individual>(()=>
+    recoverDraft('pantheralab_individual_draft_v1','individual_id',()=>initialIndividual('')));
   const [eventDraft,setEventDraft]=React.useState<Encounter>(()=>{
     try{
       const raw=sessionStorage.getItem('pantheralab_capture_draft_v1');
@@ -117,7 +131,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     }catch{/* restricted storage or invalid previous draft */}
     return initialEvent('','');
   });
-  const [sightingDraft,setSightingDraft]=React.useState<Sighting>(()=>initialSighting(''));
+  const [sightingDraft,setSightingDraft]=React.useState<Sighting>(()=>
+    recoverDraft('pantheralab_sighting_draft_v1','sighting_id',()=>initialSighting('')));
   const [selectedEvent,setSelectedEvent]=React.useState('');
   const [notice,setNotice]=React.useState('');
   const [pdfBusy,setPdfBusy]=React.useState(false);
@@ -133,11 +148,24 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     try{sessionStorage.setItem('pantheralab_capture_draft_v1',JSON.stringify(eventDraft));}
     catch{/* Browser storage may be restricted; research records show their own storage warning. */}
   },[eventDraft]);
+  React.useEffect(()=>{
+    const drafts:[string,unknown][]=[
+      ['pantheralab_study_draft_v1',studyDraft],
+      ['pantheralab_station_draft_v1',stationDraft],
+      ['pantheralab_individual_draft_v1',individualDraft],
+      ['pantheralab_sighting_draft_v1',sightingDraft],
+    ];
+    for(const [key,value] of drafts){
+      try{sessionStorage.setItem(key,JSON.stringify(value));}catch{/* quota or private browsing */}
+    }
+  },[studyDraft,stationDraft,individualDraft,sightingDraft]);
 
   React.useEffect(()=>{
-    setStationDraft(initialStation(activeId));setIndividualDraft(initialIndividual(activeId));
+    setStationDraft(previous=>previous.study_id===activeId?previous:initialStation(activeId));
+    setIndividualDraft(previous=>previous.study_id===activeId?previous:initialIndividual(activeId));
     setEventDraft(previous=>previous.study_id===activeId?previous:initialEvent(activeId,''));
-    setSightingDraft(initialSighting(''));
+    setSightingDraft(previous=>previous.encounter_id&&encounters.some(e=>e.encounter_id===previous.encounter_id)
+      ?previous:initialSighting(''));
     setSelectedEvent('');setNotice('');
   },[activeId]);
   React.useEffect(()=>{
