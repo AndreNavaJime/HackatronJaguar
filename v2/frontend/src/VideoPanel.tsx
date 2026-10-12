@@ -286,7 +286,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
 
   const downloadBase = jobId ? '/api/videos/jobs/' + jobId + '/download?kind=' : '';
 
-  return <section className="video-panel" aria-label="Análisis de video">
+  return <section className="video-panel" aria-label={t('Análisis de video')}>
     <div className="panel-heading">
       <div>
         <h3>{t("Análisis de videos · PantheraEDGE + MegaDetector V6")}</h3>
@@ -389,7 +389,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
       <p>{t("Cada recuadro marca una detección, no una identidad confirmada. Se muestran todos los fotogramas muestreados.")}</p>
       <div className="video-gallery">
         {result.frames.map(frame => <article key={frame.sample} className="video-frame-card">
-          <img src={frame.image} loading="lazy" alt={'Fotograma ' + frame.sample + ' con anotaciones de MegaDetector'} />
+          <img src={frame.image} loading="lazy" alt={t('Fotograma') + ' ' + frame.sample + ' · MegaDetector'} />
           <div className="video-frame-details">
             <strong>{t("Muestra")} {frame.sample} · {frame.time_seconds.toFixed(1)} s</strong>
             <span>{t(frame.retained ? 'RETENER · animal detectado' : 'DESCARTAR · sin detección animal')}</span>
@@ -405,7 +405,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
       {result.candidates.length
         ? <div className="video-gallery video-candidates">
           {result.candidates.map((candidate, index) => <article key={index} className="video-frame-card">
-            <img src={candidate.image} loading="lazy" alt={'Recorte candidato ' + (index + 1) + ' detectado en video'} />
+            <img src={candidate.image} loading="lazy" alt={t('Candidato') + ' ' + (index + 1)} />
             <div className="video-frame-details">
               <strong>{t("Candidato")} {index + 1} · {candidate.time_seconds.toFixed(1)} s</strong>
               <small>{t('Confianza')}: {percentage(candidate.confidence)} · {t('Muestra')} {candidate.sample}</small>
