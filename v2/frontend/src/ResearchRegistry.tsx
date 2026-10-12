@@ -8,7 +8,7 @@ type VideoEvidence={fileName:string;frameDataUrl:string;timeSeconds:number;sampl
 type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<ResearchData>>;
   pendingEdge?:{camera_id:string;timestamp:string;event_id:string;latitude:number|null;
     longitude:number|null;temperature:number|null;humidity:number|null;image_url:string;
-    clip_url:string}|null;onClearEdge?:()=>void;
+    clip_url:string;hmac_status?:string;source?:string}|null;onClearEdge?:()=>void;
   pendingEvidence?:VideoEvidence|null;onClearEvidence?:()=>void;
   onNavigate?:(section:string)=>void};
 const localTime=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
@@ -42,7 +42,13 @@ async function makeEvidencePreview(file:File):Promise<string>{
     img.src=url;
   });
 }
-const inputTime=(iso:string)=>iso?new Date(iso).toISOString().slice(0,16):'';
+const inputTime=(iso:string)=>{
+  if(!iso)return '';
+  const date=new Date(iso);
+  return Number.isFinite(date.getTime())
+    ?new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16)
+    :'';
+};
 const nval=(v:string,min=-Infinity,max=Infinity):number|null=>{
   if(!v.trim())return null;const n=Number(v);return Number.isFinite(n)&&n>=min&&n<=max?n:null;
 };
@@ -144,15 +150,24 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
 
   // Pre-fill an encounter from an explicitly selected PantheraEDGE event; nothing is auto-validated.
   React.useEffect(()=>{
-    if(!pendingEdge||!activeId||!stations.length)return;
+    if(!pendingEdge||!activeId)return;
     const station=stations.find(s=>s.camera_id===pendingEdge.camera_id);
-    if(!station)return;
+    if(!station){
+      setTab('stations');
+      setNotice(tx('Registrá primero el despliegue de la cámara '+pendingEdge.camera_id+
+        ' para vincular el evento de campo.', 'Register camera deployment '+pendingEdge.camera_id+
+        ' before linking its field event.'));
+      return;
+    }
     setTab('captures');setSelectedEvent('');
     setEventDraft({...initialEvent(activeId,station.deployment_id),
       occurred_at:pendingEdge.timestamp,edge_event_id:pendingEdge.event_id,
       temperature_c:pendingEdge.temperature,humidity_percent:pendingEdge.humidity,
-      environment_source:pendingEdge.temperature!==null||pendingEdge.humidity!==null?'sensor':'unprovided',
-      image_url:pendingEdge.image_url||'',video_url:pendingEdge.clip_url||''});
+      environment_source:pendingEdge.temperature===null&&pendingEdge.humidity===null?'unprovided':
+        pendingEdge.hmac_status==='VALID'?'sensor':'manual',
+      image_url:pendingEdge.image_url||'',video_url:pendingEdge.clip_url||'',
+      notes:pendingEdge.hmac_status==='VALID'?'Origen EDGE con firma HMAC válida.':
+        'Datos EDGE no autenticados; confirmar procedencia antes de usarlos científicamente.'});
     setNotice(tx('Evento EDGE preparado para revisión. Guardalo para incorporarlo al estudio.',
       'EDGE event prepared for review. Save it to add it to this study.'));
     onClearEdge?.();
@@ -250,6 +265,13 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     if(sightingDraft.individual_id&&!people.some(p=>p.individual_id===sightingDraft.individual_id)){
       saved('El individuo debe pertenecer al proyecto actual.',
         'Individual must belong to the selected study.');return;}
+    if(sightingDraft.individual_id){
+      const linked=people.find(p=>p.individual_id===sightingDraft.individual_id);
+      if(linked&&linked.species.trim().toLowerCase()!==sightingDraft.species.trim().toLowerCase()){
+        saved('La especie debe coincidir con la ficha del individuo.',
+          'Species must match the linked individual profile.');return;
+      }
+    }
     if(sightingDraft.identification_status==='verified'&&!sightingDraft.individual_id){
       saved('Una identificación validada necesita una ficha individual asociada.',
         'Verified identification needs a linked individual profile.');return;}
@@ -296,13 +318,32 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     finally{setPdfBusy(false);}
   }
   async function restoreBackup(file:File){
-    if(file.size>800000){saved('El archivo de respaldo supera 800 KB.','Backup exceeds 800 KB.');return;}
+    if(file.size>4000000){saved('El archivo de respaldo supera 4 MB.','Backup exceeds 4 MB.');return;}
     try{
       const value:unknown=JSON.parse(await file.text());
       if(!value||typeof value!=='object')throw new Error('Invalid format');
       const src=value as Record<string,unknown>;
       if(src.version!==1||!['studies','deployments','individuals','encounters','sightings']
         .every(k=>Array.isArray(src[k])))throw new Error('Invalid version');
+      for(const key of ['studies','deployments','individuals','encounters','sightings']){
+        const items=src[key] as unknown[];
+        if(items.length>1500||items.some(item=>item===null||typeof item!=='object'||Array.isArray(item)))
+          throw new Error('Malformed records');
+      }
+      const studies=src.studies as Study[],deployments=src.deployments as Deployment[],
+        individuals=src.individuals as Individual[],encounters=src.encounters as Encounter[],
+        sightings=src.sightings as Sighting[];
+      const studyIds=new Set(studies.map(p=>p.study_id));
+      const cameraIds=new Set(deployments.map(d=>d.deployment_id));
+      const encounterIds=new Set(encounters.map(e=>e.encounter_id));
+      const individualIds=new Set(individuals.map(i=>i.individual_id));
+      if(studies.some(p=>typeof p.study_id!=='string'||typeof p.title!=='string')||
+         deployments.some(d=>!studyIds.has(d.study_id))||
+         individuals.some(i=>!studyIds.has(i.study_id))||
+         encounters.some(e=>!studyIds.has(e.study_id)||!cameraIds.has(e.deployment_id))||
+         sightings.some(o=>!encounterIds.has(o.encounter_id)||
+           (o.individual_id&&!individualIds.has(o.individual_id))))
+        throw new Error('Inconsistent relationships');
       if(!window.confirm(tx('Esto reemplazará los datos locales de TODOS los proyectos. ¿Continuar?',
         'This will replace local data for ALL projects. Continue?')))return;
       setData(src as ResearchData);setSelectedStudy('');
@@ -435,8 +476,11 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <p className="sci-muted">{tx('Un individuo puede asociarse con múltiples capturas. La identidad solo se marca verificada después de revisión humana.',
           'An individual can be linked to many captures. Mark identity verified only after human evidence review.')}</p>
         <div className="sci-fields">
-          {textField(tx('Código de individuo *','Individual code *'),individualDraft.individual_id,
-            v=>setPerson('individual_id',v),'JAG-003')}
+          <label className="sci-field"><span>{tx('Código de individuo *','Individual code *')}</span>
+            <input type="text" maxLength={90} value={individualDraft.individual_id}
+              readOnly={people.some(p=>p.individual_id===individualDraft.individual_id)}
+              onChange={e=>setPerson('individual_id',e.target.value)}/>
+          </label>
           {textField(tx('Especie *','Species *'),individualDraft.species,v=>setPerson('species',v),'Panthera onca')}
           {choices(tx('Sexo anotado','Annotated sex'),individualDraft.sex,v=>setPerson('sex',v),opts.sex)}
           {choices(tx('Edad estimada','Estimated age'),individualDraft.age_class,v=>setPerson('age_class',v),opts.age)}
