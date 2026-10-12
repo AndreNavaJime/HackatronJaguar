@@ -111,7 +111,14 @@ export function loadResearch():ResearchData{
   return emptyResearch();
 }
 export function persistResearch(data:ResearchData):boolean{
-  try{localStorage.setItem(STORE_KEY,JSON.stringify(data));return true;}
+  // Fallback metadata snapshot. Full-size evidence is stored in IndexedDB,
+  // avoiding localStorage's small per-origin quota for multiple video analyses.
+  const metadata:ResearchData={...data,encounters:data.encounters.map(e=>({
+    ...e,thumbnail_data_url:'',evidence_frames:e.evidence_frames?.map(frame=>({
+      ...frame,data_url:'',
+    })),
+  }))};
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(metadata));return true;}
   catch{return false;}
 }
 export function flattenObservations(data:ResearchData):Observation[]{
