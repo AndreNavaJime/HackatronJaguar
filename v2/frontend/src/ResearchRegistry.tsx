@@ -391,6 +391,26 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     setTab('projects');
     saved('Estudio eliminado de este navegador.','Study deleted from this browser.');
   }
+  function deleteIndividual(target:Individual){
+    const linked=data.sightings.filter(s=>s.individual_id===target.individual_id);
+    const warning=linked.length
+      ?tx('El individuo '+target.individual_id+' tiene '+linked.length+
+        ' observaciones. Se conservarán como animales sin identificar. ¿Eliminar únicamente la ficha individual?',
+        'Individual '+target.individual_id+' has '+linked.length+
+        ' observations. These will be retained as unidentified animals. Delete only the individual profile?')
+      :tx('¿Eliminar la ficha individual '+target.individual_id+'?',
+        'Delete individual profile '+target.individual_id+'?');
+    if(!window.confirm(warning))return;
+    setData(prev=>({...prev,
+      individuals:prev.individuals.filter(i=>i.individual_id!==target.individual_id),
+      sightings:prev.sightings.map(s=>s.individual_id===target.individual_id
+        ?{...s,individual_id:'',identification_status:'unidentified' as const}
+        :s),
+    }));
+    setIndividualDraft(initialIndividual(activeId));
+    saved('Ficha individual eliminada. Las observaciones asociadas se conservaron.',
+      'Individual profile deleted. Linked observations were retained.');
+  }
   function deleteStation(target:Deployment){
     const linked=encounters.filter(e=>e.deployment_id===target.deployment_id);
     if(linked.length){
@@ -511,11 +531,16 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     setNotice('');
   }
   function removeEncounter(e:Encounter){
-    if(!window.confirm(tx('¿Eliminar esta captura y sus observaciones asociadas?',
-      'Delete this capture and all its linked animal observations?')))return;
+    if(!window.confirm(tx('¿Eliminar esta captura y sus observaciones asociadas? Esta acción no se puede deshacer.',
+      'Delete this capture and its linked animal observations? This cannot be undone.')))return;
     setData(p=>({...p,encounters:p.encounters.filter(v=>v.encounter_id!==e.encounter_id),
       sightings:p.sightings.filter(s=>s.encounter_id!==e.encounter_id)}));
     if(selectedEvent===e.encounter_id)setSelectedEvent('');
+    if(eventDraft.encounter_id===e.encounter_id)
+      setEventDraft(initialEvent(activeId,stations[0]?.deployment_id||''));
+    setCaptureError('');setCaptureToReview('');
+    saved('Captura y sus observaciones eliminadas.',
+      'Capture and linked sightings deleted.');
   }
   async function report(kind:'pdf'|'zip',individualId='',encounterId=''){
     if(!study)return;
@@ -657,10 +682,18 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           + {tx('Nuevo estudio','New study')}</button></div>
       <p className="sci-muted">{tx('Definí el objetivo y el protocolo una vez. Podés actualizar la ficha antes de emitir el informe.',
         'Define the objective and protocol once. You can update the study profile before reporting.')}</p>
-      {study&&<div className="registry-study-card"><strong>{study.title}</strong>
-        <span>{study.organization||tx('Sin institución declarada','No organization provided')}</span>
-        <button type="button" className="sci-inline" onClick={()=>setStudyDraft({...study})}>
-          {tx('Editar ficha del estudio','Edit study profile')}</button></div>}
+      {study&&<div className="registry-study-card">
+        <div className="registry-study-summary">
+          <strong>{study.title}</strong>
+          <span>{study.organization||tx('Sin institución declarada','No organization provided')}</span>
+        </div>
+        <div className="registry-entity-actions">
+          <button type="button" className="sci-secondary" onClick={()=>setStudyDraft({...study})}>
+            {tx('Editar ficha','Edit study')}</button>
+          <button type="button" className="registry-delete-button"
+            onClick={()=>deleteStudy(study)}>{tx('Eliminar estudio','Delete study')}</button>
+        </div>
+      </div>}
       <div className="sci-fields">
         {textField(tx('Título del estudio *','Study title *'),studyDraft.title,v=>setStudy('title',v),
           tx('Monitoreo de jaguares · Península de Osa','Jaguar monitoring · Osa Peninsula'))}
@@ -800,6 +833,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
               <button type="button" className="sci-secondary" disabled={pdfBusy}
                 onClick={()=>void report('pdf',ind.individual_id)}>
                 {tx('Informe individual · PDF ↓','Individual report · PDF ↓')}</button>
+              <button type="button" className="registry-delete-button" onClick={()=>deleteIndividual(ind)}>
+                {tx('Eliminar individuo','Delete individual')}</button>
             </div>
           </article>;
         })}</div>
@@ -874,6 +909,12 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
                 <figure key={frame.sample+'-'+index}>
                   <img src={frame.data_url} alt={tx('Fotograma','Frame')+' '+frame.sample}/>
                   <figcaption>{tx('Muestra','Sample')} {frame.sample} · {frame.time_seconds.toFixed(2)} s</figcaption>
+                  <button type="button" className="registry-frame-delete" onClick={()=>{
+                    setEventDraft(p=>({...p,evidence_frames:p.evidence_frames?.filter(v=>
+                      !(v.sample===frame.sample&&v.time_seconds===frame.time_seconds))}));
+                    saved('Fotograma quitado del borrador. Guardá la captura para confirmar.',
+                      'Frame removed from draft. Save the capture to confirm.');
+                  }}>{tx('Quitar fotograma','Remove frame')}</button>
                 </figure>)}</div>
             </div>}
           {eventDraft.source_analysis_id&&<div className="registry-source sci-wide">
@@ -898,6 +939,10 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
               {tx('← Anterior: revisar video','← Back: review video')}</button>
             <button type="button" className="action-button workflow-next-button" onClick={saveEvent}>
               {tx('Guardar y continuar con animales →','Save and continue to animals →')}</button>
+            {encounters.some(e=>e.encounter_id===eventDraft.encounter_id)&&
+              <button type="button" className="registry-delete-button"
+                onClick={()=>removeEncounter(eventDraft)}>
+                {tx('Eliminar esta captura','Delete this capture')}</button>}
           </div>
           <p className="sci-muted">{tx('Las miniaturas aparecen en los informes, pero no sustituyen la fotografía original. Las referencias URL no adjuntan archivos externos automáticamente.',
             'Thumbnails appear in reports but do not replace original photographs. URL references do not automatically attach external files.')}</p>
