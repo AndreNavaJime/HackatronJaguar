@@ -214,6 +214,11 @@ def _process(identifier):
         sample_seconds = job["sample_seconds"]
         max_samples = job["max_samples"]
         filename = job["filename"]
+        mode = job.get("mode", "megadetector")
+
+    if mode == "lite":
+        from video_lite import process_lightweight
+        return process_lightweight(identifier)
 
     try:
         import cv2
@@ -431,6 +436,8 @@ async def begin_chunked_upload(
     threshold: float = Query(0.25, ge=0.10, le=0.90),
     sample_seconds: float = Query(1.0, ge=0.5, le=5.0),
     max_samples: int = Query(8, ge=1, le=MAX_SAMPLES),
+    mode: str = Query("megadetector", pattern="^(lite|megadetector)$"),
+    motion_threshold: float = Query(0.035, ge=0.01, le=0.5),
 ):
     """Reserve an upload session without transmitting the video in one big request.
 
@@ -447,6 +454,8 @@ async def begin_chunked_upload(
         raise HTTPException(status_code=400, detail="El video está vacío o no se indicó su tamaño.")
     if expected > MAX_VIDEO_BYTES:
         raise HTTPException(status_code=413, detail="El video supera 250 MB.")
+    if mode == "lite" and (expected > 60 * 1024 * 1024 or max_samples > 12):
+        raise HTTPException(status_code=413, detail="Modo gratuito: máximo 60 MB y 12 fotogramas.")
 
     with _LOCK:
         if any(job["state"] in ("uploading", "processing") for job in _JOBS.values()):
@@ -459,6 +468,7 @@ async def begin_chunked_upload(
             "created_at": time.time(), "last_upload_at": time.time(),
             "directory": directory, "source": str(source), "filename": filename,
             "threshold": threshold, "sample_seconds": sample_seconds, "max_samples": max_samples,
+            "mode": mode, "motion_threshold": motion_threshold,
             "expected_size": expected, "received_bytes": 0,
             "upload_lock": asyncio.Lock(),
             "processed": 0, "total": 0, "error": None, "result": None,
@@ -570,6 +580,8 @@ async def create_video_job(
     threshold: float = Query(0.25, ge=0.10, le=0.90),
     sample_seconds: float = Query(1.0, ge=0.5, le=5.0),
     max_samples: int = Query(8, ge=1, le=MAX_SAMPLES),
+    mode: str = Query("megadetector", pattern="^(lite|megadetector)$"),
+    motion_threshold: float = Query(0.035, ge=0.01, le=0.5),
 ):
     _prune()
     raw_name = unquote(request.headers.get("x-video-name", "camara.mp4"))
@@ -585,6 +597,8 @@ async def create_video_job(
         except ValueError:
             raise HTTPException(status_code=400, detail="Tamaño de solicitud inválido.")
 
+    if mode == "lite" and max_samples > 12:
+        raise HTTPException(status_code=422, detail="Modo gratuito: máximo 12 fotogramas.")
     with _LOCK:
         if any(job["state"] in ("uploading", "processing") for job in _JOBS.values()):
             raise HTTPException(status_code=429, detail="Ya hay un video en proceso. Esperá a que termine.")
@@ -595,6 +609,7 @@ async def create_video_job(
             "state": "uploading", "stage": "Recibiendo video…", "created_at": time.time(),
             "directory": directory, "source": str(source), "filename": filename,
             "threshold": threshold, "sample_seconds": sample_seconds, "max_samples": max_samples,
+            "mode": mode, "motion_threshold": motion_threshold,
             "processed": 0, "total": 0, "error": None, "result": None,
         }
 
@@ -603,8 +618,8 @@ async def create_video_job(
         with source.open("wb") as sink:
             async for block in request.stream():
                 size += len(block)
-                if size > MAX_VIDEO_BYTES:
-                    raise HTTPException(status_code=413, detail="El video supera 250 MB.")
+                if size > MAX_VIDEO_BYTES or (mode == "lite" and size > 60 * 1024 * 1024):
+                    raise HTTPException(status_code=413, detail="El video supera el límite del modo elegido.")
                 sink.write(block)
         if not size:
             raise HTTPException(status_code=400, detail="El archivo está vacío.")
