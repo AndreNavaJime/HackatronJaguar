@@ -45,4 +45,4 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest httpx
       - name: Run API and video tests without AI weights
-        run: pytest -q test_api.py test_video_api.py test_scientific_api.py
+        run: pytest -q test_api.py test_video_api.py test_scientific_api.py test_study_reports.py
