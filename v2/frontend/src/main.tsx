@@ -7,6 +7,9 @@ import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
 
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'Investigación'];
+const sectionSymbols: Record<string, string> = {
+  Resumen: '◈', PantheraID: '◎', PantheraMONITORING: '▦', PantheraEDGE: '⌁', Investigación: '✦',
+};
 type ApiState = 'checking' | 'connected' | 'disconnected';
 type ImageResult = {
   status: string;
@@ -96,17 +99,44 @@ function App() {
 
   return <div className="shell">
     <aside>
-      <div className="brand">🐆 PANTHERA<span>LAB</span></div>
+      <div className="brand">
+        <img className="brand-symbol" src="/icons/pantheraid.svg" alt="" />
+        <span className="brand-copy"><strong>PANTHERA<span>LAB</span></strong><small>WILDLIFE INTELLIGENCE</small></span>
+      </div>
       <p className="sub">Conservación inteligente</p>
+      <p className="sidebar-label">CENTRO DE CONTROL</p>
       <nav aria-label="Navegación principal">
-        {sections.map(s => <button key={s} className={section===s?'active':''} onClick={() => setSection(s)}>{s}</button>)}
+        {sections.map(s => <button type="button" key={s} className={section===s?'active':''} aria-current={section===s?'page':undefined}
+          onClick={() => setSection(s)}>
+          <span className="nav-symbol" aria-hidden="true">{sectionSymbols[s]}</span><span className="nav-text">{s}</span>
+          <span className="nav-arrow" aria-hidden="true">↗</span>
+        </button>)}
       </nav>
-      <small>PantheraID 2.0 · Vista preliminar</small>
+      <div className={'sidebar-connection '+apiState}>
+        <span className="sidebar-connection-dot" aria-hidden="true" />
+        <div><strong>Panthera API</strong><small>{apiState==='connected'?'En línea':apiState==='checking'?'Verificando…':'Sin conexión'}</small></div>
+      </div>
+      <small className="sidebar-footer">PANTHERAID / V2.0<br />PLATAFORMA EN DESARROLLO</small>
     </aside>
     <main>
-      <header className="app-header"><span>Plataforma científica de monitoreo</span><div className="app-header-actions"><InstallControl /><span className="tag">PROTOTIPO UI</span></div></header>
-      <h1>{section}</h1>
-      <p className="lead">Sistema de apoyo para monitoreo de fauna y revisión científica de evidencia.</p>
+      <header className="app-header">
+        <span className="header-location"><span className="header-location-mark" aria-hidden="true">◉</span> PANTHERALAB <span className="header-divider">/</span> {section.toUpperCase()}</span>
+        <div className="app-header-actions"><span className="top-status">● SISTEMA CIENTÍFICO</span><InstallControl /></div>
+      </header>
+      <section className="hero-stage" aria-label="Introducción a PantheraID">
+        <div className="hero-copy">
+          <p className="hero-eyebrow"><span className="hero-eyebrow-line" /> OBSERVAR · ANALIZAR · CONSERVAR</p>
+          <h1>{section==='Resumen'?'Inteligencia para la vida silvestre':section}</h1>
+          <p className="lead">Tecnología aplicada a cámaras trampa, evidencia científica y monitoreo de fauna.</p>
+          <div className="hero-chips"><span>◆ PANTHERAID 2.0</span><span>◈ INVESTIGACIÓN</span><span>◉ COSTA RICA</span></div>
+        </div>
+        <div className="hero-orbit" aria-hidden="true">
+          <div className="hero-orbit-outer" />
+          <div className="hero-orbit-inner"><img src="/icons/pantheraid.svg" alt="" /></div>
+          <span className="orbit-code orbit-code-top">SPECIES · 01</span>
+          <span className="orbit-code orbit-code-bottom">WILDLIFE / INTELLIGENCE</span>
+        </div>
+      </section>
       <section className={'api-status ' + apiState} aria-live="polite" aria-label="Estado de la API">
         <div><span className="status-dot" aria-hidden="true"></span><strong>Conexión con backend</strong><p>{apiMessage}</p></div>
         <button type="button" onClick={() => void checkApi()} disabled={apiState === 'checking'}>Comprobar conexión</button>
@@ -137,14 +167,20 @@ function App() {
         </div>
         <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />
         <VideoPanel enabled={apiState === 'connected'} />
-        <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en Codespaces y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.</p>
+        <p className="scientific-note">La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en el servidor Python y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.</p>
       </section> : <>
+        <div className="section-heading"><div><span className="section-kicker">PANEL DE CONTROL</span><h2>Estado de la plataforma</h2></div><span className="section-counter">03 MÓDULOS EN SEGUIMIENTO</span></div>
         <div className="cards">
-          <article><span>Identificación individual</span><strong>En migración</strong><p>Los modelos y la validación se integrarán desde el backend Python.</p></article>
-          <article><span>Eventos de campo</span><strong>Sin datos conectados</strong><p>Preparado para integrar PantheraEDGE y el nodo VIGÍA.</p></article>
-          <article><span>Revisión científica</span><strong>Pendiente</strong><p>Conservaremos cuadros de imágenes, métricas y exportaciones.</p></article>
+          <article className="metric-card metric-card-a"><div className="metric-top"><span>01 / IDENTIFICACIÓN</span><b aria-hidden="true">◎</b></div><strong>En migración</strong><p>Modelos de identificación individual pendientes de integración y validación.</p><div className="metric-footer"><i /> PENDIENTE DE VALIDACIÓN</div></article>
+          <article className="metric-card metric-card-b"><div className="metric-top"><span>02 / EVENTOS DE CAMPO</span><b aria-hidden="true">⌁</b></div><strong>Sin datos conectados</strong><p>Preparado para integrar PantheraEDGE y el nodo VIGÍA.</p><div className="metric-footer"><i /> INTEGRACIÓN EN DESARROLLO</div></article>
+          <article className="metric-card metric-card-c"><div className="metric-top"><span>03 / REVISIÓN CIENTÍFICA</span><b aria-hidden="true">✦</b></div><strong>Pendiente</strong><p>Espacio preparado para evidencias, métricas y exportaciones.</p><div className="metric-footer"><i /> PRÓXIMA ETAPA</div></article>
         </div>
-        <section className="panel"><h2>{section} · Espacio de trabajo</h2><p>Esta pantalla es una primera base responsive. El módulo PantheraID ya permite comprobar la recepción de fotografías, pero la detección, la identificación individual y las integraciones de campo continúan en migración.</p></section>
+        <section className="panel workspace-panel">
+          <div className="workspace-copy"><span className="section-kicker">WORKSPACE / PANTHERAID</span><h2>De la cámara trampa a la evidencia</h2>
+          <p>El módulo PantheraID permite recibir fotografías y consultar el servidor Python. La detección con IA y las integraciones de campo dependen de las capacidades habilitadas en el backend.</p>
+          <button type="button" className="action-button workspace-button" onClick={() => setSection('PantheraID')}>Explorar módulo PantheraID <span aria-hidden="true">↗</span></button></div>
+          <div className="workspace-visual" aria-hidden="true"><span>CAPTURA</span><i>→</i><span>ANÁLISIS</span><i>→</i><span>REVISIÓN</span></div>
+        </section>
       </>}
     </main>
   </div>;
