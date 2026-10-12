@@ -31,6 +31,7 @@ function App() {
   const [section, setSection] = React.useState('Resumen');
   const [apiState, setApiState] = React.useState<ApiState>('checking');
   const [aiAvailable, setAiAvailable] = React.useState(false);
+  const [liteAvailable, setLiteAvailable] = React.useState(false);
   const [apiMessage, setApiMessage] = React.useState('Comprobando conexión con Python…');
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
@@ -55,8 +56,11 @@ function App() {
         const data:unknown=await caps.json();
         setAiAvailable(caps.ok && typeof data==='object' && data!==null
           && 'animal_detection' in data && data.animal_detection==='optional_dependencies_installed');
-      } catch { setAiAvailable(false); }
+        setLiteAvailable(caps.ok && typeof data==='object' && data!==null
+          && 'video_lightweight' in data && data.video_lightweight==='available');
+      } catch { setAiAvailable(false); setLiteAvailable(false); }
     } catch {
+      setLiteAvailable(false);
       setAiAvailable(false);
       setApiState('disconnected');
       setApiMessage('No se pudo conectar con Python. Verificá que FastAPI siga ejecutándose en el puerto 8000.');
@@ -181,7 +185,7 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-        <LiteVideoPanel enabled={apiState === 'connected'} />
+        <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable} />
         <div className="ai-module-note" role="note">
           <strong>{language==='en'?'AI analysis · MegaDetector V6':'Análisis con IA · MegaDetector V6'}</strong>
           <p>{aiAvailable
