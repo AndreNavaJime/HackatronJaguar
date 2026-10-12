@@ -223,3 +223,72 @@ def test_chunk_session_rejects_oversize_and_supports_cancel(client):
     canceled = client.delete(f"/api/videos/uploads/{identifier}")
     assert canceled.status_code == 204
     assert client.get(f"/api/videos/jobs/{identifier}").status_code == 404
+
+
+def test_lightweight_video_requires_no_animal_detector_and_exports(client, monkeypatch):
+    """Free mode marks visual changes, never invents animals or AI confidence."""
+    import tempfile
+
+    def must_not_call_ai(*args, **kwargs):
+        raise AssertionError("The free mode must NEVER invoke MegaDetector")
+
+    monkeypatch.setattr(video_api, "detect_image", must_not_call_ai)
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "motion.avi"
+        writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"MJPG"), 5, (80, 64))
+        if not writer.isOpened():
+            pytest.skip("MJPEG encoder not available")
+        for index in range(15):
+            frame = np.zeros((64, 80, 3), dtype=np.uint8)
+            if 5 <= index < 10:
+                frame[10:50, 10:60] = (255, 255, 255)
+            writer.write(frame)
+        writer.release()
+        raw = path.read_bytes()
+
+    start = client.post("/api/videos/uploads?mode=lite&motion_threshold=0.02&sample_seconds=0.5&max_samples=5",
+                        headers={"X-Video-Name": "motion.avi", "X-Video-Size": str(len(raw))})
+    assert start.status_code == 201, start.text
+    identifier = start.json()["upload_id"]
+    sent = client.put(f"/api/videos/uploads/{identifier}/chunks?offset=0", content=raw)
+    assert sent.status_code == 200, sent.text
+    finish = client.post(f"/api/videos/uploads/{identifier}/complete")
+    assert finish.status_code == 202, finish.text
+
+    for _ in range(100):
+        response = client.get(f"/api/videos/jobs/{identifier}")
+        assert response.status_code == 200
+        body = response.json()
+        if body["state"] in ("completed", "failed"):
+            break
+        time.sleep(.1)
+
+    assert body["state"] == "completed", body
+    result = body["result"]
+    assert result["metadata"]["mode"] == "lite"
+    assert "SIN IA" in result["metadata"]["model"]
+    assert result["totals"]["sampled"] == 5
+    assert result["totals"]["animals"] == 0
+    assert result["totals"]["mean_confidence"] == 0
+    assert result["totals"]["retained"] >= 1
+    assert len(result["frames"]) == 5
+    assert all("motion_score" in row for row in result["rows"])
+    assert result["candidates"] == []
+    for kind in ("zip", "csv", "pdf"):
+        download = client.get(f"/api/videos/jobs/{identifier}/download?kind={kind}")
+        assert download.status_code == 200, (kind, download.text[:200])
+        if kind == "pdf":
+            assert download.content.startswith(b"%PDF-")
+        if kind == "zip":
+            with zipfile.ZipFile(io.BytesIO(download.content)) as bundle:
+                assert len([name for name in bundle.namelist() if name.startswith("todos_los_fotogramas/")]) == 5
+                assert "resultados_por_fotograma.csv" in bundle.namelist()
+                assert "informe_pantheraid.pdf" in bundle.namelist()
+
+
+def test_lightweight_rejects_oversize_before_upload(client):
+    reply = client.post(
+        "/api/videos/uploads?mode=lite",
+        headers={"X-Video-Name": "huge.mp4", "X-Video-Size": str(61 * 1024 * 1024)},
+    )
+    assert reply.status_code == 413
