@@ -1052,3 +1052,44 @@ button,a,input,select,textarea{transition-property:background,border-color,color
  .registry-management-actions{grid-template-columns:1fr}
  .registry-management-actions .registry-manage-delete{grid-column:auto}
 }
+
+
+/* Clear edit/delete affordances and inline scientific capture validation */
+.registry-study-summary{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 210px}
+.registry-study-summary strong{overflow-wrap:anywhere}
+.registry-study-card .registry-entity-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-left:auto}
+.registry-entity-actions button{margin:0!important}
+.registry-delete-button{
+ display:inline-flex;align-items:center;justify-content:center;min-height:43px;
+ padding:10px 15px;border-radius:9px;font:inherit;font-size:12px;font-weight:790;
+ background:rgba(173,45,65,.17);color:#ffc6cd;border:1px solid #d4576b;
+ cursor:pointer;transition:background .16s ease,border-color .16s ease;
+}
+.registry-delete-button:hover,.registry-delete-button:focus-visible{
+ color:#fff;background:#a42d46;border-color:#ff8293
+}
+.registry-delete-button:focus-visible{outline:2px solid #ffb6c1;outline-offset:3px}
+.registry-frame-delete{
+ margin:0 7px 8px;padding:6px 9px;border:1px solid #ad5467;border-radius:7px;
+ color:#ffd3d8;background:rgba(148,35,59,.17);font-size:11px;font-weight:750;cursor:pointer;
+}
+.registry-frame-delete:hover{background:#93344b;color:#fff}
+.registry-capture-error{
+ display:flex;flex-direction:column;gap:6px;
+ padding:13px 16px;margin:13px 0 5px;
+ border:1px solid #e6a04e;border-left:3px solid #ffb248;
+ border-radius:10px;background:rgba(208,124,35,.12);color:#ffe1ac;
+}
+.registry-capture-error strong{font-size:13px;font-weight:800;color:#ffe0a0}
+.registry-capture-error span{font-size:12px;line-height:1.6}
+.registry-review-ready{display:flex;flex-direction:column;gap:6px;
+ margin:0 0 18px;padding:13px 16px;border:1px solid #339f8f;
+ border-radius:10px;background:rgba(0,225,194,.055);color:#bff2e8}
+.registry-review-ready strong{font-size:13px;color:#d6fff2}
+.registry-review-ready span{font-size:12px;line-height:1.55}
+#registry-sightings{scroll-margin-top:20px}
+@media(max-width:650px){
+ .registry-study-card .registry-entity-actions{margin-left:0;width:100%}
+ .registry-study-card .registry-entity-actions button{flex:1 1 145px}
+ .registry-delete-button{min-height:46px}
+}
