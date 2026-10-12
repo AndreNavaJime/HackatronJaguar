@@ -146,7 +146,7 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
         <button type="button" className="action-button" disabled={!file||!enabled||busy} onClick={()=>void analyze()}>
           {busy?tx('Procesando…','Processing…'):tx('Analizar cambios visuales gratis ↗','Screen visual changes for free ↗')}
         </button>
-        {!enabled&&<small>{tx('Esperando conexión con Python.','Waiting for Python connection.')}</small>}
+        {!enabled&&<small>{tx('Esperando el nuevo motor de video en Render. Comprobá que su último despliegue esté en Live.','Waiting for the updated video engine on Render. Check that its latest deployment is Live.')}</small>}
         <small>{tx('Se compara brillo entre muestras; el porcentaje NO es confianza de detección animal.',
           'Compares brightness between samples; the percentage is NOT animal detection confidence.')}</small>
       </div>
