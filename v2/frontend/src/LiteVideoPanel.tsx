@@ -328,13 +328,9 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
             'Select up to six frames. They will be linked to ONE capture rather than counted as separate encounters.')}</p>
         </div><span className="sci-tag">{selectedSamples.length}/6</span>
       </div>
-      {onRecordEvidence&&<div className="video-next-actions">
-        <button type="button" className="sci-secondary" disabled={!selectedSamples.length}
+      {onRecordEvidence&&selectedSamples.length>0&&<div className="video-next-actions">
+        <button type="button" className="sci-secondary"
           onClick={()=>setSelectedSamples([])}>{tx('Limpiar selección','Clear selection')}</button>
-        <button type="button" className="workflow-next-button" disabled={!selectedSamples.length}
-          onClick={()=>continueReview()}>
-          {tx('Siguiente: registrar captura →','Next: record capture →')} ({selectedSamples.length})
-        </button>
       </div>}
       <div className="video-downloads">
         <h4>{tx('Descargas para revisión científica','Downloads for scientific review')}</h4>
@@ -376,14 +372,9 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
           </div>
         </article>)}
       </div>
-      {onRecordEvidence&&<div className="video-next-actions workflow-gallery-footer">
-        <span className="workflow-selection-count">{tx('Fotogramas seleccionados','Selected frames')}: {selectedSamples.length} / 6</span>
-        <button type="button" className="workflow-next-button" disabled={!selectedSamples.length}
-          onClick={()=>continueReview()}>
-          {tx('Siguiente: registrar captura','Next: record capture')}
-          <span aria-hidden="true">→</span>
-        </button>
-      </div>}
+      {onRecordEvidence&&<p className="workflow-selection-count" aria-live="polite">
+        {tx('Fotogramas seleccionados','Selected frames')}: {selectedSamples.length} / 6
+      </p>}
       <details className="method-details">
         <summary>{tx('Criterios de interpretación y limitaciones','Interpretation guidance and limitations')}</summary>
         <p>{tx('El procesamiento utiliza OpenCV para comparar la variación de brillo entre fotogramas; no emplea un modelo de detección animal. El movimiento de vegetación, la lluvia o los cambios de iluminación pueden generar alertas y la ausencia de cambios no descarta fauna. Los porcentajes son variación visual, no confianza de identificación. Revisá todas las muestras.',
