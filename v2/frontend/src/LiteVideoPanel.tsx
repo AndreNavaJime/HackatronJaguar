@@ -69,7 +69,7 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
 
   async function analyze(){
     if(!file||!enabled||busy)return;
-    if(file.size>LIMIT){setError(tx('Máximo 60 MB en modo gratuito.','Free mode limit: 60 MB.'));return;}
+    if(file.size>LIMIT){setError(tx('El archivo supera el límite de 60 MB para este análisis.','The file exceeds the 60 MB limit for this analysis.'));return;}
     if(!/\.(mp4|mov|avi|mkv)$/i.test(file.name)){setError(tx('Elegí MP4, MOV, AVI o MKV.','Choose MP4, MOV, AVI or MKV.'));return;}
     setError('');setUploaded(0);setJob(null);setJobId('');setResult(null);setState('uploading');
     let uploadId='';
@@ -109,19 +109,24 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
   const pct=(value:number)=>(value*100).toFixed(1)+'%';
   const base=jobId?'/api/videos/jobs/'+encodeURIComponent(jobId)+'/download?kind=':'';
 
-  return <section className="video-panel lite-panel" aria-label={tx('Análisis gratuito de cambios visuales','Free visual-change screening')}>
+  return <section className="video-panel lite-panel" aria-label={tx('Análisis exploratorio de video','Exploratory video analysis')}>
     <div className="panel-heading">
-      <div><span className="lite-kicker">{tx('MODO GRATUITO · SIN IA','FREE MODE · NO AI')}</span>
-        <h3>{tx('Exploración visual de videos','Visual video screening')}</h3>
-        <p>{tx('Extraé fotogramas, medí cambios entre muestras y descargá evidencias. No identifica animales, especies ni individuos.',
-          'Extract frames, measure changes between samples and download evidence. Does not identify animals, species or individuals.')}</p>
+      <div><span className="lite-kicker">{tx('PANTHERAID / ANÁLISIS EXPLORATORIO','PANTHERAID / EXPLORATORY ANALYSIS')}</span>
+        <h3>{tx('Análisis de secuencias','Sequence analysis')}</h3>
+        <p>{tx('Explorá registros de cámaras trampa mediante muestreo de fotogramas, análisis de variación visual y exportación de evidencias.',
+          'Explore camera-trap recordings through frame sampling, visual-change analysis and evidence exports.')}</p>
       </div><span className="tag">OpenCV · CPU</span>
     </div>
     <div className="lite-science-notice" role="note">
-      <strong>{tx('⚠ No es un detector de fauna','⚠ Not a wildlife detector')}</strong>
-      <p>{tx('Lluvia, hojas, sombras o movimiento de cámara también pueden producir cambios. Una muestra estable no demuestra ausencia de animales. Revisá todas las imágenes.',
-        'Rain, leaves, shadows and camera motion can cause changes. A stable sample does not prove wildlife absence. Review every image.')}</p>
+      <strong>{tx('Alcance del análisis','Analysis scope')}</strong>
+      <p>{tx('Este método identifica cambios entre fotogramas, no especies ni individuos. Los resultados requieren revisión científica.',
+        'This method identifies changes between frames, not species or individuals. Results require scientific review.')}</p>
     </div>
+    <details className="method-details method-details-compact">
+      <summary>{tx('Sobre el método de análisis','About the analysis method')}</summary>
+      <p>{tx('Este procesamiento basado en OpenCV compara muestras del video. Cambios de iluminación, vegetación y movimiento de cámara pueden afectar los resultados. Una escena sin cambios detectados puede contener fauna inmóvil. El análisis no estima especies ni identidades individuales.',
+        'This OpenCV-based process compares video samples. Lighting, vegetation and camera movement can affect results. An unchanged scene may still contain stationary wildlife. The analysis does not identify species or individual animals.')}</p>
+    </details>
     <div className="video-config">
       <div className="video-input">
         <label htmlFor="lite-video">{tx('Video de cámara trampa (hasta 60 MB, máximo 3 min)','Camera-trap video (up to 60 MB, max 3 min)')}</label>
@@ -130,8 +135,8 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
         {file&&<small>{file.name} · {(file.size/1048576).toFixed(2)} MB</small>}
         {preview&&<video controls preload="metadata" src={preview} className="video-preview"
           aria-label={tx('Vista previa del video','Video preview')}/>}
-        <small>{tx('La vista previa depende del códec del navegador. El video se analiza en el servidor.',
-          'Preview depends on browser codec support. Video is processed on the server.')}</small>
+        <small>{tx('Formatos admitidos: MP4, MOV, AVI y MKV. La vista previa puede depender del códec.',
+          'Supported formats: MP4, MOV, AVI and MKV. Preview may depend on the codec.')}</small>
       </div>
       <div className="video-options">
         <label htmlFor="lite-change">{tx('Umbral de píxeles cambiados','Changed-pixel threshold')}: {pct(motionThreshold)}</label>
@@ -144,11 +149,11 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
         <input id="lite-samples" type="range" min="2" max="12" step="1"
           value={samples} disabled={busy} onChange={e=>setSamples(Number(e.target.value))}/>
         <button type="button" className="action-button" disabled={!file||!enabled||busy} onClick={()=>void analyze()}>
-          {busy?tx('Procesando…','Processing…'):tx('Analizar cambios visuales gratis ↗','Screen visual changes for free ↗')}
+          {busy?tx('Procesando…','Processing…'):tx('Iniciar análisis ↗','Start analysis ↗')}
         </button>
-        {!enabled&&<small>{tx('Esperando el nuevo motor de video en Render. Comprobá que su último despliegue esté en Live.','Waiting for the updated video engine on Render. Check that its latest deployment is Live.')}</small>}
-        <small>{tx('Se compara brillo entre muestras; el porcentaje NO es confianza de detección animal.',
-          'Compares brightness between samples; the percentage is NOT animal detection confidence.')}</small>
+        {!enabled&&<small>{tx('El servicio de análisis no está disponible en este momento. Intentá nuevamente en unos minutos.','The analysis service is currently unavailable. Please try again shortly.')}</small>}
+        <small>{tx('La sensibilidad controla el porcentaje de variación visual necesario para marcar una muestra.',
+          'Sensitivity controls the amount of visual change required to flag a sample.')}</small>
       </div>
     </div>
     {state==='uploading'&&file&&<div className="video-progress" role="status">
@@ -163,8 +168,8 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
     </div>}
     {error&&<p role="alert" className="upload-error">{error}</p>}
     {result&&<div className="video-results lite-results">
-      <h3>{tx('Resultados de exploración visual','Visual screening results')}</h3>
-      <p className="details-caption">{result.metadata.filename} · {result.metadata.model}</p>
+      <h3>{tx('Resultados del análisis','Analysis results')}</h3>
+      <p className="details-caption">{result.metadata.filename} · OpenCV / {tx('análisis de variación visual','visual-change analysis')}</p>
       <div className="video-metrics">
         <div><span>{tx('Fotogramas revisados','Frames reviewed')}</span><strong>{result.totals.sampled}</strong></div>
         <div><span>{tx('Con cambios visuales','With visual changes')}</span><strong>{result.totals.retained}</strong></div>
@@ -190,7 +195,7 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
         <div className="preview-controls">
           <a className="download-link" href={base+'zip'}>{tx('Todas las imágenes · ZIP ↓','All frames · ZIP ↓')}</a>
           <a className="download-link" href={base+'csv'}>{tx('Cambios por fotograma · CSV ↓','Frame changes · CSV ↓')}</a>
-          <a className="download-link" href={base+'pdf'}>{tx('Informe sin IA · PDF ↓','Non-AI report · PDF ↓')}</a>
+          <a className="download-link" href={base+'pdf'}>{tx('Informe técnico · PDF ↓','Technical report · PDF ↓')}</a>
         </div>
         <small>{tx('El ZIP contiene TODAS las muestras, no solo las marcadas. Los archivos caducan en aproximadamente una hora.',
           'The ZIP includes ALL frames, not only flagged ones. Files expire in approximately one hour.')}</small>
@@ -212,9 +217,11 @@ export default function LiteVideoPanel({enabled}:{enabled:boolean}) {
           </div>
         </article>)}
       </div>
-      <p className="scientific-note">{tx(
-        'Modo exploratorio sin IA. NO confirma ni descarta presencia de animales; las cifras no representan precisión ni confianza de un detector. Requiere revisión humana.',
-        'Exploratory non-AI mode. Does NOT confirm or rule out wildlife presence; values are neither detector accuracy nor confidence. Human review is required.')}</p>
+      <details className="method-details">
+        <summary>{tx('Criterios de interpretación y limitaciones','Interpretation guidance and limitations')}</summary>
+        <p>{tx('El procesamiento utiliza OpenCV para comparar la variación de brillo entre fotogramas; no emplea un modelo de detección animal. El movimiento de vegetación, la lluvia o los cambios de iluminación pueden generar alertas y la ausencia de cambios no descarta fauna. Los porcentajes son variación visual, no confianza de identificación. Revisá todas las muestras.',
+          'Processing uses OpenCV to compare brightness changes between frames; it does not use an animal detection model. Vegetation, rain or changing light can trigger alerts, and unchanged frames do not rule out wildlife. Percentages indicate visual change, not identification confidence. Review every sample.')}</p>
+      </details>
     </div>}
   </section>;
 }
