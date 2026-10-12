@@ -1,50 +1,55 @@
 import React from 'react';
-import MonitoringWorkspace from './MonitoringWorkspace';
+import ResearchRegistry from './ResearchRegistry';
 import EdgeWorkspace from './EdgeWorkspace';
 import ResearchWorkspace from './ResearchWorkspace';
 import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
+import {ResearchData,loadResearch,persistResearch,flattenObservations} from './researchData';
 
 type Props={section:string;onNavigate:(section:string)=>void};
 
 export default function ScientificWorkspace({section,onNavigate}:Props){
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
-  const [records,setRecords]=React.useState<Observation[]>(()=>{
-    const value=loadSession<unknown>('pantheralab_session_observations_v1',[]);
-    return Array.isArray(value)?value as Observation[]:[];
-  });
+  const [research,setResearch]=React.useState<ResearchData>(loadResearch);
+  const [persistError,setPersistError]=React.useState(false);
   const [events,setEvents]=React.useState<EdgeEvent[]>(()=>{
     const value=loadSession<unknown>('pantheralab_session_edge_events_v1',[]);
     return Array.isArray(value)?value as EdgeEvent[]:[];
   });
   const [current,setCurrent]=React.useState<Observation>(()=>newObservation());
+  const [incoming,setIncoming]=React.useState<EdgeEvent|null>(null);
+  const records=React.useMemo(()=>flattenObservations(research),[research]);
 
-  React.useEffect(()=>saveSession('pantheralab_session_observations_v1',records),[records]);
+  React.useEffect(()=>{setPersistError(!persistResearch(research));},[research]);
   React.useEffect(()=>saveSession('pantheralab_session_edge_events_v1',events),[events]);
-
-  const onSave=(record:Observation)=>setRecords(previous=>{
-    const index=previous.findIndex(r=>r.observation_id===record.observation_id);
-    if(index<0)return [record,...previous].slice(0,250);
-    return previous.map(r=>r.observation_id===record.observation_id?record:r);
-  });
-  const onRemove=(id:string)=>setRecords(previous=>previous.filter(o=>o.observation_id!==id));
   const onEvent=(event:EdgeEvent)=>setEvents(previous=>[event,...previous].slice(0,100));
+  const onUseEvent=(event:EdgeEvent)=>{
+    setIncoming(event);
+    onNavigate('PantheraMONITORING');
+  };
 
   if(section==='PantheraMONITORING'){
-    return <MonitoringWorkspace records={records} current={current} setCurrent={setCurrent}
-      onSave={onSave} onRemove={onRemove} events={events}/>;
+    return <>
+      {persistError&&<p className="sci-warning" role="alert">{tx(
+        'No fue posible guardar los cambios en este navegador. Exportá un respaldo privado antes de salir.',
+        'Browser storage is unavailable. Export a private backup before leaving.')}</p>}
+      <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
+        onClearEdge={()=>setIncoming(null)} onNavigate={onNavigate}/>
+    </>;
   }
   if(section==='PantheraEDGE'){
-    return <EdgeWorkspace events={events} onEvent={onEvent} current={current} setCurrent={setCurrent}/>;
+    return <EdgeWorkspace events={events} onEvent={onEvent} current={current}
+      setCurrent={setCurrent} onUseEvent={onUseEvent}/>;
   }
   if(section==='Investigación'){
-    return <ResearchWorkspace records={records} current={current}/>;
+    return <ResearchWorkspace records={records} current={records[0]||current}/>;
   }
   if(section!=='Resumen')return null;
 
-  const sites=new Set(records.map(r=>r.study_site.trim()).filter(Boolean));
-  const validated=records.filter(r=>r.validation_status==='researcher_validated'||
-    r.validation_status==='field_verified').length;
+  const sites=new Set(research.deployments.map(d=>d.site.trim()).filter(Boolean));
+  const validated=new Set(research.sightings.filter(s=>s.identification_status==='verified'&&
+    research.individuals.some(i=>i.individual_id===s.individual_id&&i.status==='verified'))
+    .map(s=>s.individual_id)).size;
   return <div className="sci-screen">
     <div className="sci-heading"><div><span className="sci-kicker">PANTHERA LAB / COMMAND OVERVIEW</span>
       <h2>{tx('Centro de control científico','Scientific control center')}</h2>
@@ -52,10 +57,10 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
         'From camera traps to evidence: capture, filtering, environmental context and review.')}</p>
     </div><span className="sci-tag">{tx('PANEL DE INVESTIGACIÓN','RESEARCH WORKSPACE')}</span></div>
     <div className="sci-stats">
-      <div><span>{tx('Observaciones en esta sesión','Observations in this session')}</span>
-        <strong>{records.length}</strong></div>
-      <div><span>{tx('Eventos Edge recibidos','Edge events received')}</span><strong>{events.length}</strong></div>
-      <div><span>{tx('Registros con validación humana','Human-validated records')}</span><strong>{validated}</strong></div>
+      <div><span>{tx('Observaciones de animales','Animal sightings')}</span>
+        <strong>{research.sightings.length}</strong></div>
+      <div><span>{tx('Eventos de captura','Capture events')}</span><strong>{research.encounters.length}</strong></div>
+      <div><span>{tx('Individuos validados','Verified individuals')}</span><strong>{validated}</strong></div>
       <div><span>{tx('Sitios anotados','Annotated study sites')}</span><strong>{sites.size}</strong></div>
     </div>
     <div className="sci-launch-grid">
@@ -70,9 +75,9 @@ export default function ScientificWorkspace({section,onNavigate}:Props){
       <article className="sci-launch sci-launch-b">
         <span className="sci-module-number">02 / SCIENTIFIC RECORDS</span>
         <h3>PantheraMONITORING</h3>
-        <p>{tx('Fichas científicas, variables ambientales, mapa de cámara, historial temporal e informes PDF.',
-          'Scientific records, environmental fields, camera maps, temporary history and PDF reports.')}</p>
-        <small>{tx('Observaciones · PDF / GeoJSON','Observations · PDF / GeoJSON')}</small>
+        <p>{tx('Estudios, estaciones, catálogo de jaguares, encuentros y reportes científicos integrales.',
+          'Studies, deployments, jaguar catalogue, encounters and consolidated reports.')}</p>
+        <small>{tx('Catálogo de individuos · PDF / ZIP','Individual catalogue · PDF / ZIP')}</small>
         <button type="button" onClick={()=>onNavigate('PantheraMONITORING')}>
           {tx('Abrir monitoreo ↗','Open monitoring ↗')}</button>
       </article>
