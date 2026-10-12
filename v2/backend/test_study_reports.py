@@ -140,3 +140,21 @@ def test_report_kind_and_oversize_guard():
     assert client.post("/api/science/studies/report?kind=docx", json=data).status_code == 422
     data["study"]["objectives"] = "X" * 2_410_000
     assert client.post("/api/science/studies/report", json=data).status_code == 413
+
+
+def test_scoped_individual_history_and_capture_reports():
+    data = study_data(thumbnail=True)
+    individual = client.post("/api/science/studies/report?kind=pdf&individual_id=JAG-003", json=data)
+    assert individual.status_code == 200, individual.text[:300]
+    assert individual.content[:5] == b"%PDF-"
+    assert "JAG-003" in individual.headers["content-disposition"]
+    single_capture = client.post("/api/science/studies/report?kind=pdf&encounter_id=EVT-01", json=data)
+    assert single_capture.status_code == 200, single_capture.text[:300]
+    assert single_capture.content[:5] == b"%PDF-"
+    assert "EVT-01" in single_capture.headers["content-disposition"]
+    assert client.post("/api/science/studies/report?kind=pdf&individual_id=UNKNOWN",
+                       json=data).status_code == 422
+    assert client.post("/api/science/studies/report?kind=zip&individual_id=JAG-003",
+                       json=data).status_code == 422
+    assert client.post("/api/science/studies/report?kind=pdf&individual_id=JAG-003&encounter_id=EVT-01",
+                       json=data).status_code == 422
