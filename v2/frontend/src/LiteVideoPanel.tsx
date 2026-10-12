@@ -1,15 +1,11 @@
 import React from 'react';
 import { useLanguage } from './language';
+import {VideoResult,VideoSession,VideoEvidenceBatch,saveVideoSession,getVideoSession,
+  listVideoSessions,deleteVideoSession,getActiveVideoId,setActiveVideoId,
+  createAnalysisId,selectionBatch} from './videoWorkspaceDb';
 
-type LiteFrame = {sample:number; time_seconds:number; retained:boolean; motion_score:number; image:string};
-type LiteRow = {sample:number; video_time_seconds:number; motion_score:number; edge_decision:string};
-type LiteResult = {
-  metadata:{mode:string; model:string; filename:string; duration_seconds:number;
-    source_width:number; source_height:number; sample_seconds:number; threshold:number};
-  totals:{sampled:number;retained:number;discarded:number;mean_motion:number;
-    positive_frame_rate:number;estimated_payload_reduction:number};
-  frames:LiteFrame[]; rows:LiteRow[]; note:string;
-};
+type LiteResult = VideoResult;
+
 type Job = {state:'uploading'|'processing'|'completed'|'failed';stage:string;
   processed:number;total:number;error:string|null;result:LiteResult|null};
 const CHUNK=5*1024*1024;
@@ -27,9 +23,8 @@ async function readResponse(response:Response) {
   return value;
 }
 
-type EvidenceSelection={fileName:string;frameDataUrl:string;timeSeconds:number;sample:number};
 export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boolean;
-  onRecordEvidence?:(item:EvidenceSelection)=>void}) {
+  onRecordEvidence?:(item:VideoEvidenceBatch)=>void}) {
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [file,setFile]=React.useState<File|null>(null);
@@ -73,7 +68,9 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
     if(!file||!enabled||busy)return;
     if(file.size>LIMIT){setError(tx('El archivo supera el límite de 60 MB para este análisis.','The file exceeds the 60 MB limit for this analysis.'));return;}
     if(!/\.(mp4|mov|avi|mkv)$/i.test(file.name)){setError(tx('Elegí MP4, MOV, AVI o MKV.','Choose MP4, MOV, AVI or MKV.'));return;}
-    setError('');setUploaded(0);setJob(null);setJobId('');setResult(null);setState('uploading');
+    setError('');setUploaded(0);setJob(null);setJobId('');setResult(null);
+    setSelectedSamples([]);setAnalysisId(createAnalysisId());
+    setCreatedAt(new Date().toISOString());setPersistedFilename(file.name);setState('uploading');
     let uploadId='';
     try{
       const params=new URLSearchParams({
@@ -107,6 +104,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
   }
   const reset=(next:File|null)=>{
     setFile(next);setJob(null);setJobId('');setResult(null);setError('');setState('idle');setUploaded(0);
+    setAnalysisId('');setCreatedAt('');setPersistedFilename('');setSelectedSamples([]);
   };
   const pct=(value:number)=>(value*100).toFixed(1)+'%';
   const base=jobId?'/api/videos/jobs/'+encodeURIComponent(jobId)+'/download?kind=':'';
