@@ -36,7 +36,7 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
   async function detect() {
     if (!file || processing || !enabled) return;
     if (file.size > 12 * 1024 * 1024) {
-      setError('El tamaño máximo permitido es de 12 MB.');
+      setError(t('El tamaño máximo permitido es de 12 MB.'));
       return;
     }
     setProcessing(true);
@@ -78,7 +78,7 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
       setResult(payload as DetectionResult);
       setAnnotated(true);
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'No se pudo ejecutar MegaDetector.';
+      const message = cause instanceof Error ? cause.message : t('No se pudo ejecutar MegaDetector.');
       setError(message === 'Failed to fetch'
         ? 'Se perdió la comunicación con Python. Puede haberse cerrado por falta de memoria. Revisá la terminal de FastAPI.'
         : message);
@@ -97,7 +97,7 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
       <button className="action-button detection-button" type="button" disabled={!file || processing || !enabled} onClick={() => void detect()}>
         {t(processing ? 'Ejecutando MegaDetector…' : 'Detectar animales con IA')}
       </button>
-      <small>La primera ejecución puede tardar porque se descargan los pesos del modelo.
+      <small>{t('La primera ejecución puede tardar porque se descargan los pesos del modelo.')}
         {t('Es necesario instalar PytorchWildlife en Python.')}</small>
     </div>
     {error && <p className="upload-error" role="alert">{error}</p>}
@@ -127,7 +127,7 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
           <small>{t("Recuadro:")} {det.bbox_xyxy.join(', ')}</small>
         </div>)}
       </div> : <p>{t("No hubo detecciones por encima del umbral; esto no demuestra ausencia de fauna.")}</p>}
-      <p className="scientific-note">{result.note} La confianza del modelo no equivale a una exactitud científica validada.</p>
+      <p className="scientific-note">{result.note} {t('La confianza del modelo no equivale a una exactitud científica validada.')}</p>
     </div>}
   </section>;
 }
