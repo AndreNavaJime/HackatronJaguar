@@ -778,3 +778,68 @@ button,a,input,select,textarea{transition-property:background,border-color,color
 @media(prefers-reduced-motion:reduce){
   button,a,input,select,textarea,.method-details summary::after{transition:none!important}
 }
+
+
+/* Longitudinal PantheraMONITORING registry */
+.research-registry .registry-topline{display:flex;align-items:end;flex-wrap:wrap;gap:14px;margin:16px 0}
+.registry-topline .sci-field{flex:1 1 280px;max-width:590px}
+.registry-topline .sci-tag{margin-bottom:10px;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+.registry-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;
+ margin:16px 0 20px;padding:5px;border:1px solid #375268;border-radius:13px;
+ background:rgba(8,23,38,.64)}
+.registry-tabs button{min-width:0;padding:13px 6px;text-align:center;font-size:12px;
+ font-weight:740;color:#a3bfd2;border:1px solid transparent;border-radius:9px}
+.registry-tabs button:hover{color:#eafcfc;background:rgba(13,82,88,.20)}
+.registry-tabs button.selected{border-color:#2c9990;background:#0b5857;color:#f6ffff;
+ box-shadow:0 5px 12px rgba(0,0,0,.16)}
+.research-registry .sci-wide{grid-column:span 2}
+.research-registry .sci-panel>.action-button{margin:12px 0;min-height:45px;
+ background:linear-gradient(110deg,#078178,#046f6b);border:1px solid #33c2b5}
+.research-registry .sci-panel>.action-button:hover{background:#07988e}
+.registry-study-card{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;
+ margin:16px 0;background:#102d38;border:1px solid #3d5868;border-radius:10px}
+.registry-study-card strong{margin:0;font-size:14px;color:#edf6fb}
+.registry-study-card span{color:#abbfce;font-size:12px}
+.registry-study-card button{margin-left:auto}
+.registry-list{display:flex;flex-wrap:wrap;gap:10px;margin:17px 0}
+.registry-record-button{display:flex;flex-direction:column;gap:4px;max-width:380px;
+ border:1px solid #3c586a;background:#102839;padding:13px;border-radius:10px}
+.registry-record-button strong{margin:0;color:#deebf4}
+.registry-record-button small{color:#afbecf;overflow-wrap:anywhere}
+.registry-person-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,285px),1fr));
+ gap:16px;margin:23px 0}
+.registry-person{display:flex;flex-direction:column;gap:8px;min-width:0;
+ border:1px solid #33586c;border-top:2px solid #00e1c2;background:linear-gradient(150deg,#142d39,#0c1c2c);
+ border-radius:13px;padding:20px}
+.registry-person .sci-kicker{margin:0;font-size:10px}
+.registry-person h4{font-size:24px;color:#e8f7ff;margin:3px 0 0;overflow-wrap:anywhere}
+.registry-person em{font-size:13px;color:#c3d0dd}
+.registry-person p{font-size:12px;line-height:1.65;color:#adc5d2;margin:7px 0!important}
+.registry-person>.sci-secondary{margin-top:auto}
+.registry-person .method-details{width:100%;margin:6px 0}
+.registry-person .method-details summary{padding:10px;font-size:12px}
+.registry-person .method-details p{font-size:11px;padding:8px 13px!important;overflow-wrap:anywhere}
+.registry-count{color:#b7f3e6!important;font-size:12px!important;font-weight:680}
+.registry-history{padding:0 12px 11px}
+.registry-history p{margin:7px 0!important}
+.registry-photo-ref{color:#bdebdc;font-size:12px;text-decoration:underline;overflow-wrap:anywhere}
+.registry-checkbox{display:flex;align-items:flex-start;gap:12px;padding:15px 16px;
+ border:1px solid rgba(255,177,31,.31);border-radius:10px;
+ background:rgba(255,177,31,.055);font-size:13px;color:#eed9b2;line-height:1.55;cursor:pointer}
+.registry-checkbox input{accent-color:#00e1c2;flex:none;width:18px;height:18px;margin-top:0}
+.registry-subtitle{margin:29px 0 8px!important}
+.registry-hidden{display:none}
+.research-registry .sci-table{min-width:570px}
+.research-registry .sci-notice{margin-bottom:17px}
+@media(max-width:1050px){
+  .registry-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:600px){
+  .registry-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .registry-tabs button{font-size:11px;padding:12px 7px}
+  .research-registry .sci-wide{grid-column:span 1}
+  .registry-person-grid{grid-template-columns:1fr}
+  .registry-study-card{flex-direction:column;align-items:start}
+  .registry-study-card button{margin-left:0}
+  .registry-topline .sci-field{max-width:100%}
+}
