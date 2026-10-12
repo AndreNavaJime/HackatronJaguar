@@ -158,3 +158,45 @@ def test_scoped_individual_history_and_capture_reports():
                        json=data).status_code == 422
     assert client.post("/api/science/studies/report?kind=pdf&individual_id=JAG-003&encounter_id=EVT-01",
                        json=data).status_code == 422
+
+
+
+def test_multiple_frames_of_one_analysis_stay_in_one_capture():
+    data = study_data(thumbnail=True)
+    data["encounters"][0]["source_analysis_id"] = "ANL-0001"
+    data["encounters"][0]["source_video_name"] = "jaguar_osa.mp4"
+    data["encounters"][0]["analysis_method"] = "OpenCV visual-change screening"
+    data["encounters"][0]["analysis_samples"] = 8
+    data["encounters"][0]["evidence_frames"] = [
+        {"sample": 3, "time_seconds": 2.1, "motion_score": .07,
+         "data_url": data["encounters"][0]["thumbnail_data_url"]},
+        {"sample": 5, "time_seconds": 4.1, "motion_score": .03,
+         "data_url": data["encounters"][0]["thumbnail_data_url"]},
+    ]
+    response = client.post("/api/science/studies/report?kind=zip", json=data)
+    assert response.status_code == 200, response.text[:300]
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    assert "reference_thumbnails/EVT-01.jpg" in archive.namelist()
+    assert "reference_thumbnails/EVT-01_frame_3.jpg" in archive.namelist()
+    assert "reference_thumbnails/EVT-01_frame_5.jpg" in archive.namelist()
+    study = json.loads(archive.read("study.json"))
+    assert len(study["encounters"]) == 2
+    assert len(study["sightings"]) == 3
+    first = study["encounters"][0]
+    assert first["source_analysis_id"] == "ANL-0001"
+    assert len(first["evidence_frames"]) == 2
+    assert all("data_url" not in item for item in first["evidence_frames"])
+    assert "jaguar_osa.mp4" in archive.read("observations_flat.csv").decode("utf-8")
+    assert archive.read("PantheraLAB_informe_integral.pdf").startswith(b"%PDF-")
+
+
+def test_reject_duplicate_video_analysis_and_unbounded_frame_gallery():
+    dataset = study_data()
+    for encounter in dataset["encounters"]:
+        encounter["source_analysis_id"] = "ANL-DUPLICATE"
+    assert client.post("/api/science/studies/report", json=dataset).status_code == 422
+    dataset = study_data()
+    dataset["encounters"][0]["evidence_frames"] = [
+        {"sample": k, "time_seconds": float(k), "motion_score": .1,
+         "data_url": "data:image/jpeg;base64,xxx"} for k in range(6)]
+    assert client.post("/api/science/studies/report", json=dataset).status_code == 422
