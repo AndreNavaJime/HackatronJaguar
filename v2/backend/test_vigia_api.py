@@ -25,7 +25,7 @@ def payload():
     return {
         "data": {"cam_id": "BROWNING-HP5U-01", "trigger": "pir",
                  "ts": "2026-10-05T00:00:00Z", "lat": "10.512", "lon": "-85.201"},
-        "files": {"frames": ("IMG_0001.JPG", b"\\xff\\xd8\\xff\\xe0" + b"x" * 40, "image/jpeg")},
+        "files": {"frames": ("IMG_0001.JPG", b"\xff\xd8\xff\xe0" + b"x" * 40, "image/jpeg")},
     }
 
 

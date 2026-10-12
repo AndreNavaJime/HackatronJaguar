@@ -122,13 +122,13 @@ async def vigia_capture(request: Request):
         contents = await frame.read(MAX_JPEG_BYTES + 1)
         if len(contents) > MAX_JPEG_BYTES:
             raise HTTPException(status_code=413, detail="JPG mayor a 12 MiB.")
-        if len(contents) < 4 or not contents.startswith(b"\\xff\\xd8\\xff"):
+        if len(contents) < 4 or not contents.startswith(b"\xff\xd8\xff"):
             raise HTTPException(status_code=422, detail="No se reconoce la cabecera JPG.")
 
     # Wokwi creates a placeholder with a JPEG header, not a decodable photograph.
     # Never label this data as a valid image, AI detection, or 5G measurement.
     digest = hashlib.sha256(contents).hexdigest()
-    key = hashlib.sha256((camera_id + "\\n" + filename + "\\n" + digest).encode()).hexdigest()
+    key = hashlib.sha256((camera_id + "\n" + filename + "\n" + digest).encode()).hexdigest()
     event_id = "VIGIA-" + key[:20].upper()
     event = {
         "contract_version": "panthera-v1.0",
