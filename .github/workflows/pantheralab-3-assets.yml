@@ -66,6 +66,7 @@ jobs:
         run: |
           git config user.name "pantheralab-brand-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add v2/frontend/public/branding v2/frontend/public/icons/pantheralab-3-*.png
+          git add v2/frontend/public/branding
+          git add -f v2/frontend/public/icons/pantheralab-3-*.png
           git commit -m "Include exact PantheraLAB 3.0 logo poster and installable mobile icons"
           git push origin HEAD:pantheralab-3.0
