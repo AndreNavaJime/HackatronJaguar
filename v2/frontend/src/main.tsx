@@ -178,7 +178,7 @@ function App() {
             {imageResult && <div className="image-result" role="status">
               <strong>✓ {t('Fotografía verificada')}</strong>
               <dl><dt>{t("Formato")}</dt><dd>{imageResult.format}</dd><dt>{t("Dimensiones")}</dt><dd>{imageResult.width} × {imageResult.height} px</dd><dt>{t("Tamaño")}</dt><dd>{(imageResult.size_bytes / 1024 / 1024).toFixed(2)} MB</dd><dt>{t("Almacenada")}</dt><dd>{t("No")}</dd></dl>
-              <p>{imageResult.note}</p>
+              <p>{language==='en'?'File validation completed. Species identification was not performed.':'Validación del archivo completada. No se ha realizado identificación de especies.'}</p>
             </div>}
           </div>
           <div className="image-frame">
