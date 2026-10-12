@@ -102,7 +102,7 @@ function App() {
   return <div className="shell">
     <aside>
       <div className="brand">
-        <img className="brand-symbol" src="/icons/pantheraid.svg" alt="" />
+        <img className="brand-symbol" src="/icons/jaguar-modern-512.png" alt="" />
         <span className="brand-copy"><strong>PANTHERA<span>LAB</span></strong><small>WILDLIFE INTELLIGENCE</small></span>
       </div>
       <p className="sub">{t('Conservación inteligente')}</p>
@@ -139,7 +139,7 @@ function App() {
         </div>
         <div className="hero-orbit" aria-hidden="true">
           <div className="hero-orbit-outer" />
-          <div className="hero-orbit-inner"><img src="/icons/pantheraid.svg" alt="" /></div>
+          <div className="hero-orbit-inner"><img src="/icons/jaguar-modern-512.png" alt="" /></div>
           <span className="orbit-code orbit-code-top">SPECIES · 01</span>
           <span className="orbit-code orbit-code-bottom">WILDLIFE / INTELLIGENCE</span>
         </div>
