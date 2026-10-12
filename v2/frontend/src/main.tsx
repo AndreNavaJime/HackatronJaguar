@@ -42,7 +42,7 @@ function App() {
 
   const checkApi = React.useCallback(async () => {
     setApiState('checking');
-    setApiMessage('Comprobando conexión con Python…');
+    setApiMessage('Verificando disponibilidad del servicio…');
     try {
       const response = await fetch('/api/health', { cache: 'no-store' });
       if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -51,7 +51,7 @@ function App() {
         throw new Error('Respuesta inesperada del servidor');
       }
       setApiState('connected');
-      setApiMessage('Python conectado · PantheraID API responde correctamente');
+      setApiMessage('Servicio de análisis operativo');
       try {
         const caps=await fetch('/api/capabilities',{cache:'no-store'});
         const data:unknown=await caps.json();
@@ -64,7 +64,7 @@ function App() {
       setLiteAvailable(false);
       setAiAvailable(false);
       setApiState('disconnected');
-      setApiMessage('No se pudo conectar con Python. Verificá que FastAPI siga ejecutándose en el puerto 8000.');
+      setApiMessage('No se pudo establecer conexión con el servicio. Volvé a intentar en unos minutos.');
     }
   }, []);
 
@@ -132,7 +132,7 @@ function App() {
         <span className="sidebar-connection-dot" aria-hidden="true" />
         <div><strong>Panthera API</strong><small>{t(apiState==='connected'?'En línea':apiState==='checking'?'Verificando…':'Sin conexión')}</small></div>
       </div>
-      <small className="sidebar-footer">PANTHERAID / V2.0<br />{t('PLATAFORMA EN DESARROLLO')}</small>
+      <small className="sidebar-footer">PANTHERALAB / V2.0<br />{language==='en'?'SCIENTIFIC MONITORING':'MONITOREO CIENTÍFICO'}</small>
     </aside>
     <main>
       <header className="app-header">
@@ -159,12 +159,12 @@ function App() {
         </div>
       </section>
       <section className={'api-status ' + apiState} aria-live="polite" aria-label="Estado de la API">
-        <div><span className="status-dot" aria-hidden="true"></span><strong>{t("Conexión con backend")}</strong><p>{t(apiMessage)}</p></div>
-        <button type="button" onClick={() => void checkApi()} disabled={apiState === 'checking'}>{t("Comprobar conexión")}</button>
+        <div><span className="status-dot" aria-hidden="true"></span><strong>{t("Estado del servicio")}</strong><p>{t(apiMessage)}</p></div>
+        <button type="button" onClick={() => void checkApi()} disabled={apiState === 'checking'}>{t("Actualizar estado")}</button>
       </section>
       {section === 'PantheraID' ? <section className="panel upload-panel">
         <div className="panel-heading">
-          <div><h2>{t("PantheraID · Multimedia de cámaras trampa")}</h2><p>{t("Fotografías, detección animal y análisis de videos con revisión científica.")}</p></div>
+          <div><h2>{t("PantheraID · Multimedia de cámaras trampa")}</h2><p>{t("Organización de evidencia multimedia y análisis exploratorio de cámaras trampa.")}</p></div>
           <span className="tag">{t("IMAGEN + VIDEO")}</span>
         </div>
         <div className="upload-layout">
@@ -172,11 +172,11 @@ function App() {
             <label htmlFor="panthera-image">{t("Seleccionar fotografía (JPEG, PNG o WebP; máximo 12 MB)")}</label>
             <input id="panthera-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
             <button className="action-button" disabled={!selectedImage || uploading || apiState !== 'connected'} onClick={() => void inspectImage()}>
-              {t(uploading ? 'Enviando…' : 'Enviar a Python')}
+              {t(uploading ? 'Enviando…' : 'Inspeccionar fotografía')}
             </button>
             {imageError && <p role="alert" className="upload-error">{imageError}</p>}
             {imageResult && <div className="image-result" role="status">
-              <strong>✓ {t('Fotografía recibida por Python')}</strong>
+              <strong>✓ {t('Fotografía verificada')}</strong>
               <dl><dt>{t("Formato")}</dt><dd>{imageResult.format}</dd><dt>{t("Dimensiones")}</dt><dd>{imageResult.width} × {imageResult.height} px</dd><dt>{t("Tamaño")}</dt><dd>{(imageResult.size_bytes / 1024 / 1024).toFixed(2)} MB</dd><dt>{t("Almacenada")}</dt><dd>{t("No")}</dd></dl>
               <p>{imageResult.note}</p>
             </div>}
@@ -187,15 +187,22 @@ function App() {
           </div>
         </div>
         <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable} />
-        <div className="ai-module-note" role="note">
-          <strong>{language==='en'?'AI analysis · MegaDetector V6':'Análisis con IA · MegaDetector V6'}</strong>
+        <details className="method-details ai-method-details">
+          <summary>{language==='en'?'Automatic detection · MegaDetector V6':'Detección automática · MegaDetector V6'}
+            <span className="method-status">{aiAvailable
+              ? (language==='en'?'Available for testing':'Disponible para pruebas')
+              : (language==='en'?'Not enabled':'No habilitado')}</span>
+          </summary>
           <p>{aiAvailable
-            ? (language==='en'?'The Python server reports that AI dependencies are installed. AI inference may still require more memory.':'El servidor indica que las dependencias de IA están instaladas. La inferencia podría necesitar más memoria.')
-            : (language==='en'?'Not available on Render Free. The video screening above is real OpenCV processing, but does NOT identify animals.':'No disponible en Render Free. El análisis de video anterior funciona con OpenCV, pero NO identifica animales.')}</p>
-        </div>
+            ? (language==='en'?'The model dependencies are present. Its inference capacity must still be validated in this environment.':'Las dependencias del modelo están presentes. Su capacidad de inferencia aún requiere verificación en este entorno.')
+            : (language==='en'?'Automated detection requires additional model dependencies and processing resources. The sequence analysis above remains available using OpenCV.':'La detección automática requiere dependencias y capacidad de procesamiento adicionales. El análisis de secuencias anterior está disponible con OpenCV.')}</p>
+        </details>
         {aiAvailable && <VideoPanel enabled={apiState === 'connected'} />}
         {aiAvailable && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
-        <p className="scientific-note">{t("La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en el servidor Python y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.")}</p>
+        <details className="method-details method-details-compact">
+          <summary>{language==='en'?'Evidence management and data retention':'Gestión de evidencia y conservación de datos'}</summary>
+          <p>{language==='en'?'Image inspection does not perform species recognition or save images to Supabase. Video analysis uses temporary files that expire on the processing server. Biological identification requires independent scientific review.':'La inspección de fotografías no reconoce especies ni guarda imágenes en Supabase. El análisis de video utiliza archivos temporales que caducan en el servidor de procesamiento. La identificación biológica exige revisión científica independiente.'}</p>
+        </details>
       </section> : <ScientificWorkspace section={section} onNavigate={setSection} />}
     </main>
   </div>;
