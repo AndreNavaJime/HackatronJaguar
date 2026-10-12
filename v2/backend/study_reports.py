@@ -189,8 +189,14 @@ def pdf_document(p):
                  if s.get("individual_id") in indiv and s.get("identification_status") == "verified"
                  and indiv[s["individual_id"]].get("status") == "verified"}
     counts = (len(p["deployments"]), len(p["encounters"]), len(p["sightings"]), len(validated))
+    scope = p.get("report_scope", "study")
+    document_name = {
+        "study": tr("Informe científico integral", "Consolidated scientific report"),
+        "individual": tr("Ficha longitudinal de individuo", "Individual longitudinal profile"),
+        "encounter": tr("Informe de evento de captura", "Capture-event report"),
+    }.get(scope, tr("Informe científico integral", "Consolidated scientific report"))
     story.extend([Paragraph("PANTHERA LAB", styles["Title"]),
-                  Paragraph(tr("Informe científico integral", "Consolidated scientific report"), styles["Heading1"]),
+                  Paragraph(document_name, styles["Heading1"]),
                   para(study.get("title", ""), styles["Heading2"]),
                   para(tr("Proyecto", "Project") + ": " + study.get("study_id", ""), styles["PantheraSmall"]),
                   para(tr("Responsable", "Lead researcher") + ": " + str(study.get("lead", "")), styles["PantheraSmall"]),
@@ -362,13 +368,52 @@ def build_output(p, kind):
     return result.getvalue(), "application/zip", "PantheraLAB_datos_estudio.zip"
 
 
+def scope_report(data, individual_id=None, encounter_id=None):
+    """Create a self-contained, consistent subset for an animal or a capture."""
+    if individual_id and encounter_id:
+        raise HTTPException(422, "Seleccione un solo tipo de informe.")
+    if not individual_id and not encounter_id:
+        return data, "PantheraLAB_informe_integral.pdf"
+    p = dict(data)
+    if individual_id:
+        target = next((i for i in p["individuals"] if i["individual_id"] == individual_id), None)
+        if target is None:
+            raise HTTPException(422, "El individuo solicitado no pertenece al proyecto.")
+        p["individuals"] = [target]
+        p["sightings"] = [x for x in p["sightings"] if x.get("individual_id") == individual_id]
+        event_ids = {x["encounter_id"] for x in p["sightings"]}
+        p["encounters"] = [x for x in p["encounters"] if x["encounter_id"] in event_ids]
+        p["report_scope"] = "individual"
+        name = "PantheraLAB_individuo_" + individual_id + ".pdf"
+    else:
+        event = next((e for e in p["encounters"] if e["encounter_id"] == encounter_id), None)
+        if event is None:
+            raise HTTPException(422, "La captura solicitada no pertenece al proyecto.")
+        p["encounters"] = [event]
+        p["sightings"] = [x for x in p["sightings"] if x["encounter_id"] == encounter_id]
+        individual_ids = {x["individual_id"] for x in p["sightings"] if x.get("individual_id")}
+        p["individuals"] = [x for x in p["individuals"] if x["individual_id"] in individual_ids]
+        p["report_scope"] = "encounter"
+        name = "PantheraLAB_captura_" + encounter_id + ".pdf"
+    dep_ids = {e["deployment_id"] for e in p["encounters"]}
+    p["deployments"] = [d for d in p["deployments"] if d["deployment_id"] in dep_ids]
+    return p, name
+
+
 @router.post("/report")
-async def study_report(request: Request, kind: str = Query("pdf", pattern="^(pdf|zip)$")):
+async def study_report(request: Request, kind: str = Query("pdf", pattern="^(pdf|zip)$"),
+                       individual_id: str | None = Query(None, pattern=r"^[\\w.-]{1,90}$"),
+                       encounter_id: str | None = Query(None, pattern=r"^[\\w.-]{1,90}$")):
     data = await parse_payload(request)
+    if kind != "pdf" and (individual_id or encounter_id):
+        raise HTTPException(422, "Los paquetes ZIP se generan para el estudio completo.")
+    data, pdf_name = scope_report(data, individual_id, encounter_id)
     try:
         body, mime, name = await run_in_threadpool(build_output, data, kind)
     except (ValueError, TypeError, OverflowError) as error:
         raise HTTPException(422, "No se pudo procesar el conjunto de datos.") from error
+    if kind == "pdf":
+        name = pdf_name
     return Response(body, media_type=mime, headers={
         "Content-Disposition": 'attachment; filename="'+name+'"',
         "Cache-Control": "no-store",
