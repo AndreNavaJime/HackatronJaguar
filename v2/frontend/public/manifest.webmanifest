@@ -8,8 +8,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#091712",
-  "theme_color": "#10251e",
+  "background_color": "#0d2f1f",
+  "theme_color": "#0d2f1f",
   "categories": [
     "education",
     "science",

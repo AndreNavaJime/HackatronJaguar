@@ -1,5 +1,5 @@
 /* PantheraID 2.0: cache ONLY public app-shell assets, NEVER API responses or wildlife data. */
-const CACHE_NAME = 'pantheraid-pwa-shell-v2';
+const CACHE_NAME = 'pantheraid-pwa-shell-v3';
 const STATIC = ['/offline.html', '/manifest.webmanifest', '/icons/pantheraid.svg',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/maskable-512.png',
   '/icons/icon-180.png'];
