@@ -362,6 +362,14 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
           </div>
         </article>)}
       </div>
+      {onRecordEvidence&&<div className="video-next-actions workflow-gallery-footer">
+        <span className="workflow-selection-count">{tx('Fotogramas seleccionados','Selected frames')}: {selectedSamples.length} / 6</span>
+        <button type="button" className="workflow-next-button" disabled={!selectedSamples.length}
+          onClick={()=>continueReview()}>
+          {tx('Siguiente: registrar captura','Next: record capture')}
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>}
       <details className="method-details">
         <summary>{tx('Criterios de interpretación y limitaciones','Interpretation guidance and limitations')}</summary>
         <p>{tx('El procesamiento utiliza OpenCV para comparar la variación de brillo entre fotogramas; no emplea un modelo de detección animal. El movimiento de vegetación, la lluvia o los cambios de iluminación pueden generar alertas y la ausencia de cambios no descarta fauna. Los porcentajes son variación visual, no confianza de identificación. Revisá todas las muestras.',
