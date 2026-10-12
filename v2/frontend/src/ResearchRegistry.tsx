@@ -217,17 +217,26 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           source_analysis_id:pendingEvidence.analysisId,
           source_job_id:pendingEvidence.jobId,
           source_video_name:pendingEvidence.fileName.slice(0,150),
-          analysis_method:'OpenCV visual-change screening (no animal identification)',
+          source_media_type:pendingEvidence.sourceType||'video',
+          source_sha256:pendingEvidence.sourceSha256||'',
+          analysis_method:pendingEvidence.sourceType==='image'
+            ?'Photograph format inspection (no species identification)'
+            :'OpenCV visual-change screening (no animal identification)',
           analysis_sample_seconds:pendingEvidence.sampleSeconds,
           analysis_threshold:pendingEvidence.motionThreshold,
           analysis_samples:pendingEvidence.totalSamples,
           video_duration_seconds:pendingEvidence.durationSeconds,
           notes:previous?.notes||('PantheraID | '+pendingEvidence.fileName.slice(0,140)+
-            ' | segundos del video: '+prepared.map(v=>v.time_seconds.toFixed(2)).join(', ')+
-            ' | fotogramas: '+prepared.map(v=>v.sample).join(', ')+
-            '. Fecha original e identificación de fauna requieren revisión humana.')});
-        setNotice(tx('Se prepararon '+prepared.length+' fotogramas en una sola captura. Revisá estación y fecha; después guardá el evento.',
-          prepared.length+' frames prepared under one capture. Check camera and date, then save the event.'));
+            (pendingEvidence.sourceType==='image'
+              ?' | fotografía inspeccionada; identificación manual pendiente.'
+              :' | segundos del video: '+prepared.map(v=>v.time_seconds.toFixed(2)).join(', ')+
+                ' | fotogramas: '+prepared.map(v=>v.sample).join(', ')+
+                '. Fecha original e identificación de fauna requieren revisión humana.'))});
+        setNotice(pendingEvidence.sourceType==='image'
+          ?tx('Fotografía preparada para un evento de captura. Seleccioná la cámara y fecha antes de guardarla.',
+            'Photo prepared for a capture event. Choose the camera and capture date before saving.')
+          :tx('Se prepararon '+prepared.length+' fotogramas en una sola captura. Revisá estación y fecha; después guardá el evento.',
+            prepared.length+' frames prepared under one capture. Check camera and date, then save the event.'));
         onClearEvidence?.();
       }catch(error){
         if(!canceled)setNotice(error instanceof Error?error.message:String(error));
@@ -712,7 +721,9 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
             <strong>{tx('Procedencia PantheraID','PantheraID provenance')}</strong>
             <p>{eventDraft.source_video_name} · {eventDraft.source_analysis_id}
               {' · '}{eventDraft.analysis_samples??'—'} {tx('muestras revisadas','sampled frames')}
-              {' · '}{tx('Método OpenCV','OpenCV method')}</p>
+              {' · '}{eventDraft.source_media_type==='image'
+                ?tx('Inspección de fotografía','Photo inspection')
+                :tx('Método OpenCV','OpenCV method')}</p>
             <small>{tx('Esta evidencia se agrega a una sola captura; la especie y la identidad se validan manualmente.',
               'These frames belong to one capture; species and individual identities require human review.')}</small>
           </div>}
