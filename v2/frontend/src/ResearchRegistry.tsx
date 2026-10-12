@@ -9,6 +9,36 @@ type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<Resear
     longitude:number|null;temperature:number|null;humidity:number|null;image_url:string;
     clip_url:string}|null;onClearEdge?:()=>void;onNavigate?:(section:string)=>void};
 const localTime=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+async function makeEvidencePreview(file:File):Promise<string>{
+  if(!file.type.startsWith('image/')||file.size>8*1024*1024){
+    throw new Error('Seleccioná una fotografía JPG, PNG o WebP de hasta 8 MB.');
+  }
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new window.Image();
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('No se pudo abrir la fotografía.'));};
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      try{
+        const scale=Math.min(1,480/Math.max(img.naturalWidth,img.naturalHeight));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+        canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+        const context=canvas.getContext('2d');
+        if(!context)throw new Error('Imagen no compatible.');
+        context.drawImage(img,0,0,canvas.width,canvas.height);
+        let result='';
+        for(const quality of [.7,.55,.42,.30]){
+          result=canvas.toDataURL('image/jpeg',quality);
+          if(result.length<=72000)break;
+        }
+        if(result.length>72000)throw new Error('Imagen demasiado compleja para guardar como miniatura.');
+        resolve(result);
+      }catch(error){reject(error);}
+    };
+    img.src=url;
+  });
+}
 const inputTime=(iso:string)=>iso?new Date(iso).toISOString().slice(0,16):'';
 const nval=(v:string,min=-Infinity,max=Infinity):number|null=>{
   if(!v.trim())return null;const n=Number(v);return Number.isFinite(n)&&n>=min&&n<=max?n:null;
@@ -148,6 +178,14 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,o
       :[...prev.individuals,individualDraft]}));
     setIndividualDraft(initialIndividual(activeId));
     saved('Ficha individual guardada.','Individual profile saved.');
+  }
+  async function attachThumbnail(file:File){
+    try{
+      const data=await makeEvidencePreview(file);
+      setEventDraft(p=>({...p,thumbnail_data_url:data,thumbnail_filename:file.name.slice(0,160)}));
+      saved('Miniatura preparada para el informe. Guardá el evento para conservarla.',
+        'Thumbnail ready for the report. Save the capture to keep it.');
+    }catch(error){setNotice(error instanceof Error?error.message:String(error));}
   }
   function saveEvent(){
     if(!stations.some(d=>d.deployment_id===eventDraft.deployment_id)||!eventDraft.occurred_at){
@@ -435,13 +473,28 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,o
               v=>setEvent('image_url',v),'https://...','url')}
             {textField(tx('Referencia URL de video','Video reference URL'),eventDraft.video_url,
               v=>setEvent('video_url',v),'https://...','url')}
-            {textField('PantheraEDGE event ID',eventDraft.edge_event_id,v=>setEvent('edge_event_id',v))}
+          <label className="sci-field sci-wide"><span>{tx('Fotografía de referencia para el informe',
+              'Reference photo for report')}</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{
+              const file=e.target.files?.[0];if(file)void attachThumbnail(file);e.target.value='';
+            }}/>
+            <small>{tx('Se guarda una miniatura comprimida en este navegador; conservá el original por separado.',
+              'A compressed thumbnail is saved in this browser; keep the original separately.')}</small>
+          </label>
+          {eventDraft.thumbnail_data_url&&
+            <div className="registry-thumb-wrap">
+              <img src={eventDraft.thumbnail_data_url} alt={tx('Miniatura de la captura','Capture thumbnail')}/>
+              <button type="button" className="sci-secondary" onClick={()=>
+                setEventDraft(p=>({...p,thumbnail_data_url:'',thumbnail_filename:''}))}>
+                {tx('Quitar miniatura','Remove thumbnail')}</button>
+            </div>}
+          {textField('PantheraEDGE event ID',eventDraft.edge_event_id,v=>setEvent('edge_event_id',v))}
             {notesField(tx('Notas del evento','Capture notes'),eventDraft.notes,v=>setEvent('notes',v))}
           </div>
           <button type="button" className="action-button" onClick={saveEvent}>
             {tx('Guardar evento de captura','Save capture event')}</button>
-          <p className="sci-muted">{tx('Las referencias URL no adjuntan automáticamente archivos multimedia; mantené una copia independiente de la evidencia.',
-            'URL references do not automatically attach media files; maintain a separate evidence archive.')}</p>
+          <p className="sci-muted">{tx('Las miniaturas aparecen en los informes, pero no sustituyen la fotografía original. Las referencias URL no adjuntan archivos externos automáticamente.',
+            'Thumbnails appear in reports but do not replace original photographs. URL references do not automatically attach external files.')}</p>
           {encounters.length>0&&<div className="sci-table-wrap"><table className="sci-table">
             <thead><tr><th>{tx('Fecha UTC','Date UTC')}</th><th>{tx('Cámara','Camera')}</th>
               <th>{tx('Animales registrados','Sightings')}</th><th>{tx('Acciones','Actions')}</th></tr></thead>
@@ -524,8 +577,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,o
           onChange={e=>setIncludePrecise(e.target.checked)}/>
           <span>{tx('Incluir coordenadas exactas en PDF y ZIP (requiere autorización)',
             'Include precise coordinates in PDF and ZIP (authorization required)')}</span></label>
-        <p className="sci-muted">{tx('Por defecto se ocultan latitud y longitud. Los informes se generan temporalmente en el servidor; no se guardan allí. Las imágenes y los videos solo aparecen como referencias URL: el ZIP no incluye sus archivos binarios.',
-          'Latitude and longitude are hidden by default. Reports are generated temporarily on the server and not stored there. Images and videos are included as URL references only; binary media files are not in the ZIP.')}</p>
+        <p className="sci-muted">{tx('Por defecto se ocultan las coordenadas. El servidor genera el informe sin guardar los registros. El PDF y ZIP incluyen las miniaturas cargadas; las fotos y videos originales permanecen fuera del paquete y se citan mediante URL.',
+          'Coordinates are hidden by default. Reports are generated without server-side storage. PDF and ZIP include uploaded thumbnails; original photos and videos remain outside the package and are referenced by URL.')}</p>
         <div className="sci-actions">
           <button type="button" className="action-button" disabled={pdfBusy} onClick={()=>void report('pdf')}>
             {pdfBusy?tx('Generando informe…','Generating report…'):
