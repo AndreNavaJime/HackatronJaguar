@@ -339,7 +339,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence}:{enabled:boole
               href={frame.image}>{tx('Descargar fotograma ↓','Download frame ↓')}</a>
             {onRecordEvidence&&<button type="button" className="sci-secondary"
               onClick={()=>continueReview([frame.sample])}>
-              {tx('Registrar solo este fotograma ↗','Register this frame only ↗')}</button>
+              {tx('Registrar solo este fotograma ↗','Register this frame only ↗')}</button>}
           </div>
         </article>)}
       </div>
