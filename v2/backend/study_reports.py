@@ -228,7 +228,9 @@ def pdf_document(p):
         story.append(para(statement, styles["PantheraSmall"], 500))
         story.append(para(tr("Altitud (m)", "Altitude (m)") + ": "+number(d.get("altitude_m"))+
                           " · " + tr("Días operativos declarados", "Declared operational days") +
-                          ": "+number(d.get("operational_days")), styles["PantheraMicro"]))
+                          ": "+number(d.get("operational_days"))+
+                          " · "+tr("Notas de estación","Station notes")+": "+str(d.get("notes","")),
+                          styles["PantheraMicro"],1000))
     story.append(Paragraph(tr("Catálogo de individuos", "Individual catalogue"), styles["Heading2"]))
     if not indiv:
         story.append(para(tr("No se han registrado individuos.", "No individuals recorded."), styles["PantheraSmall"]))
@@ -246,7 +248,9 @@ def pdf_document(p):
         story.append(para(tr("Responsable de validación", "Validated by")+": "+
                           str(person.get("validated_by", ""))+
                           " · "+tr("Imagen de referencia","Reference image")+": "+
-                          str(person.get("reference_image_url", "")), styles["PantheraMicro"], 650))
+                          str(person.get("reference_image_url", ""))+
+                          " · "+tr("Notas de identificación","Identity notes")+": "+
+                          str(person.get("notes","")), styles["PantheraMicro"], 1100))
         for sight in sorted(sightings, key=lambda s: events[s["encounter_id"]].get("occurred_at", "")):
             e = events[sight["encounter_id"]]
             d = deps[e["deployment_id"]]
@@ -286,9 +290,13 @@ def pdf_document(p):
             story.append(para("• "+str(s.get("species", ""))+" · "+tr("Individuo","Individual")+
                  ": "+str(s.get("individual_id") or tr("Sin identificar","Unidentified"))+
                  " · "+tr("Identificación", "Identification")+": "+str(s.get("identification_status",""))+
+                 " · "+tr("Sexo", "Sex")+": "+str(s.get("sex",""))+
+                 " · "+tr("Edad estimada", "Estimated age")+": "+str(s.get("age_class",""))+
+                 " · "+tr("Orientación", "Viewpoint")+": "+str(s.get("viewpoint",""))+
                  " · "+tr("Conducta", "Behavior")+": "+str(s.get("behavior", ""))+
-                 " · "+tr("Revisión", "Review")+": "+str(s.get("reviewer", "")),
-                 styles["PantheraSmall"], 1100))
+                 " · "+tr("Revisión", "Review")+": "+str(s.get("reviewer", ""))+
+                 " · "+tr("Notas", "Notes")+": "+str(s.get("notes", "")),
+                 styles["PantheraSmall"], 1750))
     story.append(Paragraph(tr("Límites e interpretación", "Methodological limitations"),styles["Heading2"]))
     story.append(para(tr(
         "Los registros provienen de anotaciones humanas. Una identidad individual requiere revisión de evidencias; "
