@@ -84,9 +84,6 @@ def _write_lite_pdf(path, metadata, totals, rows, example_jpeg):
 
 def process_lightweight(identifier):
     """Run bounded motion screening; keeps the existing job and download protocol."""
-    import cv2
-    import numpy as np
-    from PIL import Image
     import video_api as api
 
     with api._LOCK:
@@ -101,6 +98,9 @@ def process_lightweight(identifier):
         threshold = job.get("motion_threshold", .035)
 
     try:
+        import cv2
+        import numpy as np
+        from PIL import Image
         api._change(identifier, state="processing", stage="Leyendo video para análisis ligero…")
         cap = cv2.VideoCapture(str(source))
         if not cap.isOpened():
@@ -224,7 +224,7 @@ def process_lightweight(identifier):
             logger.info("Video ligero %s finalizado: %d muestras, %d con cambios", identifier, total, retained)
         finally:
             cap.release()
-    except (api.VideoError, Exception) as error:
+    except Exception as error:
         logger.exception("Error en el modo ligero de video %s", identifier)
         # Do not disclose filesystem paths or stack traces to the public endpoint.
         message = str(error) if isinstance(error, api.VideoError) else (
