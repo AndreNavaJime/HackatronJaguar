@@ -4,6 +4,7 @@ import './style.css';
 import DetectionPanel from './DetectionPanel';
 import VideoPanel from './VideoPanel';
 import LiteVideoPanel from './LiteVideoPanel';
+import ScientificWorkspace from './ScientificWorkspace';
 import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
@@ -195,20 +196,7 @@ function App() {
         {aiAvailable && <VideoPanel enabled={apiState === 'connected'} />}
         {aiAvailable && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
         <p className="scientific-note">{t("La recepción por sí sola no ejecuta MegaDetector. Las fotografías no se guardan en Supabase. Los análisis de video utilizan archivos temporales en el servidor Python y se eliminan después de su vencimiento; la identificación de especie o individuo requiere revisión científica.")}</p>
-      </section> : <>
-        <div className="section-heading"><div><span className="section-kicker">{t("PANEL DE CONTROL")}</span><h2>{t("Estado de la plataforma")}</h2></div><span className="section-counter">{t("03 MÓDULOS EN SEGUIMIENTO")}</span></div>
-        <div className="cards">
-          <article className="metric-card metric-card-a"><div className="metric-top"><span>{t("01 / IDENTIFICACIÓN")}</span><b aria-hidden="true">◎</b></div><strong>{t("En migración")}</strong><p>{t("Modelos de identificación individual pendientes de integración y validación.")}</p><div className="metric-footer"><i /> {t('PENDIENTE DE VALIDACIÓN')}</div></article>
-          <article className="metric-card metric-card-b"><div className="metric-top"><span>{t("02 / EVENTOS DE CAMPO")}</span><b aria-hidden="true">⌁</b></div><strong>{t("Sin datos conectados")}</strong><p>{t("Preparado para integrar PantheraEDGE y el nodo VIGÍA.")}</p><div className="metric-footer"><i /> {t('INTEGRACIÓN EN DESARROLLO')}</div></article>
-          <article className="metric-card metric-card-c"><div className="metric-top"><span>{t("03 / REVISIÓN CIENTÍFICA")}</span><b aria-hidden="true">✦</b></div><strong>{t("Pendiente")}</strong><p>{t("Espacio preparado para evidencias, métricas y exportaciones.")}</p><div className="metric-footer"><i /> {t('PRÓXIMA ETAPA')}</div></article>
-        </div>
-        <section className="panel workspace-panel">
-          <div className="workspace-copy"><span className="section-kicker">WORKSPACE / PANTHERAID</span><h2>{t("De la cámara trampa a la evidencia")}</h2>
-          <p>{t("El módulo PantheraID permite recibir fotografías y consultar el servidor Python. La detección con IA y las integraciones de campo dependen de las capacidades habilitadas en el backend.")}</p>
-          <button type="button" className="action-button workspace-button" onClick={() => setSection('PantheraID')}>{t('Explorar módulo PantheraID')} <span aria-hidden="true">↗</span></button></div>
-          <div className="workspace-visual" aria-hidden="true"><span>{t("CAPTURA")}</span><i>→</i><span>{t("ANÁLISIS")}</span><i>→</i><span>{t("REVISIÓN")}</span></div>
-        </section>
-      </>}
+      </section> : <ScientificWorkspace section={section} onNavigate={setSection} />}
     </main>
   </div>;
 }
