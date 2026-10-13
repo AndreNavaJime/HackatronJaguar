@@ -1,4 +1,4 @@
-# PantheraID 2.0 — migración multiplataforma
+> **PantheraLAB 3.0 — edición independiente (2026):** Diseño y desarrollo de la aplicación: **Andrea Navarro Jiménez**. Para esta edición consultá [el README específico](README-PANTHERALAB-3.0.md), [los créditos](AUTHORS.md) y [los términos de evaluación restringida](LICENSE-PANTHERALAB-3.0.md). El contenido siguiente conserva notas técnicas **históricas de PantheraID 2.0** y no reemplaza los avisos de la edición 3.0.\n\n---\n\n# PantheraID 2.0 — migración multiplataforma
 
 Desarrollo experimental en la rama `pantheraid-v2`. **No se modifica** la versión original `app.py` de Streamlit.
 
