@@ -1,7 +1,7 @@
 /**
  * PantheraLAB 3.0 · Blue Edition
  * Diseño y desarrollo de la aplicación: Andrea Navarro Jiménez (2026).
- * Aviso de uso restringido sobre sus aportes originales: ../LICENSE-PANTHERALAB-3.0.md
+ * Aviso de uso restringido sobre sus aportes originales: ../../LICENSE-PANTHERALAB-3.0.md
  * Las bibliotecas y colaboraciones de terceros conservan sus propias licencias y créditos.
  */
 import React from 'react';
@@ -356,6 +356,7 @@ function App() {
           <div className="panthera3-credits-heading">
             <span className="panthera3-credits-kicker">PANTHERALAB 3.0 · BLUE EDITION</span>
             <button type="button" onClick={()=>setShowCredits(false)}
+              autoFocus
               aria-label={language==='en'?'Close credits':'Cerrar créditos'}>✕</button>
           </div>
           <h2 id="panthera3-credits-title">{language==='en'?'Credits and authorship':'Créditos y autoría'}</h2>
