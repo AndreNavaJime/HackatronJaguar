@@ -1,3 +1,9 @@
+/**
+ * PantheraLAB 3.0 · Blue Edition
+ * Diseño y desarrollo de la aplicación: Andrea Navarro Jiménez (2026).
+ * Aviso de uso restringido sobre sus aportes originales: ../LICENSE-PANTHERALAB-3.0.md
+ * Las bibliotecas y colaboraciones de terceros conservan sus propias licencias y créditos.
+ */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
@@ -69,6 +75,13 @@ function photoPreviewJpeg(file:File):Promise<string>{
 function App() {
   const { language, setLanguage, t } = useLanguage();
   const [section, setSection] = React.useState('Resumen');
+  const [showCredits,setShowCredits]=React.useState(false);
+  React.useEffect(()=>{
+    if(!showCredits)return;
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setShowCredits(false);};
+    window.addEventListener('keydown',escape);
+    return ()=>window.removeEventListener('keydown',escape);
+  },[showCredits]);
   const [apiState, setApiState] = React.useState<ApiState>('checking');
   const [aiAvailable, setAiAvailable] = React.useState(false);
   const [liteAvailable, setLiteAvailable] = React.useState(false);
@@ -241,7 +254,11 @@ function App() {
         <span className="sidebar-connection-dot" aria-hidden="true" />
         <div><strong>Panthera API</strong><small>{t(apiState==='connected'?'En línea':apiState==='checking'?'Verificando…':'Sin conexión')}</small></div>
       </div>
-      <small className="sidebar-footer">PANTHERALAB / V3.0<br />{language==='en'?'SCIENTIFIC MONITORING':'MONITOREO CIENTÍFICO'}</small>
+      <small className="sidebar-footer">PANTHERALAB / V3.0
+        <span>{language==='en'?'Application design and development':'Diseño y desarrollo de la aplicación'}</span>
+        <strong>Andrea Navarro Jiménez</strong>
+        <span>© 2026 · {language==='en'?'Rights reserved on original contributions':'Derechos reservados sobre aportes originales'}</span>
+      </small>
     </aside>
     <main>
       <header className="app-header">
@@ -251,6 +268,9 @@ function App() {
             <button type="button" onClick={() => setLanguage('es')} aria-pressed={language==='es'} className={language==='es'?'selected':''}>ES</button>
             <button type="button" onClick={() => setLanguage('en')} aria-pressed={language==='en'} className={language==='en'?'selected':''}>EN</button>
           </div>
+          <button type="button" className="panthera3-credits-trigger"
+            onClick={()=>setShowCredits(true)}
+            aria-haspopup="dialog">{language==='en'?'About · Credits':'Acerca de · Créditos'}</button>
           <InstallControl /></div>
       </header>
       <section className="hero-stage panthera3-hero" aria-label="Introducción a PantheraLAB 3.0">
@@ -323,6 +343,41 @@ function App() {
         pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)}
         monitoringNextRequest={monitorNextRequest} onRegistryTabChange={setRegistryTab}
         requestReport={reportRequest} />
+      <footer className="panthera3-main-credits">
+        <span>© 2026 · {language==='en'?'Application design and development':'Diseño y desarrollo de la aplicación'}: <strong>Andrea Navarro Jiménez</strong></span>
+        <button type="button" onClick={()=>setShowCredits(true)}>
+          {language==='en'?'Credits and usage terms':'Créditos y condiciones de uso'}
+        </button>
+      </footer>
+      {showCredits&&<div className="panthera3-credits-overlay" role="presentation"
+        onClick={()=>setShowCredits(false)}>
+        <section className="panthera3-credits-dialog" role="dialog" aria-modal="true"
+          aria-labelledby="panthera3-credits-title" onClick={event=>event.stopPropagation()}>
+          <div className="panthera3-credits-heading">
+            <span className="panthera3-credits-kicker">PANTHERALAB 3.0 · BLUE EDITION</span>
+            <button type="button" onClick={()=>setShowCredits(false)}
+              aria-label={language==='en'?'Close credits':'Cerrar créditos'}>✕</button>
+          </div>
+          <h2 id="panthera3-credits-title">{language==='en'?'Credits and authorship':'Créditos y autoría'}</h2>
+          <p className="panthera3-credits-role">
+            {language==='en'?'Application design and development':'Diseño y desarrollo de la aplicación'}
+          </p>
+          <p className="panthera3-credits-name">Andrea Navarro Jiménez</p>
+          <p className="panthera3-credits-slogan">De la intuición a la evidencia</p>
+          <p>{language==='en'
+            ?'© 2026. Rights reserved on original contributions attributed to Andrea Navarro Jiménez. Delivery for private evaluation does not authorize redistribution, commercial reuse or presentation as someone else’s work.'
+            :'© 2026. Derechos reservados sobre los aportes originales de Andrea Navarro Jiménez. Entregar una copia para evaluación privada no autoriza su redistribución, reutilización comercial ni presentarla como trabajo propio.'}</p>
+          <p>{language==='en'
+            ?'Third-party libraries, models, images and contributions retain their own copyrights and applicable licenses. The ownership of all components has not been independently certified.'
+            :'Las bibliotecas, modelos, imágenes y contribuciones de otras personas conservan sus derechos y licencias aplicables. No se ha certificado independientemente la titularidad de todos los componentes.'}</p>
+          <a className="panthera3-credits-legal" target="_blank" rel="noopener noreferrer"
+            href="/AVISO-LEGAL-PANTHERALAB-3.0.txt">
+            {language==='en'?'Read authorship and license notice ↗':'Leer aviso de autoría y licencia ↗'}
+          </a>
+          <button type="button" className="panthera3-credits-close"
+            onClick={()=>setShowCredits(false)}>{language==='en'?'Close':'Cerrar'}</button>
+        </section>
+      </div>}
       {/* One primary Next control for every module, including completed video and image analyses. */}
       <div className="workflow-global-dock" role="region"
         aria-label={language==='en'?'Research workflow navigation':'Navegación del proceso científico'}>
