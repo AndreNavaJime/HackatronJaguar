@@ -1,0 +1,31 @@
+PANTHERALAB 3.0 — AVISO DE AUTORÍA Y CONDICIONES DE USO
+========================================================
+
+Diseño y desarrollo de la aplicación: Andrea Navarro Jiménez.
+© 2026 Andrea Navarro Jiménez. Derechos reservados sobre sus aportes originales.
+
+Esta aplicación forma parte del proyecto PantheraLAB 3.0 · Blue Edition.
+Lema: «De la intuición a la evidencia».
+
+USO RESTRINGIDO
+Una copia compartida expresamente para evaluación privada no concede autorización
+para republicar, redistribuir, comercializar, sublicenciar, reutilizar en otros
+productos, presentar como propio el trabajo original de Andrea ni retirar sus
+créditos. Para otros usos, solicitar autorización por escrito a quien tenga
+los derechos sobre los componentes respectivos.
+
+ALCANCE
+La reserva de derechos se aplica exclusivamente a los aportes originales sobre
+los que Andrea Navarro Jiménez sea titular o esté facultada para licenciar.
+No pretende restringir derechos de bibliotecas, modelos, pesos de IA,
+material gráfico o contribuciones de terceros que estén sujetos a otras
+licencias, ni atribuirle a Andrea la titularidad exclusiva del repositorio.
+
+La propiedad y licencia del logo proporcionado deben confirmarse antes de
+autorizar su redistribución o explotación comercial.
+
+Para conocer la versión completa y los reconocimientos de colaboración, consultar
+los archivos AUTHORS.md y LICENSE-PANTHERALAB-3.0.md en la carpeta v2 del código fuente.
+
+IMPORTANTE: Este aviso no certifica la titularidad de cada archivo, no sustituye
+una licencia existente sobre aportes de terceros ni constituye asesoría jurídica.
