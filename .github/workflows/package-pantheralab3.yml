@@ -1,0 +1,88 @@
+name: Empaquetar PantheraLAB 3.0
+on:
+  workflow_dispatch:
+  push:
+    branches: [pantheralab-3.0]
+    paths:
+      - ".github/workflows/package-pantheralab3.yml"
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pantheralab-3.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Package an independently deployable app with authorship and usage terms
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import subprocess
+          import json
+          root = Path('PantheraLAB-3.0')
+          archive = Path('PantheraLAB-3.0_Andrea-Navarro-Jimenez.zip')
+          files = subprocess.check_output(['git','ls-files','-z','v2']).decode().split('\0')
+          files = [x for x in files if x and Path(x).is_file()]
+          docs = {
+              'README.md':'v2/README-PANTHERALAB-3.0.md',
+              'AUTHORS.md':'v2/AUTHORS.md',
+              'LICENSE-PANTHERALAB-3.0.md':'v2/LICENSE-PANTHERALAB-3.0.md',
+              'DOCUMENTACION-HISTORICA-2.0.md':'v2/README.md',
+          }
+          required = ['v2/frontend/index.html','v2/frontend/vercel.json',
+                      'v2/frontend/public/manifest.webmanifest',
+                      'v2/frontend/public/branding/pantheralab-3-original.png',
+                      'v2/frontend/public/icons/pantheralab-3-192.png',
+                      'v2/frontend/src/main.tsx','v2/AUTHORS.md',
+                      'v2/LICENSE-PANTHERALAB-3.0.md']
+          assert set(required).issubset(set(files)), 'Missing required resources'
+          notice = """PANTHERALAB 3.0 — ENTREGA PRIVADA PARA EVALUACIÓN
+          Diseño y desarrollo de la aplicación: Andrea Navarro Jiménez (2026).
+          Consulte README.md, AUTHORS.md y LICENSE-PANTHERALAB-3.0.md antes de utilizar o transferir este paquete.
+
+          PARA PUBLICAR EN VERCEL:
+          1. Descomprima este ZIP en una carpeta privada.
+          2. Importe un repositorio Git PRIVADO con estos archivos en su propio Vercel.
+          3. Configure Root Directory = frontend; Framework = Vite.
+          4. Build = npm run build; Install = npm install; Output = dist.
+          5. frontend/vercel.json redirige /api/* al backend existente de Render.
+             Eso NO otorga titularidad, acceso administrativo ni garantía de disponibilidad.
+          6. NO ELIMINE LOS CRÉDITOS ni los avisos de autoría.
+          7. No reparta el ZIP a terceros ni lo incorpore a proyectos nuevos
+             sin consentimiento por escrito de quienes tengan los derechos.
+          La versión original 2.0 NO se modifica por este paquete.
+          """
+          with ZipFile(archive,'w',compression=ZIP_DEFLATED,compresslevel=8) as z:
+              for dest,src in docs.items():
+                  z.write(src,str(root / dest))
+              z.writestr(str(root / 'LEEME-ANTES-DE-COMPARTIR.txt'),notice)
+              for p in files:
+                  rel=Path(p).relative_to('v2')
+                  # The top-level README and authorship docs above are the canonical presentation.
+                  if str(rel) in ['README.md','AUTHORS.md','LICENSE-PANTHERALAB-3.0.md','README-PANTHERALAB-3.0.md']:
+                      continue
+                  if any(part.startswith('.') and part not in ('.gitignore',) for part in rel.parts):
+                      continue
+                  z.write(p,str(root/rel))
+          with ZipFile(archive) as z:
+              names=z.namelist()
+              for n in ['PantheraLAB-3.0/README.md','PantheraLAB-3.0/AUTHORS.md',
+                        'PantheraLAB-3.0/LICENSE-PANTHERALAB-3.0.md',
+                        'PantheraLAB-3.0/frontend/vercel.json',
+                        'PantheraLAB-3.0/frontend/public/branding/pantheralab-3-original.png']:
+                  assert n in names, n
+              manifest=json.loads(z.read('PantheraLAB-3.0/frontend/public/manifest.webmanifest'))
+              assert '3.0' in manifest['name']
+              print('ZIP checked:',len(names),'files;',archive.stat().st_size,'bytes')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PantheraLAB-3.0-Andrea-Navarro-Jimenez
+          path: PantheraLAB-3.0_Andrea-Navarro-Jimenez.zip
+          retention-days: 30
+          if-no-files-found: error
