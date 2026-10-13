@@ -164,3 +164,66 @@ html,body{background:#060b17;color:#edf5ff}
 @media(prefers-reduced-motion:reduce){
  .panthera3-poster img{transition:none}
 }
+
+
+/* Ownership and reuse terms — visible in both installed and web editions */
+.shell aside .sidebar-footer{display:flex;flex-direction:column;gap:5px;line-height:1.5;
+  letter-spacing:.08em;color:#9cbcd5;font-size:10px}
+.shell aside .sidebar-footer span{letter-spacing:.005em;color:#90b2cf}
+.shell aside .sidebar-footer strong{letter-spacing:.01em;font-size:11px;color:#d4ecff}
+.panthera3-credits-trigger{
+  flex:none;padding:9px 12px;min-height:39px;border:1px solid #34759d;
+  border-radius:9px;background:rgba(27,83,122,.25);color:#b5e7ff;
+  font-size:11px;font-weight:750;text-align:center;white-space:nowrap;
+}
+.panthera3-credits-trigger:hover,.panthera3-credits-trigger:focus-visible{
+  border-color:#4ed0ff;background:rgba(31,134,196,.24);color:#fff
+}
+.panthera3-main-credits{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  margin:28px 0 14px;padding:18px 4px 14px;
+  border-top:1px solid #285074;color:#88aaca;font-size:11px;line-height:1.65
+}
+.panthera3-main-credits strong{color:#d1eaff}
+.panthera3-main-credits button{
+  padding:7px 10px;border:1px solid #335e85;background:#0e2845;
+  color:#93ddff;font-size:11px;font-weight:750;border-radius:8px
+}
+.panthera3-main-credits button:hover{background:#16466b;color:#fff}
+.panthera3-credits-overlay{
+  position:fixed;inset:0;z-index:120;
+  display:flex;align-items:center;justify-content:center;
+  padding:22px;background:rgba(2,8,19,.82);backdrop-filter:blur(8px)
+}
+.panthera3-credits-dialog{
+  width:min(100%,610px);max-height:min(88dvh,830px);overflow-y:auto;
+  border:1px solid #3579ac;
+  border-radius:19px;background:linear-gradient(145deg,#132943,#08152b);
+  box-shadow:0 30px 95px rgba(0,0,0,.7);
+  padding:clamp(19px,4vw,35px);
+  color:#ccdfef;font-size:13px;line-height:1.65
+}
+.panthera3-credits-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.panthera3-credits-kicker{color:#45ceff;font-size:10px;font-weight:850;letter-spacing:.14em}
+.panthera3-credits-heading button{padding:7px 12px;border:1px solid #366288;color:#cde6f7;background:#14334f}
+.panthera3-credits-dialog h2{margin:16px 0 20px;font-size:clamp(24px,4vw,30px);color:#f4faff}
+.panthera3-credits-role{margin-bottom:3px!important;color:#9db9ce!important;font-size:12px}
+.panthera3-credits-name{margin:0!important;color:#fff!important;font-size:22px;font-weight:850;letter-spacing:-.02em}
+.panthera3-credits-slogan{margin:6px 0 15px!important;color:#efbd5a!important;font-weight:750;font-size:14px}
+.panthera3-credits-dialog>p:not(.panthera3-credits-name):not(.panthera3-credits-role):not(.panthera3-credits-slogan){
+  color:#b8cde0;line-height:1.7
+}
+.panthera3-credits-legal{display:inline-flex;align-items:center;margin:12px 0;color:#5bd3ff;
+  font-weight:760;text-decoration:underline;text-underline-offset:3px}
+.panthera3-credits-close{display:block;min-width:115px;margin-top:12px;
+  background:#1d83b3;border:1px solid #64d4ff;color:#fff;text-align:center;font-weight:780}
+.panthera3-credits-close:hover{background:#279fc9}
+@media(max-width:900px){
+  .shell aside .sidebar-footer{display:none}
+}
+@media(max-width:600px){
+  .panthera3-credits-trigger{padding:8px 10px;font-size:10px;min-height:40px}
+  .panthera3-credits-overlay{padding:10px;align-items:center}
+  .panthera3-credits-dialog{max-height:90dvh;border-radius:14px}
+  .panthera3-main-credits{font-size:10px;padding-bottom:20px}
+}
