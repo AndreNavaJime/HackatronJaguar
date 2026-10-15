@@ -54,6 +54,23 @@ export default function AutoCapturesPanel({onEvent}:Props){
   const [message,setMessage]=React.useState('');
   const [action,setAction]=React.useState(0);
   const [busyReview,setBusyReview]=React.useState<number|null>(null);
+  const [aiReady,setAiReady]=React.useState<'checking'|'available'|'unavailable'|'offline'>('checking');
+  React.useEffect(()=>{
+    const controller=new AbortController();
+    async function check(){
+      try{
+        const response=await fetch('/api/capabilities',{cache:'no-store',signal:controller.signal});
+        if(!response.ok)throw new Error('HTTP '+response.status);
+        const capabilities=await response.json() as {video_ai?:string};
+        if(!controller.signal.aborted)setAiReady(
+          capabilities.video_ai==='optional_dependencies_installed'?'available':'unavailable');
+      }catch{
+        if(!controller.signal.aborted)setAiReady('offline');
+      }
+    }
+    void check();
+    return ()=>controller.abort();
+  },[]);
   const player=React.useRef<HTMLVideoElement>(null);
   const busy=state==='uploading'||state==='processing';
 
@@ -102,7 +119,7 @@ export default function AutoCapturesPanel({onEvent}:Props){
   }
 
   async function upload(){
-    if(!file||busy||!permission)return;
+    if(!file||busy||!permission||aiReady!=='available')return;
     if(file.size>MAX_SIZE){setMessage(tx('Máximo 250 MB.','Maximum 250 MB.'));return;}
     if(!/\.(mp4|mov|avi|mkv)$/i.test(file.name)){
       setMessage(tx('Usá un archivo MP4, MOV, AVI o MKV.','Use an MP4, MOV, AVI or MKV file.'));return;
@@ -221,6 +238,14 @@ export default function AutoCapturesPanel({onEvent}:Props){
         'No hay cámara en directo ni guardado automático de clips individuales. Los fotogramas se procesan en el servidor temporal; el video original se reproduce localmente. Requiere MegaDetector instalado en el backend, sin resultados simulados.',
         'No live camera or automatic saving of individual clips. Sampled frames are processed on a temporary server; the original video plays locally. MegaDetector must be installed on the backend; no simulated detections.')}</p>
     </div>
+    {aiReady!=='available'&&<p className="sci-warning" role="status">{aiReady==='checking'
+      ?tx('Verificando si MegaDetector está instalado en el servidor…',
+        'Checking whether MegaDetector is installed on the server…')
+      :aiReady==='unavailable'
+      ?tx('MegaDetector no está instalado en este servidor de prueba. La bandeja ya está preparada, pero el análisis automático de animales/personas requiere habilitar el modelo en un procesador compatible. No se subirán videos mientras falte.',
+        'MegaDetector is not installed on this test server. The review queue is ready, but automatic animal/person screening needs the model on compatible compute. Uploads are disabled until it is available.')
+      :tx('No fue posible consultar el estado del backend. Recargá la página para comprobar la conexión antes de analizar.',
+        'Could not check backend capabilities. Reload this page before attempting analysis.')}</p>}
     <div className="sci-fields sci-fields-2 auto-config">
       <label className="sci-field"><span>{tx('Video de prueba (MP4, MOV, AVI, MKV)','Test video (MP4, MOV, AVI, MKV)')}</span>
         <input key={fileKey} type="file" accept=".mp4,.mov,.avi,.mkv,video/*" disabled={busy||!!jobId}
@@ -245,7 +270,7 @@ export default function AutoCapturesPanel({onEvent}:Props){
         'I confirm I am authorized to upload this footage to the temporary test server. Do not upload private recordings of people or sensitive material to the public server.')}</span>
     </label>
     <div className="sci-actions auto-actions">
-      <button className="action-button" type="button" disabled={!file||!permission||busy||!!jobId}
+      <button className="action-button" type="button" disabled={!file||!permission||busy||!!jobId||aiReady!=='available'}
         onClick={()=>void upload()}>{tx('Analizar y preparar revisión','Analyze and prepare review')}</button>
       {(!!jobId||state==='failed')&&<button className="sci-secondary" type="button" disabled={busy||action>0}
         onClick={()=>void erase()}>{tx('Eliminar video y análisis del servidor','Delete video and analysis from server')}</button>}
