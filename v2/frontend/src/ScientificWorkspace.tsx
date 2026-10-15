@@ -1,6 +1,7 @@
 import React from 'react';
 import ResearchRegistry from './ResearchRegistry';
 import EdgeWorkspace from './EdgeWorkspace';
+import FireWorkspace from './FireWorkspace';
 import ResearchWorkspace from './ResearchWorkspace';
 import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
@@ -81,6 +82,7 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
         setCurrent={setCurrent} onUseEvent={onUseEvent}/>
     </div>
+    {section==='PantheraFIRE'&&<FireWorkspace />}
     <div style={{display:section==='Investigación'?'block':'none'}}>
       <ResearchWorkspace records={records} current={records[0]||current}
         onOpenReports={()=>{setOpenReport(true);onNavigate('PantheraMONITORING');}}/>
