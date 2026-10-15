@@ -42,11 +42,13 @@ export default function StarlinkSimulator(){
       setEntries(prev=>[{id,kind,route:'satellite',created,result:'queued',estimatedSeconds:null},...prev].slice(0,LIMIT));
       return;
     }
-    setEntries(prev=>[{id,kind,route:fallback,created,result:'delivered',estimatedSeconds:duration},...prev].slice(0,LIMIT));
+    const route:Route=fallback;
+    setEntries(prev=>[{id,kind,route,created,result:'delivered',estimatedSeconds:duration},...prev].slice(0,LIMIT));
   }
   function flush(){
     if(!fallback||!pending.length)return;
-    const delivered=pending.map(event=>({...event,route:fallback,result:'delivered' as const,estimatedSeconds:duration}));
+    const route:Route=fallback;
+    const delivered:DemoEvent[]=pending.map(event=>({...event,route,result:'delivered',estimatedSeconds:duration}));
     const ids=new Set(delivered.map(event=>event.id));
     setEntries(prev=>[...delivered,...prev.filter(event=>!ids.has(event.id))].slice(0,LIMIT));
     setPending([]);
