@@ -125,13 +125,14 @@ export default function FireWorkspace() {
           {tx('Sitio oficial de Bomberos ↗','Official fire department website ↗')}</a></p>
       </section>
       <section className="fire-card">
-        <h3>{tx('Protocolo orientativo de verificación','Suggested verification protocol')}</h3>
+        <h3>{tx('Verificación y respuesta','Verification and response')}</h3>
+        <details className="fire-detail"><summary>{tx('Consultar protocolo orientativo','View suggested protocol')}</summary>
         <ol>
           <li>{tx('Identificar el origen y hora de la señal anómala.','Identify the source and time of the abnormal signal.')}</li>
           <li>{tx('Contrastar con personal autorizado o fuentes independientes, sin aproximarse a áreas peligrosas.','Cross-check through authorized personnel or independent sources without approaching dangerous areas.')}</li>
           <li>{tx('No inferir ubicación o presencia de incendios solo por el MQ-2.','Do not infer a fire or its location from an MQ-2 alone.')}</li>
           <li>{tx('Si se observa una emergencia real, dar aviso al 9-1-1 por medios habituales.','If a real emergency is observed, report it using normal 9-1-1 channels.')}</li>
-        </ol>
+        </ol></details>
         <div className="fire-note">{tx('La app no está conectada al despacho de Bomberos. Ninguna alerta o simulacro llama, envía mensajes o notifica automáticamente al 9-1-1.',
           'The app is not connected to fire dispatch. No alert or drill automatically calls, sends messages, or notifies 9-1-1.')}</div>
       </section>
