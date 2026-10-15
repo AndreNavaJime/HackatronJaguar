@@ -1,6 +1,7 @@
 import React from 'react';
 import {useLanguage} from './language';
 import {EdgeEvent,Observation,apiJson,downloadFile,toCsv} from './scienceShared';
+import AutoCapturesPanel from './AutoCapturesPanel';
 
 type Props={events:EdgeEvent[];onEvent:(event:EdgeEvent)=>void;
   current:Observation;setCurrent:(record:Observation)=>void;
@@ -92,6 +93,8 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         'Test events and imported JSON events are retained in this session. Automatic field-device connections and cloud synchronization are not enabled.')}</p>
     </div>
 
+
+    <AutoCapturesPanel onEvent={onEvent}/>
 
     <div className="sci-2col">
       <section className="sci-panel">
