@@ -1,0 +1,25 @@
+.fire-vision{display:grid;gap:13px;margin:15px 0 0}
+.fire-vision-head{display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap}
+.fire-vision-head h3{margin:5px 0 0}
+.fire-vision-warning{display:grid;gap:6px;padding:13px 15px;border-radius:11px;border:1px solid rgba(231,161,91,.48);background:rgba(195,116,57,.11);font-size:.84rem;line-height:1.55;color:#f1d0ad}
+.fire-vision-warning span{color:#e6c5a6}
+.fire-vision-form{display:grid;grid-template-columns:minmax(200px,1fr) minmax(130px,170px) auto;gap:12px;align-items:end}
+.fire-vision-form>button{min-height:44px;text-align:center}
+.fire-vision-form input[type=file]{max-width:100%;font-size:12px}
+.fire-vision-results{display:grid;gap:15px;border-top:1px solid rgba(238,162,101,.25);padding-top:18px}
+.fire-vision-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.fire-vision-toolbar label{display:flex;align-items:center;gap:8px;font-size:.83rem;color:#d8ced0;margin-right:auto}
+.fire-vision-toolbar input{accent-color:#f0aa71}
+.fire-vision-player{display:block;width:min(100%,760px);max-height:440px;border:1px solid #685144;border-radius:10px;background:#050a0e}
+.fire-vision-hidden{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;left:-9999px}
+.fire-vision-list{display:grid;gap:12px}
+.fire-vision-event{display:grid;grid-template-columns:minmax(130px,235px) minmax(0,1fr);gap:14px;padding:12px;background:rgba(24,32,45,.62);border:1px solid rgba(219,155,107,.22);border-radius:11px;min-width:0}
+.fire-vision-event>img{display:block;width:100%;height:146px;object-fit:contain;background:#07101a;border-radius:8px}
+.fire-vision-event-body{display:grid;gap:8px;align-content:start;min-width:0}
+.fire-vision-event-body>strong{font-size:14px;color:#f1f1f3}
+.fire-vision-event-body>span{font-size:12px;color:#f0b486}
+.fire-vision-event-body>small{color:#abb8c9}
+.fire-vision-buttons{display:flex;flex-wrap:wrap;gap:7px}
+.fire-vision-buttons .sci-secondary{font-size:12px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+@media(max-width:820px){.fire-vision-form{grid-template-columns:1fr 1fr}.fire-vision-form>button{grid-column:1 / -1}}
+@media(max-width:590px){.fire-vision-form{grid-template-columns:1fr}.fire-vision-form>button{grid-column:auto}.fire-vision-event{grid-template-columns:1fr}.fire-vision-event>img{height:205px}.fire-vision-buttons{display:grid;grid-template-columns:1fr}.fire-vision-toolbar{display:grid}.fire-vision-toolbar button{width:100%}}
