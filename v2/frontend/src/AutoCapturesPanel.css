@@ -1,0 +1,26 @@
+.auto-captures{display:grid;gap:14px;margin-bottom:20px}
+.auto-captures .sci-panel-head{margin-bottom:0}
+.auto-captures .auto-config{margin:0}
+.auto-consent{display:flex;align-items:start;gap:12px;font-size:.86rem;color:var(--ps-muted,#bcc9d1);border:1px solid rgba(135,158,173,.28);padding:12px 14px;border-radius:11px;line-height:1.55}
+.auto-consent input{flex:none;margin-top:4px;accent-color:var(--ps-teal,#00c9b1);width:17px;height:17px}
+.auto-actions{display:flex;flex-wrap:wrap;gap:10px}
+.auto-review{display:grid;gap:14px;border-top:1px solid rgba(135,158,173,.25);padding-top:20px}
+.auto-review-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.auto-review-toolbar label{font-size:.88rem;display:flex;align-items:center;gap:6px;color:#b9c9d4}
+.auto-review-toolbar input{accent-color:#27d0c3}
+.auto-local-player{display:grid;justify-items:start;gap:10px;padding:12px;border:1px solid rgba(135,158,173,.25);border-radius:12px}
+.auto-local-player video{display:block;width:min(100%,800px);max-height:430px;object-fit:contain;background:#03070b;border-radius:9px}
+.auto-event-list{display:grid;gap:12px}
+.auto-event{display:grid;grid-template-columns:minmax(130px,220px) minmax(0,1fr);gap:16px;padding:14px;border:1px solid rgba(135,158,173,.25);border-radius:13px;background:rgba(9,25,41,.5)}
+.auto-frame{min-height:128px;position:relative;border-radius:9px;background:#09121d;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.auto-frame img{width:100%;height:100%;max-height:180px;object-fit:contain}
+.auto-protected{display:grid;gap:8px;justify-items:center;text-align:center;padding:15px;font-size:.87rem;color:#e6c9a5}
+.auto-protected small{color:#afb9c8}
+.auto-event-info{min-width:0;display:grid;align-content:start;gap:8px}
+.auto-event-info p{margin:0}
+.auto-event-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.auto-event-info .sci-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.auto-event-info .sci-actions button{white-space:normal}
+.auto-event .sci-warning{font-size:.81rem;padding:8px 10px;margin-top:4px}
+.auto-event-info .sci-tag{font-size:.68rem}
+@media(max-width:640px){.auto-event{grid-template-columns:1fr}.auto-frame{height:165px}.auto-event-info .sci-actions{display:grid;grid-template-columns:1fr}.auto-review-toolbar{display:grid}.auto-review-toolbar button{width:100%}}
