@@ -1,0 +1,32 @@
+.camera-sources{display:grid;gap:15px;margin-bottom:20px}
+.camera-sources .sci-panel-head{margin-bottom:0}
+.camera-modes{display:flex;flex-wrap:wrap;gap:8px}
+.camera-modes button{border:1px solid #365066;background:#142336;color:#c0d2df;padding:10px 16px;border-radius:9px}
+.camera-modes button.active{border-color:#4b9fbc;color:#ecf7fa;background:#23445b}
+.camera-source-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,1fr);gap:16px;align-items:start}
+.camera-virtual-scene,.camera-device-scene{position:relative;min-width:0;min-height:255px;border:1px solid #38556a;border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at 35% 48%,#274f42 0%,#112c30 50%,#091724 100%);display:flex;flex-direction:column;gap:13px;align-items:center;justify-content:center;padding:45px 16px 20px;color:#f0f6f8;text-align:center}
+.camera-virtual-scene:before{content:"";position:absolute;inset:15px;border:1px dashed rgba(135,190,170,.27);border-radius:8px;pointer-events:none}
+.camera-virtual-scene>strong{font-size:21px;letter-spacing:.08em}
+.camera-virtual-scene>span{font-size:13px;max-width:400px;color:#c6e6d9}
+.camera-virtual-scene>small{font-size:10px;max-width:430px;color:#a4bfc0}
+.camera-live-light{position:absolute;top:13px;left:14px;display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.1em;font-weight:750;color:#c5d5df}
+.camera-live-light i{display:block;width:8px;height:8px;border-radius:50%;background:#677889}
+.camera-live-light i.on{background:#79d7a8;box-shadow:0 0 0 3px rgba(121,215,168,.15)}
+.camera-device-scene{background:#090d14;padding:0;display:block;min-height:255px}
+.camera-device-scene video{width:100%;height:100%;min-height:255px;max-height:400px;object-fit:contain;display:block}
+.camera-device-scene .camera-live-light{background:#102237ca;padding:7px;border-radius:6px}
+.camera-device-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px;text-align:center}
+.camera-device-idle strong{font-size:17px}
+.camera-device-idle small{max-width:300px;color:#a6baca;font-size:12px}
+.camera-source-controls{display:grid;gap:13px;min-width:0}
+.camera-source-controls p{margin:0}
+.camera-action-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.camera-action-row button{flex:1 1 165px;text-align:center;white-space:normal}
+.camera-ai{display:grid;gap:10px;padding:14px;border:1px solid #365166;border-radius:10px;background:#101f30}
+.camera-ai>strong{font-size:13px;color:#e2f3f0}
+.camera-permission{display:flex;gap:9px;align-items:start;color:#bfcede;font-size:11px;line-height:1.65}
+.camera-permission input{flex:none;margin-top:4px;width:16px;height:16px;accent-color:#82d6b7}
+.camera-counts{display:flex;gap:8px;flex-wrap:wrap}
+.camera-counts span{padding:7px 9px;background:#1e3449;border-radius:7px;font-size:12px;color:#cee3e7}
+@media(max-width:850px){.camera-source-body{grid-template-columns:1fr}.camera-source-controls{min-width:0}}
+@media(max-width:480px){.camera-modes button{flex:1}.camera-virtual-scene{min-height:210px}.camera-device-scene,.camera-device-scene video{min-height:210px}}
