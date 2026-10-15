@@ -1,6 +1,5 @@
 import React from 'react';
 import SensePanel from './SensePanel';
-import StarlinkSimulator from './StarlinkSimulator';
 import {useLanguage} from './language';
 import {EdgeEvent,Observation,apiJson,downloadFile,toCsv} from './scienceShared';
 
@@ -95,7 +94,6 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     </div>
 
     <SensePanel />
-    <StarlinkSimulator />
 
     <div className="sci-2col">
       <section className="sci-panel">
