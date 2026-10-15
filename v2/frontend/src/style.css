@@ -1093,3 +1093,24 @@ button,a,input,select,textarea{transition-property:background,border-color,color
  .registry-study-card .registry-entity-actions button{flex:1 1 145px}
  .registry-delete-button{min-height:46px}
 }
+
+
+/* PantheraSENSE preview: separate simulation telemetry from camera-trap evidence. */
+.sense-panel{margin:22px 0;border-color:#447b72}
+.sense-status-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}
+.sense-status-line span{font-size:12px;font-weight:750;letter-spacing:.035em}
+.sense-status-live{color:#a0efbd}
+.sense-status-wait{color:#edcd85}
+.sense-status-line button{min-width:0}
+.sense-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.sense-stat{display:flex;flex-direction:column;gap:9px;padding:17px 15px;background:#0c221d;border:1px solid #355746;border-radius:11px}
+.sense-stat span{font-size:12px;color:#aec9ba}
+.sense-stat strong{color:#d9f5e4;font-size:clamp(20px,2.3vw,27px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sense-stat strong.sense-date{font-size:13px;line-height:1.6}
+.sense-history h4{font-size:14px;color:#cce7d7}
+.sense-table-wrap{overflow-x:auto}
+.sense-table-wrap table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}
+.sense-table-wrap th,.sense-table-wrap td{padding:10px 9px;border-bottom:1px solid #365549;white-space:nowrap}
+.sense-table-wrap th{color:#b6d2c2}
+.sense-disclaimer{margin:14px 0 0;padding:12px;border:1px dashed #597360;border-radius:8px;line-height:1.6;font-size:12px}
+@media(max-width:700px){.sense-grid{grid-template-columns:1fr}.sense-stat{padding:13px}.sense-stat strong{font-size:22px}}
