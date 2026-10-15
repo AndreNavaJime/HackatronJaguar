@@ -1240,3 +1240,16 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
   .shell nav button.nav-pantherafire{box-shadow:inset 0 -3px #f5b356,0 4px 13px rgba(180,89,36,.12)}
   .shell nav button.nav-pantherafire.active{box-shadow:inset 0 -3px #ffe9a2,0 6px 18px rgba(230,124,41,.22)}
 }
+
+/* Starlink: model-only field connectivity, not active satellite telemetry */
+.starlink-panel{margin:20px 0;border-color:#455b79;background:linear-gradient(150deg,#132439,#12202e)}
+.starlink-status{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 17px;border-radius:11px;background:#1a3145;border:1px solid #47627b;margin:14px 0}
+.starlink-status strong{color:#e4effb;font-size:13px}
+.starlink-status span{color:#b8cce1;font-size:12px}
+.starlink-controls{display:flex;flex-wrap:wrap;align-items:end;gap:15px;margin:17px 0}
+.starlink-controls .sci-field{min-width:230px;flex:1}
+.starlink-toggle{display:flex;align-items:center;gap:10px;min-height:42px;color:#d0e1f2;font-size:12px;cursor:pointer}
+.starlink-toggle input{accent-color:#f0ae53;width:16px;height:16px}
+.starlink-actions{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0}
+.starlink-actions button{flex:1 1 180px;min-height:43px}
+@media(max-width:650px){.starlink-status{align-items:flex-start}.starlink-controls .sci-field{min-width:100%}}
