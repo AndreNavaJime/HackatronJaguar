@@ -257,7 +257,22 @@ def _analyze(q: VegetationQuery):
 
     chosen = []
     warnings = []
-    for scene in scenes[:3]:
+    attempted = 0
+    # Earth Search often returns overlapping Sentinel tiles from the SAME
+    # orbital pass. Never present two tiles of the same acquisition as a
+    # temporal change; require at least seven days between distinct scenes.
+    for scene in scenes:
+        stamp = scene.get("properties", {}).get("datetime", "")
+        try:
+            acquired = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if any(abs((datetime.fromisoformat(prev["acquired_at"].replace("Z", "+00:00")) -
+                    acquired).total_seconds()) < 7 * 86400 for prev in chosen):
+            continue
+        if attempted >= 3 or len(chosen) >= 2:
+            break
+        attempted += 1
         try:
             stats = _scene_stats(scene, q)
             if stats:
