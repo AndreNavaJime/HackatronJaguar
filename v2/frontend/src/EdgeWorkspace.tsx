@@ -116,7 +116,8 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         <button type="button" className="action-button" disabled={busy} onClick={()=>void ingest(demo())}>
           {tx('Simular captura PantheraCAM','Simulate PantheraCAM capture')}</button>
       </section>
-      <section className="sci-panel">
+      <details className="sci-panel edge-advanced"><summary>{tx('Herramientas avanzadas · JSON y endpoints','Advanced tools · JSON and endpoints')}</summary>
+      <section>
         <div className="sci-panel-head"><h3>{tx('Puente HTTP / Wokwi / nodo de campo','HTTP bridge / Wokwi / field node')}</h3>
           <span className="sci-tag">JSON · HTTP</span></div>
         <p className="sci-muted">{tx('Pegá el JSON del emulador de Manuel o recuperalo de un endpoint HTTPS público con CORS.',
@@ -133,7 +134,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
           try{const obj=JSON.parse(rawJson);void ingest(obj);}
           catch{setNotice(tx('JSON inválido; corregí su sintaxis.','Invalid JSON; correct its syntax.'));}
         }}>{tx('Validar JSON e incorporar evento','Validate JSON and add event')}</button>
-      </section>
+      </section></details>
     </div>
     {notice&&<p className="sci-notice" role="status">{notice}</p>}
 
@@ -158,12 +159,12 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
               'Metadata sent to PantheraMONITORING. Link the event to a deployment and review it.'));
           }}>{tx('Usar en MONITORING','Send to MONITORING')}</button></td></tr>)}</tbody>
       </table></div>
-      <div className="sci-actions">
+      <details className="method-details edge-exports"><summary>{tx('Exportaciones técnicas · JSON y CSV','Technical exports · JSON and CSV')}</summary><div className="sci-actions">
         <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.json',
           JSON.stringify(events,null,2),'application/json')}>JSON ↓</button>
         <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.csv',
           toCsv(events as unknown as Record<string,unknown>[]),'text/csv')}>CSV ↓</button>
-      </div></>}
+      </div></details></>}
     </section>
 
     <section className="sci-panel">
@@ -182,7 +183,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
           'Scenario calculated from reference inputs, not network telemetry.')
         :tx('Valores aportados por el usuario; su procedencia debe verificarse antes de utilizarlos en informes.',
           'User-provided values; verify their source before using them in reports.')}</p>
-      <div className="sci-fields">
+      <details className="method-details edge-advanced"><summary>{tx('Parámetros avanzados · velocidades y latencias','Advanced parameters · speeds and latency')}</summary><div className="sci-fields">
         {numberInput(tx('Entrada sin filtrar','Unfiltered input'),rawMB,setRawMB,0,1000,'MB')}
         {numberInput(tx('Payload filtrado','Filtered payload'),filteredMB,setFilteredMB,0,1000,'MB')}
         {numberInput('5G uplink',throughput,setThroughput,.1,1000,'Mbps')}
@@ -190,6 +191,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         {numberInput('4G uplink',fallbackThroughput,setFallbackThroughput,.1,500,'Mbps')}
         {numberInput(tx('Latencia de referencia 4G','4G reference latency'),fallbackLatency,setFallbackLatency,0,1000,'ms')}
       </div>
+      </div></details>
       <div className="sci-stats">
         <div><span>{tx('Transferencia original (5G)','Original transfer (5G)')}</span><strong>{rawSec.toFixed(3)} s</strong></div>
         <div><span>{tx('Filtrado (5G)','Filtered (5G)')}</span><strong>{edgeSec.toFixed(3)} s</strong></div>
@@ -200,12 +202,12 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         <strong>{avoided.toFixed(3)} MB</strong>. {tx(
           'Estos resultados NO miden tráfico real de la red ni prueban ahorro efectivo 5G.',
           'These results do NOT measure actual network traffic or prove realized 5G savings.')}</p>
-      <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_estimacion_5G.json',
+      <details className="method-details edge-exports"><summary>{tx('Exportar modelo técnico · JSON','Export technical model · JSON')}</summary><button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_estimacion_5G.json',
         JSON.stringify({source:networkSource,rawMB,filteredMB,throughput_mbps:throughput,latency_ms:latency,
           fallback4g_mbps:fallbackThroughput,fallback4g_latency_ms:fallbackLatency,
           estimated_raw_seconds:rawSec,estimated_filtered_5g_seconds:edgeSec,
           estimated_filtered_4g_seconds:fourGSec,estimated_payload_reduction:reduction,
-          measured_network_kpis:false},null,2),'application/json')}>JSON ↓</button>
+          measured_network_kpis:false},null,2),'application/json')}>JSON ↓</button></details>
     </section>
   </div>;
 }
