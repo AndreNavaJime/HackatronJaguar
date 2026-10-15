@@ -47,6 +47,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
   const mounted=React.useRef(true);
   const enabledRef=React.useRef(enabled);
   enabledRef.current=enabled;
+  const modeRef=React.useRef<'virtual'|'device'>('virtual');
   const lock=React.useRef(false);
   const lastClassTime=React.useRef<Record<string,number>>({});
   const demoRef=React.useRef<ReturnType<typeof window.setInterval>|null>(null);
@@ -98,6 +99,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
   function startDemo(){
     stopCamera();stopDemo();
     tick.current=0;setVirtualCount(0);setVirtualLast(tx('Esperando eventos…','Waiting for events…'));
+    modeRef.current='virtual';
     setMode('virtual');setVirtualRunning(true);
     // Deliberate demonstration sequence: no imagery and NO ML inference.
     const sequence:('empty'|'animal'|'empty'|'person'|'empty'|'smoke'|'empty'|'flame')[]=
@@ -140,9 +142,12 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
       const stream=await navigator.mediaDevices.getUserMedia({
         audio:false,video:{width:{ideal:640},height:{ideal:360},facingMode:{ideal:'environment'}}
       });
-      if(!mounted.current||!enabledRef.current){stream.getTracks().forEach(t=>t.stop());return;}
+      if(!mounted.current||!enabledRef.current||modeRef.current!=='device'){
+        stream.getTracks().forEach(track=>track.stop());
+        return;
+      }
       streamRef.current=stream;
-      setMode('device');setWebcamRunning(true);
+      setWebcamRunning(true);
       if(videoRef.current){
         videoRef.current.srcObject=stream;
         void videoRef.current.play().catch(()=>{});
@@ -223,9 +228,9 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
       'PantheraLIVE is the camera entry point. Manual file analysis belongs only in PantheraID. Here we test events with a virtual source or a device camera.')}</p>
     <div className="camera-modes">
       <button type="button" aria-pressed={mode==='virtual'} className={mode==='virtual'?'active':''}
-        onClick={()=>{stopCamera();setMode('virtual');}}>{tx('Cámara virtual','Virtual camera')}</button>
+        onClick={()=>{modeRef.current='virtual';stopCamera();stopDemo();setMode('virtual');}}>{tx('Cámara virtual','Virtual camera')}</button>
       <button type="button" aria-pressed={mode==='device'} className={mode==='device'?'active':''}
-        onClick={()=>{stopDemo();setMode('device');}}>{tx('Cámara del dispositivo','Device camera')}</button>
+        onClick={()=>{modeRef.current='device';stopDemo();stopCamera();setMode('device');}}>{tx('Cámara del dispositivo','Device camera')}</button>
     </div>
     {mode==='virtual'?<div className="camera-source-body">
       <div className="camera-virtual-scene">
