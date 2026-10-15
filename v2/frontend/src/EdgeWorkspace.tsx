@@ -99,7 +99,9 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     <CameraSourcesPanel enabled={enabled} onEvent={onEvent} onFireEvent={onFireEvent} onOpenFire={onOpenFire}/>
 
     <div className="sci-2col">
-      <section className="sci-panel">
+      <details className="sci-panel edge-advanced">
+        <summary>{tx('Herramienta avanzada · evento PantheraCAM manual','Advanced tool · manual PantheraCAM event')}</summary>
+        <section>
         <div className="sci-panel-head"><h3>{tx('Generador de eventos PantheraCAM','PantheraCAM event generator')}</h3>
           <span className="sci-tag">{tx('SIMULACIÓN','SIMULATION')}</span></div>
         <p className="sci-muted">{tx('Creá un evento de prueba con datos de estación configurables para verificar el flujo de captura.',
@@ -118,7 +120,8 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         </div>
         <button type="button" className="action-button" disabled={busy} onClick={()=>void ingest(demo())}>
           {tx('Simular captura PantheraCAM','Simulate PantheraCAM capture')}</button>
-      </section>
+        </section>
+      </details>
       <details className="sci-panel edge-advanced"><summary>{tx('Herramientas avanzadas · JSON y endpoints','Advanced tools · JSON and endpoints')}</summary>
       <section>
         <div className="sci-panel-head"><h3>{tx('Puente HTTP / Wokwi / nodo de campo','HTTP bridge / Wokwi / field node')}</h3>
