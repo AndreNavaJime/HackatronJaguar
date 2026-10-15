@@ -12,9 +12,9 @@ import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
 
-const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'PantheraSENSE', 'Investigación', 'PantheraFIRE'];
+const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraLIVE', 'PantheraSENSE', 'PantheraSAT', 'PantheraFIRE'];
 const sectionSymbols: Record<string, string> = {
-  Resumen: '◈', PantheraID: '◎', PantheraMONITORING: '▦', PantheraEDGE: '⌁', PantheraSENSE: '◉', PantheraFIRE: '♨', Investigación: '✦',
+  Resumen: '◈', PantheraID: '◎', PantheraMONITORING: '▦', PantheraLIVE: '⌁', PantheraSENSE: '◉', PantheraFIRE: '♨', PantheraSAT: '✦',
 };
 type ApiState = 'checking' | 'connected' | 'disconnected';
 type ImageResult = {
@@ -200,14 +200,14 @@ function App() {
         stations:['Siguiente: registrar capturas','Next: record captures'],
         captures:['Siguiente: identificar individuos','Next: identify individuals'],
         individuals:['Siguiente: informe del estudio','Next: study report'],
-        reports:['Siguiente: investigación','Next: research'],
+        reports:['Siguiente: PantheraLIVE','Next: PantheraLIVE'],
       };
       const entry=labels[registryTab]||labels.projects;
       return en?entry[1]:entry[0];
     }
-    if(section==='PantheraEDGE')return en?'Next: environmental sensors':'Siguiente: sensores ambientales';
-    if(section==='PantheraSENSE')return en?'Next: explore research':'Siguiente: explorar investigación';
-    if(section==='Investigación')return en?'Next: review environmental alerts':'Siguiente: revisar alertas ambientales';
+    if(section==='PantheraLIVE')return en?'Next: environmental sensors':'Siguiente: sensores ambientales';
+    if(section==='PantheraSENSE')return en?'Next: explore satellite tools':'Siguiente: explorar satélites';
+    if(section==='PantheraSAT')return en?'Next: review environmental alerts':'Siguiente: revisar alertas ambientales';
     return en?'Next: consolidated report':'Siguiente: informe integral';
   })();
   function advanceWorkflow(){
@@ -220,9 +220,9 @@ function App() {
       return;
     }
     if(section==='PantheraMONITORING'){setMonitorNextRequest(n=>n+1);return;}
-    if(section==='PantheraEDGE'){setSection('PantheraSENSE');return;}
-    if(section==='PantheraSENSE'){setSection('Investigación');return;}
-    if(section==='Investigación'){setSection('PantheraFIRE');return;}
+    if(section==='PantheraLIVE'){setSection('PantheraSENSE');return;}
+    if(section==='PantheraSENSE'){setSection('PantheraSAT');return;}
+    if(section==='PantheraSAT'){setSection('PantheraFIRE');return;}
     setSection('Resumen');
   }
 
