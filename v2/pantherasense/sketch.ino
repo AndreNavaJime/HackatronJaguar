@@ -1,9 +1,12 @@
 /*
-  PantheraSENSE 1.5 — ESP32 + DHT22 + LED + FastAPI (PRUEBAS)
+  PantheraSENSE 2.0 — ESP32 + DHT22 + MQ-2 + LED + FastAPI (PRUEBAS)
   Proyecto y diseño: Andrea Navarro Jimenez (2026)
 
   Wokwi (simulado, NO sensor de campo).
-  ESP32: LED GPIO 2 / DHT22 SDA GPIO 21.
+  ESP32: LED GPIO 2 / DHT22 SDA GPIO 21 / MQ-2 DO GPIO 27.
+  MQ-2 DO activo en BAJO al superar su umbral.
+  Solo simulacion, NO prueba de humo ni incendio real.
+  El hardware real requeriria proteccion de niveles electricos y certificacion.
   IMPORTANTE: NO guardar una contraseña dentro de este archivo.
   Ingresar la clave TEMPORAL en el monitor serial durante la simulacion.
 */
@@ -14,6 +17,7 @@
 
 const int LED_PIN = 2;
 const int DHT_PIN = 21;
+const int MQ2_DO_PIN = 27;
 const char* WIFI_SSID = "Wokwi-GUEST";
 const char* WIFI_PASSWORD = "";
 const char* API_URL = "https://pantherasense-backend-test.onrender.com/api/sense/ingest";
@@ -65,7 +69,7 @@ void leerClavePorSerial() {
   Serial.println("No compartas una captura mostrando la clave.");
 }
 
-void enviarMedicion(float temperatura, float humedad) {
+void enviarMedicion(float temperatura, float humedad, bool gasAlert) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("SIN ENVIO: Wi-Fi desconectado.");
     return;
@@ -81,6 +85,9 @@ void enviarMedicion(float temperatura, float humedad) {
   json += "\"simulation\":true,";
   json += "\"temperature_c\":" + String(temperatura, 1) + ",";
   json += "\"humidity_pct\":" + String(humedad, 1) + ",";
+  json += "\"gas_alert\":";
+  json += (gasAlert ? "true" : "false");
+  json += ",";
   json += "\"uptime_s\":" + String(millis() / 1000) + ",";
   json += "\"reading_number\":" + String(contador);
   json += "}";
@@ -92,7 +99,8 @@ void enviarMedicion(float temperatura, float humedad) {
   // Solo para demostracion en Wokwi; verificar CA real en produccion.
   client.setInsecure();
   HTTPClient http;
-  http.setTimeout(12000);
+  http.setConnectTimeout(20000);
+  http.setTimeout(60000);
   if (!http.begin(client, API_URL)) {
     Serial.println("Error al iniciar conexion HTTPS.");
     return;
@@ -124,10 +132,12 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
   sensor.setup(DHT_PIN, DHTesp::DHT22);
+  // DO del MQ-2 en GPIO27; si no se conecta, HIGH evita una falsa alarma.
+  pinMode(MQ2_DO_PIN, INPUT_PULLUP);
   delay(1000);
   Serial.println("=======================================");
   Serial.println(" PantheraSENSE · Andrea Navarro Jimenez");
-  Serial.println(" WOKWI · PRUEBAS · VERSION 1.5");
+  Serial.println(" WOKWI · PRUEBAS · VERSION 2.0");
   Serial.println("=======================================");
   conectarWiFi();
   Serial.println("Pega tu clave TEMPORAL de Render en el monitor serial");
@@ -159,11 +169,16 @@ void loop() {
   Serial.print(datos.humidity, 1);
   Serial.println(" %");
 
+  // MQ-2: nivel LOW = umbral digital excedido (senal simulada).
+  bool gasAlert = digitalRead(MQ2_DO_PIN) == LOW;
+  Serial.print("MQ-2 virtual: ");
+  Serial.println(gasAlert ? "ALERTA DE GASES SIMULADA" : "sin alarma");
+
   if (envioInicialPendiente || millis() - ultimoEnvio >= ENVIO_MS) {
     if (temporaryKey.length() >= 16 && WiFi.status() == WL_CONNECTED) {
       ultimoEnvio = millis();
       envioInicialPendiente = false;
-      enviarMedicion(datos.temperature, datos.humidity);
+      enviarMedicion(datos.temperature, datos.humidity, gasAlert);
     } else {
       Serial.println("Esperando Wi-Fi y clave temporal para el primer envio...");
     }
