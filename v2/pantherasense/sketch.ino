@@ -19,7 +19,7 @@ const int DHT_PIN = 21;
 
 const char* WIFI_SSID = "Wokwi-GUEST";
 const char* WIFI_PASSWORD = "";
-const char* API_URL = "https://pantheraid-backend.onrender.com/api/sense/ingest";
+const char* API_URL = "https://pantherasense-backend-test.onrender.com/api/sense/ingest";
 
 // Pegar solo en una copia de pruebas NO compartida; no subir secretos a GitHub.
 // Debe coincidir con PANTHERASENSE_INGEST_KEY en el servicio Render.
