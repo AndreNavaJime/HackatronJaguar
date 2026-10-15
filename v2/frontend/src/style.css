@@ -1112,5 +1112,14 @@ button,a,input,select,textarea{transition-property:background,border-color,color
 .sense-table-wrap table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}
 .sense-table-wrap th,.sense-table-wrap td{padding:10px 9px;border-bottom:1px solid #365549;white-space:nowrap}
 .sense-table-wrap th{color:#b6d2c2}
-.sense-disclaimer{margin:14px 0 0;padding:12px;border:1px dashed #597360;border-radius:8px;line-height:1.6;font-size:12px}
+.sense-source-line{margin:2px 0 16px;color:#a9c6b6;font-size:11px;letter-spacing:.01em}
+.sense-methodology{margin-top:18px;border:1px solid #355746;border-radius:10px;background:#0e211d;overflow:hidden}
+.sense-methodology summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;padding:13px 15px;color:#d6eee2;font-size:12px;font-weight:700}
+.sense-methodology summary::-webkit-details-marker{display:none}
+.sense-methodology summary::after{content:'⌄';color:#aacdbb;font-size:18px;line-height:1;transition:transform .15s ease}
+.sense-methodology[open] summary::after{transform:rotate(180deg)}
+.sense-methodology summary:hover{background:#173128}
+.sense-methodology summary:focus-visible{outline:2px solid #a0efbd;outline-offset:-3px}
+.sense-methodology-content{padding:0 15px 14px;border-top:1px solid #294638;color:#b1cabc;font-size:12px;line-height:1.65}
+.sense-methodology-content p{margin:12px 0 0}
 @media(max-width:700px){.sense-grid{grid-template-columns:1fr}.sense-stat{padding:13px}.sense-stat strong{font-size:22px}}
