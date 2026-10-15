@@ -215,6 +215,7 @@ def _process(identifier):
         max_samples = job["max_samples"]
         filename = job["filename"]
         mode = job.get("mode", "megadetector")
+        sampling_strategy = job.get("sampling_strategy", "start")
 
     if mode == "lite":
         from video_lite import process_lightweight
@@ -245,10 +246,17 @@ def _process(identifier):
             # Frames are selected by nominal presentation time. For variable-frame-rate
             # video the reported positions are estimates, not per-frame timestamps.
             indices = []
-            candidate = 0
-            while candidate < frame_count and len(indices) < max_samples:
-                indices.append(candidate)
-                candidate = max(candidate + 1, round(len(indices) * sample_seconds * fps))
+            if sampling_strategy == "spread":
+                # A deliberately sparse survey distributed through the whole file.
+                # Never claim that intervals between sampled frames are empty.
+                count = min(max_samples, frame_count)
+                indices = sorted(set(min(frame_count - 1, int((i + 0.5) * frame_count / count))
+                                     for i in range(count)))
+            else:
+                candidate = 0
+                while candidate < frame_count and len(indices) < max_samples:
+                    indices.append(candidate)
+                    candidate = max(candidate + 1, round(len(indices) * sample_seconds * fps))
             if not indices:
                 raise VideoError("No se encontraron fotogramas para analizar.")
 
@@ -388,6 +396,7 @@ def _process(identifier):
                 "duration_seconds": round(duration, 2),
                 "total_video_frames": frame_count,
                 "sample_seconds": sample_seconds,
+                "sampling_strategy": sampling_strategy,
                 "threshold": threshold,
                 "model": found["model"],
                 "device": found["device"].upper(),
@@ -438,6 +447,7 @@ async def begin_chunked_upload(
     max_samples: int = Query(8, ge=1, le=MAX_SAMPLES),
     mode: str = Query("megadetector", pattern="^(lite|megadetector)$"),
     motion_threshold: float = Query(0.035, ge=0.01, le=0.5),
+    sampling_strategy: str = Query("start", pattern="^(start|spread)$"),
 ):
     """Reserve an upload session without transmitting the video in one big request.
 
@@ -469,6 +479,7 @@ async def begin_chunked_upload(
             "directory": directory, "source": str(source), "filename": filename,
             "threshold": threshold, "sample_seconds": sample_seconds, "max_samples": max_samples,
             "mode": mode, "motion_threshold": motion_threshold,
+            "sampling_strategy": sampling_strategy,
             "expected_size": expected, "received_bytes": 0,
             "upload_lock": asyncio.Lock(),
             "processed": 0, "total": 0, "error": None, "result": None,
@@ -582,6 +593,7 @@ async def create_video_job(
     max_samples: int = Query(8, ge=1, le=MAX_SAMPLES),
     mode: str = Query("megadetector", pattern="^(lite|megadetector)$"),
     motion_threshold: float = Query(0.035, ge=0.01, le=0.5),
+    sampling_strategy: str = Query("start", pattern="^(start|spread)$"),
 ):
     _prune()
     raw_name = unquote(request.headers.get("x-video-name", "camara.mp4"))
@@ -610,6 +622,7 @@ async def create_video_job(
             "directory": directory, "source": str(source), "filename": filename,
             "threshold": threshold, "sample_seconds": sample_seconds, "max_samples": max_samples,
             "mode": mode, "motion_threshold": motion_threshold,
+            "sampling_strategy": sampling_strategy,
             "processed": 0, "total": 0, "error": None, "result": None,
         }
 
@@ -636,6 +649,25 @@ async def create_video_job(
 @router.get("/jobs/{identifier}")
 def get_video_job(identifier: str):
     return _snapshot(identifier)
+
+
+@router.delete("/jobs/{identifier}", status_code=204)
+def delete_finished_video_job(identifier: str):
+    """Delete uploaded footage, generated frames and reports once processing ends.
+
+    Running jobs cannot be deleted: processing uses their file paths. On a
+    rejection callers may retry when the worker completes or the job expires.
+    """
+    _prune()
+    with _LOCK:
+        job = _JOBS.get(identifier)
+        if job is None:
+            raise HTTPException(status_code=404, detail="El análisis no existe o ya expiró.")
+        if job["state"] not in ("completed", "failed"):
+            raise HTTPException(status_code=409, detail="Esperá a que finalice el análisis para eliminarlo.")
+        directory = job["directory"]
+        del _JOBS[identifier]
+    shutil.rmtree(directory, ignore_errors=True)
 
 
 @router.get("/jobs/{identifier}/download")
