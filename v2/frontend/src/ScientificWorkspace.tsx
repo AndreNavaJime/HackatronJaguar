@@ -4,6 +4,7 @@ import EdgeWorkspace from './EdgeWorkspace';
 import SensePanel from './SensePanel';
 import FireWorkspace from './FireWorkspace';
 import ResearchWorkspace from './ResearchWorkspace';
+import ScientificRecordsPanel from './ScientificRecordsPanel';
 import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
 import {ResearchData,loadResearch,persistResearch,flattenObservations} from './researchData';
@@ -79,15 +80,17 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
         nextRequest={monitoringNextRequest} onWorkflowTabChange={onRegistryTabChange}
         onNavigate={onNavigate}/>
     </div>
-    <div style={{display:section==='PantheraEDGE'?'block':'none'}}>
+    <div style={{display:section==='PantheraMONITORING'?'block':'none'}}>
+      <ScientificRecordsPanel records={records} onOpenReports={()=>setOpenReport(true)}/>
+    </div>
+    <div style={{display:section==='PantheraLIVE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
         setCurrent={setCurrent} onUseEvent={onUseEvent}/>
     </div>
     <div style={{display:section==='PantheraSENSE'?'block':'none'}}><SensePanel /></div>
     {section==='PantheraFIRE'&&<FireWorkspace />}
-    <div style={{display:section==='Investigación'?'block':'none'}}>
-      <ResearchWorkspace records={records} current={records[0]||current}
-        onOpenReports={()=>{setOpenReport(true);onNavigate('PantheraMONITORING');}}/>
+    <div style={{display:section==='PantheraSAT'?'block':'none'}}>
+      <ResearchWorkspace current={records[0]||current}/>
     </div>
     {section==='Resumen'&&<div className="sci-screen">
     <div className="sci-heading"><div><span className="sci-kicker">PANTHERA LAB / COMMAND OVERVIEW</span>
@@ -122,21 +125,21 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       </article>
       <article className="sci-launch sci-launch-c">
         <span className="sci-module-number">03 / FIELD EVENTS</span>
-        <h3>PantheraEDGE</h3>
+        <h3>PantheraLIVE</h3>
         <p>{tx('Simulación PantheraCAM, validación de eventos JSON y cálculos ilustrativos de transferencia 4G/5G.',
           'PantheraCAM simulation, JSON event validation and illustrative 4G/5G transfer calculations.')}</p>
         <small>{tx('Eventos de campo · HTTP / JSON','Field events · HTTP / JSON')}</small>
-        <button type="button" onClick={()=>onNavigate('PantheraEDGE')}>
-          {tx('Abrir Edge ↗','Open Edge ↗')}</button>
+        <button type="button" onClick={()=>onNavigate('PantheraLIVE')}>
+          {tx('Abrir Live ↗','Open Live ↗')}</button>
       </article>
       <article className="sci-launch sci-launch-d">
         <span className="sci-module-number">04 / EARTH OBSERVATION</span>
-        <h3>{tx('Investigación','Research')}</h3>
-        <p>{tx('Búsquedas reales en el catálogo Copernicus Sentinel-1/2, exportaciones CSV, JSON y GeoJSON.',
-          'Real Copernicus Sentinel-1/2 catalogue queries and CSV, JSON and GeoJSON exports.')}</p>
+        <h3>PantheraSAT</h3>
+        <p>{tx('Búsquedas reales en el catálogo Copernicus Sentinel-1/2, vegetación y Starlink.',
+          'Real Copernicus Sentinel-1/2 catalogue queries, vegetation and Starlink.')}</p>
         <small>{tx('Catálogo de adquisiciones · Sentinel-1/2','Acquisition catalogue · Sentinel-1/2')}</small>
-        <button type="button" onClick={()=>onNavigate('Investigación')}>
-          {tx('Abrir investigación ↗','Open research ↗')}</button>
+        <button type="button" onClick={()=>onNavigate('PantheraSAT')}>
+          {tx('Abrir satélites ↗','Open satellites ↗')}</button>
       </article>
     </div>
     <section className="sci-panel">
