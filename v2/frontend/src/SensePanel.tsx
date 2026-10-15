@@ -109,7 +109,8 @@ export default function SensePanel(){
     <p className="sense-source-line">{cloud?
       tx('Fuente: generador virtual en la nube · Render','Source: Cloud virtual generator · Render'):
       tx('Fuente: ESP32 virtual · Wokwi','Source: Virtual ESP32 · Wokwi')}</p>
-    {last.length>0&&<div className="sense-history">
+    {last.length>0&&<details className="sense-history sense-methodology"><summary>{cloud?tx('Ver historial de valores simulados','View simulated value history')
+        :tx('Ver historial de lecturas','View reading history')}</summary>
       <h4>{cloud?tx('Últimos valores simulados','Recent simulated values')
         :tx('Últimas lecturas','Recent readings')}</h4>
       <div className="sense-table-wrap">
@@ -128,7 +129,7 @@ export default function SensePanel(){
           </tr>)}</tbody>
         </table>
       </div>
-    </div>}
+    </details>}
     <details className="sense-methodology">
       <summary>{tx('Información técnica y metodología','Technical information and methodology')}</summary>
       <div className="sense-methodology-content">
