@@ -232,7 +232,7 @@ function App() {
       <p className="sub">{t('Conservación inteligente')}</p>
       <p className="sidebar-label">{t('CENTRO DE CONTROL')}</p>
       <nav aria-label="Navegación principal">
-        {sections.map(s => <button type="button" key={s} className={section===s?'active':''} aria-current={section===s?'page':undefined}
+        {sections.map(s => <button type="button" key={s} className={(section===s?'active':'')+(s==='PantheraFIRE'?' nav-pantherafire':'')} aria-current={section===s?'page':undefined}
           onClick={() => setSection(s)}>
           <span className="nav-symbol" aria-hidden="true">{sectionSymbols[s]}</span><span className="nav-text">{t(s)}</span>
           <span className="nav-arrow" aria-hidden="true">↗</span>
