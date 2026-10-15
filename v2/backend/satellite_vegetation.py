@@ -210,7 +210,6 @@ def _world_cover_stats(q: VegetationQuery):
     import rasterio
     from rasterio.enums import Resampling
     from rasterio.transform import from_origin
-    from rasterio.warp import transform
     href = _world_cover_tile(q)
     # Reject areas crossing 3-degree tile boundaries rather than silently
     # treating uncovered pixels as non-forest.
@@ -226,9 +225,11 @@ def _world_cover_stats(q: VegetationQuery):
             crs = src.crs
     if crs is None:
         raise ValueError("WorldCover sin referencia espacial")
-    xs, ys = transform("EPSG:4326", crs, [q.longitude], [q.latitude])
-    half = q.radius_km * 1000
-    t = from_origin(xs[0] - half, ys[0] + half, (2 * half)/SIZE, (2 * half)/SIZE)
+    # WorldCover is EPSG:4326: construct a window in degrees (NOT metres).
+    if not crs.is_geographic:
+        raise ValueError("La capa WorldCover debe estar en coordenadas geográficas")
+    t = from_origin(q.longitude - delta_lon, q.latitude + delta_lat,
+                    (2 * delta_lon)/SIZE, (2 * delta_lat)/SIZE)
     raw = _sample_band({"href": href}, crs, t, Resampling.nearest, world_cover=True)
     valid = raw > 0
     count = int(np.count_nonzero(valid))
