@@ -1113,6 +1113,20 @@ button,a,input,select,textarea{transition-property:background,border-color,color
 .sense-table-wrap th,.sense-table-wrap td{padding:10px 9px;border-bottom:1px solid #365549;white-space:nowrap}
 .sense-table-wrap th{color:#b6d2c2}
 .sense-source-line{margin:2px 0 16px;color:#a9c6b6;font-size:11px;letter-spacing:.01em}
+.sense-gas-header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:20px 0 10px}
+.sense-gas-header h4{font-size:14px;color:#d9eee6;margin:0 0 4px}
+.sense-gas-header p{font-size:11px;margin:0}
+.sense-gas-state{font-size:10px;font-weight:800;letter-spacing:.06em;color:#bdd4c9;padding:8px 10px;border:1px solid #507365;border-radius:16px;white-space:normal;text-align:center}
+.sense-gas-state.sense-gas-active{color:#ffdfbc;border-color:#c98142;background:rgba(183,94,33,.17)}
+.sense-fire-alert{margin:12px 0;padding:15px 17px;border-radius:11px;border:1px solid #e6a15a;border-left:4px solid #f0a048;background:rgba(146,73,31,.18);color:#ffe1c1}
+.sense-fire-alert-title{display:flex;align-items:center;gap:9px;font-size:13px;letter-spacing:.02em}
+.sense-fire-alert-title span{font-size:21px}
+.sense-fire-alert p{margin:8px 0;font-size:12px;line-height:1.65}
+.sense-fire-alert small{font-size:11px;color:#f1c69d}
+.sense-drill-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 18px}
+.sense-drill-actions button{min-width:0}
+.sense-drill-actions span{font-size:11px;color:#a9c6b6}
+
 .sense-methodology{margin-top:18px;border:1px solid #355746;border-radius:10px;background:#0e211d;overflow:hidden}
 .sense-methodology summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;padding:13px 15px;color:#d6eee2;font-size:12px;font-weight:700}
 .sense-methodology summary::-webkit-details-marker{display:none}
