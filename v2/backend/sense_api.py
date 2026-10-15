@@ -36,6 +36,8 @@ class SimulatedReading(BaseModel):
     humidity_pct: float = Field(ge=0, le=100, allow_inf_nan=False)
     uptime_s: int = Field(ge=0, le=31536000)
     reading_number: int = Field(ge=1, le=2000000000)
+    # Optional digital threshold flag from simulated MQ-2; no fire confirmation.
+    gas_alert: bool = False
 
     class Config:
         extra = "forbid"
