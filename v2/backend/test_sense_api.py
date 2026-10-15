@@ -28,11 +28,18 @@ def reset(monkeypatch):
         sense_api._samples.clear()
 
 
-def test_empty_dashboard_waits():
+def test_empty_dashboard_uses_cloud_demo_without_wokwi():
     response = client.get("/api/sense/latest")
     assert response.status_code == 200
-    assert response.json()["status"] == "waiting"
-    assert response.json()["simulation"] is True
+    data = response.json()
+    assert data["status"] == "live"
+    assert data["simulation"] is True
+    assert data["source"] == "cloud_simulation"
+    assert data["storage"] == "computed_on_demand"
+    assert data["generated_on_request"] is True
+    assert data["latest"]["device_id"] == "PANTHERASENSE-CLOUD-01"
+    assert len(data["history"]) == 12
+    assert not sense_api._samples  # Synthetic samples are not persisted.
 
 
 def test_absent_secret_disables_endpoint(monkeypatch):
@@ -46,7 +53,8 @@ def test_missing_or_bad_key_rejected():
     assert client.post("/api/sense/ingest", json=VALID).status_code == 401
     assert client.post("/api/sense/ingest", json=VALID,
                        headers={"X-PantheraSense-Key": "wrong"}).status_code == 401
-    assert client.get("/api/sense/latest").json()["latest"] is None
+    assert client.get("/api/sense/latest").json()["source"] == "cloud_simulation"
+    assert not sense_api._samples
 
 
 def test_valid_telemetry_is_visible_but_temporary():
@@ -56,6 +64,8 @@ def test_valid_telemetry_is_visible_but_temporary():
     assert response.json()["storage"] == "ephemeral_process_memory"
     recent = client.get("/api/sense/latest").json()
     assert recent["status"] == "live"
+    assert recent["source"] == "wokwi_virtual"
+    assert recent["generated_on_request"] is False
     assert recent["latest"]["temperature_c"] == 24.0
     assert recent["latest"]["humidity_pct"] == 40
     assert recent["latest"]["simulation"] is True
@@ -85,6 +95,32 @@ def test_oversize_json_rejected():
                            headers={"X-PantheraSense-Key": KEY,
                                     "Content-Type": "application/json"})
     assert response.status_code == 413
+
+
+def test_cloud_demo_is_repeatable_with_fresh_clock_and_no_storage():
+    from datetime import datetime, timezone, timedelta
+    stamp = datetime(2026, 10, 15, 12, 0, 11, tzinfo=timezone.utc)
+    before = sense_api._cloud_demo_samples(stamp)
+    assert before == sense_api._cloud_demo_samples(stamp + timedelta(seconds=10))
+    after = sense_api._cloud_demo_samples(stamp + timedelta(seconds=30))
+    assert after[-2] == before[-1]
+    assert after[-1]["reading_number"] == before[-1]["reading_number"] + 1
+    assert -40 <= after[-1]["temperature_c"] <= 85
+    assert 0 <= after[-1]["humidity_pct"] <= 100
+    assert not sense_api._samples
+
+
+def test_stale_virtual_wokwi_readings_switch_to_cloud():
+    from datetime import datetime, timedelta, timezone
+    assert client.post("/api/sense/ingest", json=VALID,
+                       headers={"X-PantheraSense-Key": KEY}).status_code == 202
+    with sense_api._samples_lock:
+        sense_api._samples[-1]["received_at_utc"] = (
+            datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+    result = client.get("/api/sense/latest").json()
+    assert result["source"] == "cloud_simulation"
+    assert result["generated_on_request"] is True
+    assert len(sense_api._samples) == 1  # Actual Wokwi history is unchanged.
 
 
 def test_only_recent_samples_kept():
