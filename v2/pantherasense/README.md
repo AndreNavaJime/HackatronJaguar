@@ -17,9 +17,10 @@
 1. Confirmar el espacio de trabajo Render y el servicio de pruebas correspondiente; **no desplegar automáticamente sobre producción**.
 2. En Render definir la variable de entorno secreta `PANTHERASENSE_INGEST_KEY` con al menos 16 caracteres aleatorios generados por el responsable (preferiblemente más de 32).
 3. Publicar y verificar el receptor FastAPI en un ambiente de pruebas. `GET /api/sense/latest` debería devolver `status: "waiting"` inicialmente.
-4. En una **copia de pruebas no compartida** del proyecto de Wokwi, usar [sketch.ino](sketch.ino). Cambiar la constante `API_KEY` por el mismo secreto temporal y apuntar `API_URL` al receptor autorizado.
-5. No publicar ese sketch con la clave real, ni compartir su URL de Wokwi mientras contenga la clave: una clave embebida en firmware o proyecto público **no es un secreto seguro**. Rotarla después de la prueba.
-6. Iniciar Wokwi y comprobar HTTP 202 en el monitor serial. Después revisar la interfaz de pruebas PantheraEDGE; verás temperaturas, humedades y hora de recepción.
+4. En Wokwi reemplazar el contenido de `sketch.ino` por [el sketch de esta carpeta](sketch.ino); la URL del receptor de pruebas ya está configurada.
+5. Iniciar la simulación. Cuando el monitor serial lo indique, introducir la clave **solo como entrada interactiva del monitor serial** y presionar Enter. La clave permanece en RAM durante esa ejecución; no se incluye en el código fuente ni en el repositorio. No compartir capturas que la muestren ni asumir que el simulador web es un entorno confidencial.
+6. Comprobar `Respuesta HTTP: 202` en el monitor serial; abrir `/api/sense/latest` en el backend o PantheraEDGE en la vista previa de Vercel para verificar temperatura, humedad y recepción. Si se reinicia el ESP32, volver a introducir la clave.
+7. Rotar/revocar la clave temporal al terminar la demostración. Nunca guardarla en un sketch público.
 7. Solo tras comprobarlo todo y aprobarlo expresamente, valorar la migración al frontend y backend de producción.
 
 ## Verificación automática y local
