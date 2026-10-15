@@ -23,7 +23,7 @@ function localDate(raw:string, language:string) {
     date.toLocaleString(language==='en'?'en-US':'es-CR');
 }
 
-export default function FireWorkspace() {
+export default function FireWorkspace({incomingVideo}:{incomingVideo?:File|null}) {
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [data,setData]=React.useState<Telemetry|null>(null);
@@ -138,7 +138,7 @@ export default function FireWorkspace() {
           'The app is not connected to fire dispatch. No alert or drill automatically calls, sends messages, or notifies 9-1-1.')}</div>
       </section>
     </div>
-    <FireVisionPanel />
+    <FireVisionPanel incomingVideo={incomingVideo}/>
 
     <section className="fire-card" style={{marginTop:14}}>
       <h3>{tx('Registro reciente de señales de prueba · Wokwi','Recent simulated signal log · Wokwi')}</h3>
