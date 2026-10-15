@@ -5,3 +5,6 @@ Pillow>=11,<13
 opencv-python-headless>=4.10,<5
 # Generación de informes científicos en PDF.
 reportlab>=4.2,<5
+
+# Lectura por ventanas de bandas Sentinel-2 COG y WorldCover 2021.
+rasterio>=1.4,<2
