@@ -1,5 +1,6 @@
 import React from 'react';
 import {useLanguage} from './language';
+import FireVisionPanel from './FireVisionPanel';
 
 type Sample = {
   device_id:string;
@@ -65,8 +66,8 @@ export default function FireWorkspace() {
       <div>
         <span className="fire-kicker">PANTHERAFIRE / ENVIRONMENTAL ALERTS</span>
         <h2>PantheraFIRE · {tx('Alertas ambientales','Environmental alerts')}</h2>
-        <p>{tx('Centro experimental de señales de gases y simulacros de respuesta. Sin verificación de incendios reales ni notificaciones automáticas a emergencias.',
-          'Experimental gas-signal and response-drill center. No real wildfire verification or automatic emergency dispatch.')}</p>
+        <p>{tx('Centro experimental de señales virtuales de gases, revisión visual local de video y simulacros. Sin detección validada de incendios reales ni notificaciones automáticas.',
+          'Experimental virtual gas monitoring, local video screening and drills. No validated wildfire detection or emergency dispatch.')}</p>
       </div>
       <span className="fire-pill">{tx('ENTORNO DE SIMULACIÓN','SIMULATION ENVIRONMENT')}</span>
     </div>
@@ -137,6 +138,8 @@ export default function FireWorkspace() {
           'The app is not connected to fire dispatch. No alert or drill automatically calls, sends messages, or notifies 9-1-1.')}</div>
       </section>
     </div>
+    <FireVisionPanel />
+
     <section className="fire-card" style={{marginTop:14}}>
       <h3>{tx('Registro reciente de señales de prueba · Wokwi','Recent simulated signal log · Wokwi')}</h3>
       {recent.length===0?<p>{tx('No hay señales MQ-2 recientes en las lecturas disponibles. Los simulacros manuales no se almacenan como incidentes.',
