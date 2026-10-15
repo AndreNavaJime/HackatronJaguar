@@ -14,6 +14,7 @@ from video_api import router as video_router
 from scientific_api import router as scientific_router, edge_router
 from study_reports import router as study_report_router
 from sense_api import router as sense_router
+from satellite_vegetation import router as vegetation_router
 
 logger = logging.getLogger('pantheraid.api')
 
@@ -26,6 +27,7 @@ app.include_router(scientific_router)
 app.include_router(edge_router)
 app.include_router(study_report_router)
 app.include_router(sense_router)
+app.include_router(vegetation_router)
 # Same-origin Vite proxy serves /api calls in Codespaces; restrict external CORS.
 app.add_middleware(
     CORSMiddleware,
