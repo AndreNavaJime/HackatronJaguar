@@ -13,9 +13,20 @@ import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
 
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraLIVE', 'PantheraSENSE', 'PantheraSAT', 'PantheraFIRE'];
-const sectionSymbols: Record<string, string> = {
-  Resumen: '◈', PantheraID: '◎', PantheraMONITORING: '▦', PantheraLIVE: '⌁', PantheraSENSE: '◉', PantheraFIRE: '♨', PantheraSAT: '✦',
-};
+function ModuleIcon({section}:{section:string}){
+  const paths:Record<string,React.ReactNode>={
+    Resumen:<><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 12h8M12 8v8"/></>,
+    PantheraID:<><path d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r=".65" fill="currentColor" stroke="none"/></>,
+    PantheraMONITORING:<><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></>,
+    PantheraLIVE:<path d="m13 2-9 11h7l-1 9 10-12h-7l0-8Z"/>,
+    PantheraSENSE:<><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4.5 4.5 0 1 1-4 0Z"/><path d="M12 9v9"/></>,
+    PantheraSAT:<><path d="m8 16-4 4m9-9 2-2M4 14l6 6M14 4l6 6"/><rect x="8.5" y="8.5" width="7" height="7" rx="1" transform="rotate(45 12 12)"/><path d="M3 3c3 0 5 2 5 5M16 16c0 3 2 5 5 5"/></>,
+    PantheraFIRE:<path d="M12 22c4.5 0 7-3 7-7 0-3.3-2-5.8-4-7-.1 3-1.8 4.4-2.5 4.5C13 8 11 5 8 2c.5 4-3 6.8-3 12.5C5 19 7.8 22 12 22Zm0-2c-2 0-3-1.3-3-3 0-1.8 1.4-3 2.5-4 .2 1.5 1.3 2.4 2.5 3.2.7.5 1 1.1 1 1.8 0 1.2-1.1 2-3 2Z"/>
+  };
+  return <svg className="nav-icon-svg" viewBox="0 0 24 24" width="18" height="18"
+    fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round"
+    strokeLinejoin="round" focusable="false" aria-hidden="true">{paths[section]}</svg>;
+}
 type ApiState = 'checking' | 'connected' | 'disconnected';
 type ImageResult = {
   status: string;
@@ -237,7 +248,7 @@ function App() {
       <nav aria-label="Navegación principal">
         {sections.map(s => <button type="button" key={s} className={(section===s?'active':'')+(s==='PantheraFIRE'?' nav-pantherafire':'')} aria-current={section===s?'page':undefined}
           onClick={() => setSection(s)}>
-          <span className="nav-symbol" aria-hidden="true">{sectionSymbols[s]}</span><span className="nav-text">{t(s)}</span>
+          <span className="nav-symbol" aria-hidden="true"><ModuleIcon section={s}/></span><span className="nav-text">{t(s)}</span>
           <span className="nav-arrow" aria-hidden="true">↗</span>
         </button>)}
       </nav>
