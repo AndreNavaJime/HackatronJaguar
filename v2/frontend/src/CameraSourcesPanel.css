@@ -42,3 +42,7 @@
 .camera-fire-entry small{color:#b8c6d5;font-size:11px}
 .camera-fire-entry .fire-control{margin:0}
 .camera-fire-inbox .fire-note{line-height:1.55}
+
+.camera-review-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:225px}
+.camera-review-controls .sci-muted{font-size:11px;flex-basis:100%}
+.camera-review-controls .sci-inline{font-size:11px;padding:5px 8px;border-radius:7px;background:rgba(95,131,157,.13)}
