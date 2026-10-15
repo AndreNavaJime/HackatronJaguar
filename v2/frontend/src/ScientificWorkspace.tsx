@@ -30,6 +30,7 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   const [current,setCurrent]=React.useState<Observation>(()=>newObservation());
   const [incoming,setIncoming]=React.useState<EdgeEvent|null>(null);
   const [openReport,setOpenReport]=React.useState(false);
+  const [fireTestVideo,setFireTestVideo]=React.useState<File|null>(null);
   React.useEffect(()=>{
     if(requestReport){setOpenReport(true);onNavigate('PantheraMONITORING');}
   },[requestReport]);
@@ -85,10 +86,11 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     </div>
     <div style={{display:section==='PantheraLIVE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
-        setCurrent={setCurrent} onUseEvent={onUseEvent}/>
+        setCurrent={setCurrent} onUseEvent={onUseEvent}
+        onFireVideo={(file)=>{setFireTestVideo(file);onNavigate('PantheraFIRE');}}/>
     </div>
     <div style={{display:section==='PantheraSENSE'?'block':'none'}}><SensePanel /></div>
-    {section==='PantheraFIRE'&&<FireWorkspace />}
+    {section==='PantheraFIRE'&&<FireWorkspace incomingVideo={fireTestVideo}/>}
     <div style={{display:section==='PantheraSAT'?'block':'none'}}>
       <ResearchWorkspace current={records[0]||current}/>
     </div>
