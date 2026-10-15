@@ -73,6 +73,12 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
   },[enabled,stopDemo,stopCamera]);
 
   React.useEffect(()=>{
+    const onVisibility=()=>{if(document.hidden){stopDemo();stopCamera();}};
+    document.addEventListener('visibilitychange',onVisibility);
+    return ()=>document.removeEventListener('visibilitychange',onVisibility);
+  },[stopDemo,stopCamera]);
+
+  React.useEffect(()=>{
     const controller=new AbortController();
     async function check(){
       try{
