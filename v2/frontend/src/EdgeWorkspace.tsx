@@ -190,7 +190,6 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         {numberInput(tx('Latencia de referencia 5G','5G reference latency'),latency,setLatency,0,1000,'ms')}
         {numberInput('4G uplink',fallbackThroughput,setFallbackThroughput,.1,500,'Mbps')}
         {numberInput(tx('Latencia de referencia 4G','4G reference latency'),fallbackLatency,setFallbackLatency,0,1000,'ms')}
-      </div>
       </div></details>
       <div className="sci-stats">
         <div><span>{tx('Transferencia original (5G)','Original transfer (5G)')}</span><strong>{rawSec.toFixed(3)} s</strong></div>
