@@ -61,11 +61,11 @@ export default function SensePanel(){
       <div>
         <h3>PantheraSENSE · {tx('Nodo ambiental','Environmental node')}</h3>
         <p className="sci-muted">{tx(
-          'Lecturas recibidas del ESP32 virtual de Wokwi a través de la API de pruebas.',
-          'Readings received from the virtual Wokwi ESP32 through the test API.'
+          'Monitoreo ambiental · Temperatura y humedad',
+          'Environmental monitoring · Temperature and humidity'
         )}</p>
       </div>
-      <span className="sci-tag">SIMULACIÓN · WOKWI</span>
+      <span className="sci-tag">{tx('SIMULACIÓN','SIMULATION')}</span>
     </div>
     <div className="sense-status-line" role="status">
       <span className={active?'sense-status-live':'sense-status-wait'}>
@@ -101,8 +101,9 @@ export default function SensePanel(){
         <strong className="sense-date">{sample?clock(sample.received_at_utc,language):'—'}</strong>
       </div>
     </div>
+    <p className="sense-source-line">{tx('Fuente: ESP32 virtual · Wokwi','Source: Virtual ESP32 · Wokwi')}</p>
     {last.length>0&&<div className="sense-history">
-      <h4>{tx('Últimas lecturas (memoria temporal)','Recent readings (temporary memory)')}</h4>
+      <h4>{tx('Últimas lecturas','Recent readings')}</h4>
       <div className="sense-table-wrap">
         <table><thead><tr>
           <th>{tx('Hora recibida','Received')}</th>
@@ -119,11 +120,18 @@ export default function SensePanel(){
         </table>
       </div>
     </div>}
-    <p className="sci-muted sense-disclaimer">
-      {tx(
-        'DEMOSTRACIÓN: los valores provienen de un sensor virtual, no de una estación real ni de una red 5G. El servidor conserva únicamente lecturas recientes en memoria; si Render se reinicia, se pierden. No se almacenan fotos, coordenadas ni datos científicos.',
-        'DEMO: values come from a virtual sensor, not a physical station or 5G network. The server keeps only recent readings in memory; a Render restart clears them. No photos, locations or scientific records are stored.'
-      )}
-    </p>
+    <details className="sense-methodology">
+      <summary>{tx('Información técnica y metodología','Technical information and methodology')}</summary>
+      <div className="sense-methodology-content">
+        <p>{tx(
+          'Los valores proceden de un ESP32 virtual en Wokwi. Permiten verificar el flujo de telemetría, pero no representan mediciones de campo ni demuestran conectividad 5G real.',
+          'Values originate from a virtual ESP32 in Wokwi. They verify the telemetry workflow but are not field measurements and do not demonstrate real 5G connectivity.'
+        )}</p>
+        <p>{tx(
+          'El servidor conserva hasta 30 lecturas en memoria temporal; un reinicio de Render elimina ese historial. Este módulo no recibe fotos, coordenadas ni registros científicos.',
+          'The server stores up to 30 readings in temporary memory; restarting Render clears that history. This module does not receive photos, coordinates, or scientific records.'
+        )}</p>
+      </div>
+    </details>
   </section>;
 }
