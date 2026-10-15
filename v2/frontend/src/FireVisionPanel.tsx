@@ -57,7 +57,7 @@ function screen(image:ImageData,previous:Uint8ClampedArray|null){
   };
 }
 
-export default function FireVisionPanel(){
+export default function FireVisionPanel({incomingVideo}:{incomingVideo?:File|null}){
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [file,setFile]=React.useState<File|null>(null);
@@ -74,6 +74,10 @@ export default function FireVisionPanel(){
   const video=React.useRef<HTMLVideoElement|null>(null);
   const canvas=React.useRef<HTMLCanvasElement|null>(null);
   const alive=React.useRef(true);
+  React.useEffect(()=>{
+    if(!incomingVideo)return;
+    setFile(incomingVideo);setScenes([]);setReviews({});setError('');setProgress('');setRunStamp('');
+  },[incomingVideo]);
   React.useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
   React.useEffect(()=>{
     if(!file){setUrl('');return;}
@@ -188,6 +192,7 @@ export default function FireVisionPanel(){
       className={showPlayer?'fire-vision-player':'fire-vision-hidden'} controls={showPlayer}
       aria-label={tx('Video original local','Local original video')}/>
     <canvas ref={canvas} className="fire-vision-hidden" aria-hidden="true"/>
+    {incomingVideo&&file===incomingVideo&&<p className="sci-notice">{tx('Video compartido localmente desde PantheraLIVE; no fue cargado al servidor para esta prueba.','Video shared locally from PantheraLIVE; it was not uploaded for this test.')}</p>}
     {file&&<p className="sci-muted">{file.name} · {(file.size/1048576).toFixed(1)} MB · {tx('permanece en este navegador','stays in this browser')}</p>}
     {busy&&<p className="sci-notice" role="status">{progress}</p>}
     {error&&<p className="sci-warning" role="alert">{error}</p>}
