@@ -1173,3 +1173,70 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
 .fire-detail summary{cursor:pointer;padding:13px;color:#e4c5b6}
 .fire-detail p{padding:0 13px 13px;color:#d8b9a9;font-size:12px;line-height:1.7}
 @media(max-width:760px){.fire-columns{grid-template-columns:1fr}.fire-heading{padding:17px}}
+
+/* PantheraFIRE visual hierarchy · amber identity, navy surfaces, coral only on incident. */
+.shell nav button.nav-pantherafire{
+  color:#fff3e6;
+  border:1px solid rgba(251,174,83,.65);
+  background:linear-gradient(115deg,#563321 0%,#61392c 54%,#462a37 100%);
+  box-shadow:inset 3px 0 #f6a948,0 5px 20px rgba(180,89,36,.12);
+}
+.shell nav button.nav-pantherafire .nav-symbol{
+  border-color:#dc9251;background:#3b2930;color:#ffd295;
+}
+.shell nav button.nav-pantherafire .nav-arrow{color:#ffcb7c}
+.shell nav button.nav-pantherafire:hover,
+.shell nav button.nav-pantherafire.active{
+  color:#1f1820;
+  border-color:#ffd27f;
+  background:linear-gradient(108deg,#ffcd64 0%,#f6a343 56%,#e98361 100%);
+  box-shadow:inset 3px 0 #fff1b0,0 0 0 1px rgba(255,196,107,.18),0 8px 25px rgba(230,124,41,.27);
+}
+.shell nav button.nav-pantherafire:hover .nav-symbol,
+.shell nav button.nav-pantherafire.active .nav-symbol{
+  color:#3c271d;border-color:#c17734;background:rgba(255,248,211,.4);
+}
+.shell nav button.nav-pantherafire:hover .nav-arrow,
+.shell nav button.nav-pantherafire.active .nav-arrow{color:#3c271d}
+
+.fire-screen{--fire-amber:#f6b94d;--fire-coral:#ed8665;--fire-muted:#aebed0}
+.fire-heading{
+  background:radial-gradient(ellipse at 92% 12%,rgba(218,91,70,.23),transparent 48%),linear-gradient(115deg,#111e30 0%,#22243a 60%,#39283d 100%);
+  border-color:#6b5262;box-shadow:inset 3px 0 #f4ad57;
+}
+.fire-heading h2{color:#fff7f0}
+.fire-heading p{color:#c8d2e1}
+.fire-kicker{color:#f9bd79}
+.fire-pill{border-color:#b88a54;color:#ffdc9c;background:rgba(116,73,40,.26)}
+.fire-status{background:linear-gradient(145deg,#132235,#172536);border-color:#364b62}
+.fire-status h3{color:#f6f9ff}
+.fire-status p{color:#c3d1de}
+.fire-state{background:#263444;border-color:#657c91;color:#d9e4ef}
+.fire-state.alert{border-color:#e68a60;background:#60332e;color:#fff0d7}
+.fire-control button{
+  background:linear-gradient(115deg,#ffcb65,#ee9841);
+  border-color:#ffd18c;color:#25212a;
+  box-shadow:0 5px 14px rgba(227,137,48,.12);
+}
+.fire-control button:hover{background:linear-gradient(115deg,#ffdc88,#ffae59)}
+.fire-control button:nth-child(2){background:#1d2c3e;border-color:#647a93;color:#e6effb;box-shadow:none}
+.fire-control button:nth-child(2):hover{background:#2b3d52}
+.fire-control span{color:#aebed0}
+.fire-card{background:linear-gradient(150deg,#142235,#1a2638);border-color:#344b63}
+.fire-card:nth-child(2){background:linear-gradient(150deg,#172338,#22293d)}
+.fire-card h3{color:#ffdbab}
+.fire-card p,.fire-card li{color:#c9d4e1}
+.fire-card a{color:#ffcf87}
+.fire-card .fire-number{color:#ffcb71}
+.fire-events th,.fire-events td{color:#e0eaf5;border-bottom-color:#3a4d62}
+.fire-note{color:#c8d4e1;border-left-color:#e7ad54}
+.fire-detail{border-color:#41546a}
+.fire-detail summary{color:#e6d5bb}
+.fire-detail p{color:#c5d2e1}
+.fire-alert{background:linear-gradient(120deg,#65332b,#402d3e);border-color:#ef976a;border-left-color:#ffad72}
+.fire-alert strong{color:#fff0cb}
+.fire-alert p,.fire-alert small{color:#f7d2c1}
+@media(max-width:700px){
+  .shell nav button.nav-pantherafire{box-shadow:inset 0 -3px #f5b356,0 4px 13px rgba(180,89,36,.12)}
+  .shell nav button.nav-pantherafire.active{box-shadow:inset 0 -3px #ffe9a2,0 6px 18px rgba(230,124,41,.22)}
+}
