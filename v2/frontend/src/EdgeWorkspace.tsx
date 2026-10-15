@@ -1,6 +1,6 @@
 import React from 'react';
 import {useLanguage} from './language';
-import {EdgeEvent,Observation,apiJson,downloadFile,toCsv} from './scienceShared';
+import {EdgeEvent,Observation,apiJson,downloadFile,toCsv,loadSession,saveSession} from './scienceShared';
 import CameraSourcesPanel from './CameraSourcesPanel';
 import type {CameraFireCandidate} from './cameraEvents';
 
@@ -19,6 +19,15 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
   const [rawJson,setRawJson]=React.useState('');
   const [remoteUrl,setRemoteUrl]=React.useState('');
   const [notice,setNotice]=React.useState('');
+  const [reviewDecisions,setReviewDecisions]=React.useState<Record<string,'review'|'discard'>>(()=>{
+    const stored=loadSession<unknown>('pantheralab_live_review_decisions_v1',{});
+    if(!stored||typeof stored!=='object'||Array.isArray(stored))return {};
+    return Object.fromEntries(Object.entries(stored).filter(([id,value])=>
+      id.length<150&&(value==='review'||value==='discard'))) as Record<string,'review'|'discard'>;
+  });
+  React.useEffect(()=>{
+    saveSession('pantheralab_live_review_decisions_v1',reviewDecisions);
+  },[reviewDecisions]);
   const [busy,setBusy]=React.useState(false);
   const [networkSource,setNetworkSource]=React.useState<'reference'|'measured'>('reference');
   const [rawMB,setRawMB]=React.useState(8);
@@ -160,7 +169,19 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
           <td>{event.hmac_status}</td><td>{event.source}</td>
           <td>{(event.source==='camera_virtual_simulation'||event.source==='browser_camera_megadetector_opt_in'
                 ||event.class==='person')
-              ?<span className="sci-muted">{tx('Revisión en LIVE · no transferible','LIVE review · no transfer')}</span>
+              ?<div className="camera-review-controls">
+                  <span className="sci-muted">{reviewDecisions[event.event_id]==='review'
+                    ?tx('Marcado para revisar','Marked for review')
+                    :reviewDecisions[event.event_id]==='discard'
+                      ?tx('Descartado visualmente','Dismissed visually')
+                      :tx('Sin validar','Not reviewed')}</span>
+                  <button className="sci-inline" type="button"
+                    onClick={()=>setReviewDecisions(v=>({...v,[event.event_id]:'review'}))}>
+                    {tx('Revisar','Review')}</button>
+                  <button className="sci-inline" type="button"
+                    onClick={()=>setReviewDecisions(v=>({...v,[event.event_id]:'discard'}))}>
+                    {tx('Descartar','Dismiss')}</button>
+                </div>
               :<button className="sci-inline" type="button" onClick={()=>{
             setCurrent({...current,camera_id:event.camera_id,
               camera_latitude:event.latitude,camera_longitude:event.longitude,
@@ -173,7 +194,9 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
       </table></div>
       <details className="method-details edge-exports"><summary>{tx('Exportaciones técnicas · JSON y CSV','Technical exports · JSON and CSV')}</summary><div className="sci-actions">
         <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.json',
-          JSON.stringify(events,null,2),'application/json')}>JSON ↓</button>
+          JSON.stringify(events.map(event=>({...event,
+            manual_review:reviewDecisions[event.event_id]||'not_reviewed',
+            species_verified:false})),null,2),'application/json')}>JSON ↓</button>
         <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.csv',
           toCsv(events as unknown as Record<string,unknown>[]),'text/csv')}>CSV ↓</button>
       </div></details></>}
