@@ -1,13 +1,11 @@
 /*
-  PANTHERASENSE 1.4 — INTEGRACION EXPERIMENTAL
-  Diseño y desarrollo del proyecto: Andrea Navarro Jimenez (2026)
+  PantheraSENSE 1.5 — ESP32 + DHT22 + LED + FastAPI (PRUEBAS)
+  Proyecto y diseño: Andrea Navarro Jimenez (2026)
 
-  ESP32 virtual + DHT22 (GPIO 21) + LED (GPIO 2)
-  Envía valores SIMULADOS a un receptor FastAPI de pruebas.
-  NO usar para fauna real sin validar equipo, seguridad y almacenamiento.
-
-  NO PUBLICAR UNA CLAVE REAL en GitHub ni compartirla mediante Wokwi.
-  El receptor exige una clave temporal exclusiva para estas pruebas.
+  Wokwi (simulado, NO sensor de campo).
+  ESP32: LED GPIO 2 / DHT22 SDA GPIO 21.
+  IMPORTANTE: NO guardar una contraseña dentro de este archivo.
+  Ingresar la clave TEMPORAL en el monitor serial durante la simulacion.
 */
 #include <DHTesp.h>
 #include <WiFi.h>
@@ -16,31 +14,29 @@
 
 const int LED_PIN = 2;
 const int DHT_PIN = 21;
-
 const char* WIFI_SSID = "Wokwi-GUEST";
 const char* WIFI_PASSWORD = "";
 const char* API_URL = "https://pantherasense-backend-test.onrender.com/api/sense/ingest";
-
-// Pegar solo en una copia de pruebas NO compartida; no subir secretos a GitHub.
-// Debe coincidir con PANTHERASENSE_INGEST_KEY en el servicio Render.
-const char* API_KEY = "REEMPLAZAR_CON_CLAVE_TEMPORAL_PRIVADA";
-
 const char* DEVICE_ID = "PANTHERASENSE-01";
 const unsigned long ENVIO_MS = 30000;
-const unsigned long WIFI_RETRY_MS = 12000;
+const unsigned long WIFI_RETRY_MS = 15000;
 
+// Solo memoria RAM: la clave NO se guarda en el codigo ni en la microSD.
+String temporaryKey = "";
 DHTesp sensor;
 unsigned long contador = 0;
 unsigned long ultimoEnvio = 0;
-unsigned long ultimoIntentoWifi = 0;
-bool primeraLectura = true;
+unsigned long ultimoIntentoWiFi = 0;
+bool envioInicialPendiente = true;
 
 void conectarWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
-  ultimoIntentoWifi = millis();
+  ultimoIntentoWiFi = millis();
   Serial.println("Conectando a Wokwi-GUEST...");
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD, 6);
+
   unsigned long inicio = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - inicio < 12000) {
     delay(400);
@@ -51,17 +47,31 @@ void conectarWiFi() {
     Serial.print("Wi-Fi conectado. IP: ");
     Serial.println(WiFi.localIP());
   } else {
-    Serial.println("Wi-Fi no disponible. Continuara midiendo y reintentara.");
+    Serial.println("Wi-Fi no disponible. Reintentaremos sin perder el sensor.");
   }
+}
+
+void leerClavePorSerial() {
+  if (!Serial.available()) return;
+  String entrada = Serial.readStringUntil('\n');
+  entrada.trim();
+  if (entrada.length() < 16 || entrada.length() > 200) {
+    Serial.println("Clave no aceptada: se requieren 16 a 200 caracteres.");
+    return;
+  }
+  temporaryKey = entrada;
+  envioInicialPendiente = true;
+  Serial.println("CLAVE TEMPORAL CARGADA SOLO EN MEMORIA.");
+  Serial.println("No compartas una captura mostrando la clave.");
 }
 
 void enviarMedicion(float temperatura, float humedad) {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("Envio pendiente: sin Wi-Fi (demo sin almacenamiento de cola).");
+    Serial.println("SIN ENVIO: Wi-Fi desconectado.");
     return;
   }
-  if (String(API_KEY).startsWith("REEMPLAZAR_")) {
-    Serial.println("Falta configurar la clave temporal del servidor.");
+  if (temporaryKey.length() < 16) {
+    Serial.println("SIN ENVIO: falta introducir la clave en el monitor serial.");
     return;
   }
 
@@ -75,75 +85,87 @@ void enviarMedicion(float temperatura, float humedad) {
   json += "\"reading_number\":" + String(contador);
   json += "}";
 
-  Serial.println("ENVIO A FASTAPI: ");
+  Serial.println("ENVIO SIMULADO A FASTAPI:");
   Serial.println(json);
 
   WiFiClientSecure client;
-  // Solo Wokwi de demostracion: no verifica el certificado TLS.
-  // Hardware real: configurar CA valida y autenticacion robusta.
+  // Solo para demostracion en Wokwi; verificar CA real en produccion.
   client.setInsecure();
   HTTPClient http;
-  http.setTimeout(10000);
-
+  http.setTimeout(12000);
   if (!http.begin(client, API_URL)) {
-    Serial.println("Error al iniciar HTTPS.");
+    Serial.println("Error al iniciar conexion HTTPS.");
     return;
   }
+
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-PantheraSense-Key", API_KEY);
-  int code = http.POST(json);
-  Serial.print("Resultado de envio: HTTP ");
-  Serial.println(code);
-  if (code == 202) {
-    Serial.println("MEDICION ACEPTADA POR PANTHERASENSE");
-  } else if (code == 401) {
-    Serial.println("Clave incorrecta. Revisar Render/Wokwi.");
-  } else if (code == 503) {
-    Serial.println("Receptor sin configurar en Render.");
-  } else if (code < 0) {
-    Serial.println(http.errorToString(code));
-  } else {
-    Serial.println(http.getString());
-  }
+  http.addHeader("X-PantheraSense-Key", temporaryKey);
+  int codigo = http.POST(json);
   http.end();
+
+  Serial.print("Respuesta HTTP: ");
+  Serial.println(codigo);
+  if (codigo == 202) {
+    Serial.println("MEDICION RECIBIDA POR PANTHERASENSE EN RENDER");
+  } else if (codigo == 401) {
+    Serial.println("Clave incorrecta: revisar valor en Render.");
+  } else if (codigo == 503) {
+    Serial.println("Servidor sin clave de recepcion configurada.");
+  } else if (codigo < 0) {
+    Serial.println("Fallo de conexion HTTPS. Verificar Wi-Fi / Gateway Wokwi.");
+  } else {
+    Serial.println("Servidor devolvio error. Revisar respuesta HTTP.");
+  }
 }
 
 void setup() {
   Serial.begin(115200);
+  Serial.setTimeout(250);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
   sensor.setup(DHT_PIN, DHTesp::DHT22);
   delay(1000);
-  Serial.println("=================================");
-  Serial.println("  PANTHERASENSE · Andrea Navarro Jimenez");
-  Serial.println("  SIMULACION WOKWI · VERSION 1.4");
-  Serial.println("=================================");
+  Serial.println("=======================================");
+  Serial.println(" PantheraSENSE · Andrea Navarro Jimenez");
+  Serial.println(" WOKWI · PRUEBAS · VERSION 1.5");
+  Serial.println("=======================================");
   conectarWiFi();
+  Serial.println("Pega tu clave TEMPORAL de Render en el monitor serial");
+  Serial.println("y presiona ENTER. No se guarda en sketch.ino.");
 }
 
 void loop() {
-  // Conservar el parpadeo original y consultar sensor cada 2 segundos.
+  leerClavePorSerial();
+  if (WiFi.status() != WL_CONNECTED &&
+      millis() - ultimoIntentoWiFi >= WIFI_RETRY_MS) {
+    conectarWiFi();
+  }
+
   digitalWrite(LED_PIN, HIGH);
   delay(1000);
   digitalWrite(LED_PIN, LOW);
   delay(1000);
 
-  if (WiFi.status() != WL_CONNECTED &&
-      millis() - ultimoIntentoWifi >= WIFI_RETRY_MS) conectarWiFi();
-
-  TempAndHumidity d = sensor.getTempAndHumidity();
+  TempAndHumidity datos = sensor.getTempAndHumidity();
   contador++;
-  if (isnan(d.temperature) || isnan(d.humidity)) {
-    Serial.println("DHT22: lectura invalida");
+  if (isnan(datos.temperature) || isnan(datos.humidity)) {
+    Serial.println("ERROR: DHT22 sin datos.");
     return;
   }
 
-  Serial.print("Temperatura: "); Serial.print(d.temperature, 1); Serial.println(" C");
-  Serial.print("Humedad: "); Serial.print(d.humidity, 1); Serial.println(" %");
+  Serial.print("Temperatura: ");
+  Serial.print(datos.temperature, 1);
+  Serial.print(" C, humedad: ");
+  Serial.print(datos.humidity, 1);
+  Serial.println(" %");
 
-  if (primeraLectura || millis() - ultimoEnvio >= ENVIO_MS) {
-    primeraLectura = false;
-    ultimoEnvio = millis();
-    enviarMedicion(d.temperature, d.humidity);
+  if (envioInicialPendiente || millis() - ultimoEnvio >= ENVIO_MS) {
+    if (temporaryKey.length() >= 16 && WiFi.status() == WL_CONNECTED) {
+      ultimoEnvio = millis();
+      envioInicialPendiente = false;
+      enviarMedicion(datos.temperature, datos.humidity);
+    } else {
+      Serial.println("Esperando Wi-Fi y clave temporal para el primer envio...");
+    }
   }
 }
