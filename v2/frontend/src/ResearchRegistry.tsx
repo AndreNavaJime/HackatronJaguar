@@ -140,7 +140,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       }
       setNotice('');setTab('individuals');
     }else if(tab==='individuals'){setNotice('');setTab('reports');}
-    else onNavigate?.('Investigación');
+    else onNavigate?.('PantheraLIVE');
     window.requestAnimationFrame(()=>document.querySelector<HTMLElement>('.research-registry .registry-tabs')
       ?.scrollIntoView({behavior:'smooth',block:'start'}));
   },[nextRequest]);
