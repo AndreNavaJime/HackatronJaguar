@@ -37,7 +37,7 @@ class SimulatedReading(BaseModel):
     uptime_s: int = Field(ge=0, le=31536000)
     reading_number: int = Field(ge=1, le=2000000000)
     # Optional digital threshold flag from simulated MQ-2; no fire confirmation.
-    gas_alert: bool = False
+    gas_alert: bool | None = None
 
     class Config:
         extra = "forbid"
