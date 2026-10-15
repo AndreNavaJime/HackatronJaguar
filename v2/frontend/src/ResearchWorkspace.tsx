@@ -1,4 +1,5 @@
 import React from 'react';
+import VegetationPanel from './VegetationPanel';
 import {useLanguage} from './language';
 import {Observation,SatelliteData,SatelliteItem,apiJson,downloadFile,toCsv,toGeoJSON} from './scienceShared';
 
@@ -127,6 +128,8 @@ export default function ResearchWorkspace({records,current,onOpenReports}:Props)
       </div>
       <p className="sci-muted">{satellite.disclaimer}</p>
     </section>}
+
+    <VegetationPanel latitude={latitude} longitude={longitude} maxCloudCover={cloud}/>
 
     <section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Informes y revisión científica','Scientific reporting and review')}</h3>
