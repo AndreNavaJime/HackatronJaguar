@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "author": "PantheraSENSE · Andrea Navarro Jimenez",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht",
+      "top": -160,
+      "left": 70,
+      "attrs": {
+        "temperature": "24",
+        "humidity": "40"
+      }
+    },
+    {
+      "type": "wokwi-gas-sensor",
+      "id": "mq2",
+      "top": -140,
+      "left": -210,
+      "attrs": {
+        "ppm": "400",
+        "threshold": "4.4"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led",
+      "top": 230,
+      "left": 100,
+      "attrs": {
+        "color": "green"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "ledR",
+      "top": 265,
+      "left": 100,
+      "attrs": {
+        "value": "220"
+      }
+    }
+  ],
+  "connections": [
+    [
+      "dht:VCC",
+      "esp:3V3",
+      "red",
+      []
+    ],
+    [
+      "dht:SDA",
+      "esp:D21",
+      "green",
+      []
+    ],
+    [
+      "dht:GND",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "mq2:VCC",
+      "esp:5V",
+      "red",
+      []
+    ],
+    [
+      "mq2:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "mq2:DO",
+      "esp:D27",
+      "orange",
+      []
+    ],
+    [
+      "esp:D2",
+      "ledR:1",
+      "green",
+      []
+    ],
+    [
+      "ledR:2",
+      "led:A",
+      "green",
+      []
+    ],
+    [
+      "led:C",
+      "esp:GND.1",
+      "black",
+      []
+    ]
+  ],
+  "dependencies": {}
+}
