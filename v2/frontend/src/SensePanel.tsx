@@ -12,7 +12,9 @@ type Sample={
 type Result={
   status:'waiting'|'live'|'stale';
   simulation:true;
-  storage:'ephemeral_process_memory';
+  storage:'ephemeral_process_memory'|'computed_on_demand';
+  source?:'wokwi_virtual'|'cloud_simulation';
+  generated_on_request?:boolean;
   latest:Sample|null;
   history:Sample[];
 };
@@ -53,6 +55,7 @@ export default function SensePanel(){
   },[refresh]);
 
   const sample=data?.latest??null;
+  const cloud=data?.source==='cloud_simulation';
   const active=data?.status==='live'&&!!sample;
   const last=(data?.history??[]).slice(-6).reverse();
 
@@ -71,7 +74,8 @@ export default function SensePanel(){
       <span className={active?'sense-status-live':'sense-status-wait'}>
         {loading?tx('Consultando servidor…','Checking server…')
           :problem?tx('API no disponible','API unavailable')
-          :active?tx('RECIBIENDO DATOS','RECEIVING DATA')
+          :active?(cloud?tx('SIMULACIÓN EN NUBE ACTIVA','CLOUD SIMULATION ACTIVE')
+            :tx('RECIBIENDO DATOS','RECEIVING DATA'))
           :data?.status==='stale'?tx('SIN DATOS RECIENTES','NO RECENT DATA')
           :tx('ESPERANDO PRIMER ENVÍO','AWAITING FIRST READING')}
       </span>
@@ -97,16 +101,21 @@ export default function SensePanel(){
         <strong>{sample?sample.humidity_pct.toFixed(1)+' %':'—'}</strong>
       </div>
       <div className="sense-stat">
-        <span>{tx('Última recepción','Last received')}</span>
+        <span>{cloud?tx('Última simulación','Last simulated')
+          :tx('Última recepción','Last received')}</span>
         <strong className="sense-date">{sample?clock(sample.received_at_utc,language):'—'}</strong>
       </div>
     </div>
-    <p className="sense-source-line">{tx('Fuente: ESP32 virtual · Wokwi','Source: Virtual ESP32 · Wokwi')}</p>
+    <p className="sense-source-line">{cloud?
+      tx('Fuente: generador virtual en la nube · Render','Source: Cloud virtual generator · Render'):
+      tx('Fuente: ESP32 virtual · Wokwi','Source: Virtual ESP32 · Wokwi')}</p>
     {last.length>0&&<div className="sense-history">
-      <h4>{tx('Últimas lecturas','Recent readings')}</h4>
+      <h4>{cloud?tx('Últimos valores simulados','Recent simulated values')
+        :tx('Últimas lecturas','Recent readings')}</h4>
       <div className="sense-table-wrap">
         <table><thead><tr>
-          <th>{tx('Hora recibida','Received')}</th>
+          <th>{cloud?tx('Hora simulada','Simulated time')
+            :tx('Hora recibida','Received')}</th>
           <th>{tx('Temperatura','Temperature')}</th>
           <th>{tx('Humedad','Humidity')}</th>
           <th>#</th>
@@ -123,13 +132,16 @@ export default function SensePanel(){
     <details className="sense-methodology">
       <summary>{tx('Información técnica y metodología','Technical information and methodology')}</summary>
       <div className="sense-methodology-content">
-        <p>{tx(
-          'Los valores proceden de un ESP32 virtual en Wokwi. Permiten verificar el flujo de telemetría, pero no representan mediciones de campo ni demuestran conectividad 5G real.',
-          'Values originate from a virtual ESP32 in Wokwi. They verify the telemetry workflow but are not field measurements and do not demonstrate real 5G connectivity.'
+        <p>{cloud?tx(
+          'Modo nube: el servidor calcula valores sintéticos cada vez que se consulta el panel. No necesita Wokwi abierto, sensores físicos ni claves. Estos valores no son mediciones de campo y no demuestran conectividad 5G.',
+          'Cloud mode: the server computes synthetic values when the dashboard is queried. No Wokwi session, physical sensor or key is required. These values are not field measurements and do not demonstrate 5G connectivity.'
+        ):tx(
+          'Modo Wokwi: las lecturas proceden del ESP32 virtual y llegan por HTTPS. No son mediciones de campo ni demuestran conectividad 5G real.',
+          'Wokwi mode: readings originate from a virtual ESP32 and arrive over HTTPS. They are not field measurements and do not demonstrate real 5G connectivity.'
         )}</p>
         <p>{tx(
-          'El servidor conserva hasta 30 lecturas en memoria temporal; un reinicio de Render elimina ese historial. Este módulo no recibe fotos, coordenadas ni registros científicos.',
-          'The server stores up to 30 readings in temporary memory; restarting Render clears that history. This module does not receive photos, coordinates, or scientific records.'
+          'En modo nube, los valores se generan bajo demanda: no se registra un historial permanente ni se ejecuta una tarea continua con la aplicación cerrada. Si Wokwi envía datos nuevos, se muestran primero. Las lecturas de Wokwi se guardan temporalmente en memoria y se pierden al reiniciar Render.',
+          'In cloud mode, values are generated on demand: no permanent history is recorded and no continuous job runs when the app is closed. Fresh Wokwi data takes priority. Wokwi readings are stored temporarily in memory and lost when Render restarts.'
         )}</p>
       </div>
     </details>
