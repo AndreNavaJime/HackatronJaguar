@@ -19,7 +19,7 @@ type Job={
   stage:string;processed:number;total:number;error:string|null;result:VideoResult|null;
 };
 type ReviewState='accepted'|'discarded'|'human_review';
-type Props={onEvent:(event:EdgeEvent)=>void};
+type Props={onEvent:(event:EdgeEvent)=>void;onFireVideo?:(file:File)=>void};
 
 const MAX_SIZE=250*1024*1024;
 const CHUNK_SIZE=5*1024*1024;
@@ -32,7 +32,7 @@ async function readJson(response:Response):Promise<any>{
 function clock(seconds:number){const min=Math.floor(seconds/60);return String(min).padStart(2,'0')+':'+String(Math.floor(seconds%60)).padStart(2,'0');}
 function highest(frame:Frame,cls:string){return Math.max(0,...frame.detections.filter(d=>d.class_name===cls).map(d=>d.confidence));}
 
-export default function AutoCapturesPanel({onEvent}:Props){
+export default function AutoCapturesPanel({onEvent,onFireVideo}:Props){
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [file,setFile]=React.useState<File|null>(null);
@@ -272,6 +272,9 @@ export default function AutoCapturesPanel({onEvent}:Props){
     <div className="sci-actions auto-actions">
       <button className="action-button" type="button" disabled={!file||!permission||busy||!!jobId||aiReady!=='available'}
         onClick={()=>void upload()}>{tx('Analizar y preparar revisión','Analyze and prepare review')}</button>
+      {file&&onFireVideo&&<button className="sci-secondary" type="button" disabled={busy}
+        onClick={()=>onFireVideo(file)}>{tx('Examinar humo y llamas en PantheraFIRE · local',
+          'Screen smoke and flames in PantheraFIRE · local')}</button>}
       {(!!jobId||state==='failed')&&<button className="sci-secondary" type="button" disabled={busy||action>0}
         onClick={()=>void erase()}>{tx('Eliminar video y análisis del servidor','Delete video and analysis from server')}</button>}
     </div>
