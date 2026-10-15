@@ -1137,3 +1137,39 @@ button,a,input,select,textarea{transition-property:background,border-color,color
 .sense-methodology-content{padding:0 15px 14px;border-top:1px solid #294638;color:#b1cabc;font-size:12px;line-height:1.65}
 .sense-methodology-content p{margin:12px 0 0}
 @media(max-width:700px){.sense-grid{grid-template-columns:1fr}.sense-stat{padding:13px}.sense-stat strong{font-size:22px}}
+
+/* PantheraFIRE: separate experimental incident center, not an operational dispatch system. */
+nav button:has(.nav-text):is([aria-current="page"]){transition:border-color .15s ease}
+nav button:has(.nav-text){overflow-wrap:anywhere}
+.fire-screen{--fire-red:#e88969;--fire-muted:#e4bba8}
+.fire-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:22px;border-radius:15px;background:linear-gradient(120deg,#411f24,#301c29 60%,#212332);border:1px solid #87433f;margin-bottom:18px}
+.fire-heading h2{color:#fff1eb;margin:4px 0 8px}
+.fire-heading p{color:#e6c6b9;margin:0;max-width:700px;font-size:13px;line-height:1.7}
+.fire-kicker{font-size:10px;color:#ffb698;letter-spacing:.14em;font-weight:800}
+.fire-pill{border:1px solid #a75c52;border-radius:99px;padding:9px 13px;color:#ffe2ce;background:#512d31;font-weight:800;font-size:11px}
+.fire-status{padding:20px;border:1px solid #814a44;border-radius:13px;background:#241b22;margin-bottom:16px}
+.fire-status h3{color:#fff0e5;font-size:17px;margin:0 0 8px}
+.fire-status p{color:#d7b5a7;font-size:12px;line-height:1.7;margin:0 0 12px}
+.fire-state{display:inline-block;padding:8px 12px;border-radius:9px;border:1px solid #a77757;color:#f5d2b7;background:#49302b;font-weight:800;font-size:11px}
+.fire-state.alert{border-color:#ed865d;color:#ffe8cd;background:#71332b}
+.fire-control{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;align-items:center}
+.fire-control button{padding:11px 15px;border-radius:9px;border:1px solid #a96a51;color:#ffebd7;background:#61362e;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.fire-control button:hover{background:#7c4035}
+.fire-control span{font-size:11px;color:#d9bcb2}
+.fire-alert{padding:17px;border-radius:12px;background:linear-gradient(120deg,#67332b,#442731);border:1px solid #f0a064;border-left:5px solid #fbac6b;margin:15px 0}
+.fire-alert strong{color:#ffe1be;font-size:14px}
+.fire-alert p,.fire-alert small{color:#f3cbb7;font-size:12px;line-height:1.7}
+.fire-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fire-card{padding:18px;border:1px solid #78433f;border-radius:12px;background:#241c25}
+.fire-card h3{margin:0 0 12px;font-size:15px;color:#ffe0d1}
+.fire-card p,.fire-card li{font-size:12px;line-height:1.75;color:#dcbeb0}
+.fire-card a{color:#ffd0ad;text-decoration:underline;text-underline-offset:3px}
+.fire-card .fire-number{font-size:26px;font-weight:850;color:#ffbb91;display:inline-block;margin:4px 0}
+.fire-card .fire-number:focus-visible,.fire-control button:focus-visible{outline:2px solid #ffc99a;outline-offset:3px}
+.fire-events{width:100%;border-collapse:collapse;font-size:12px}
+.fire-events th,.fire-events td{padding:10px 8px;border-bottom:1px solid #694940;text-align:left;color:#ebd0c2}
+.fire-note{margin-top:14px;border-left:3px solid #bd8d63;padding:8px 12px;color:#dec4b6;font-size:12px;line-height:1.7}
+.fire-detail{margin-top:14px;border:1px solid #684942;border-radius:10px}
+.fire-detail summary{cursor:pointer;padding:13px;color:#e4c5b6}
+.fire-detail p{padding:0 13px 13px;color:#d8b9a9;font-size:12px;line-height:1.7}
+@media(max-width:760px){.fire-columns{grid-template-columns:1fr}.fire-heading{padding:17px}}
