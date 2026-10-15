@@ -1,40 +1,37 @@
-# PantheraSENSE — integración en pruebas (no desplegada)
+# PantheraSENSE 2.0 · Telemetría y alertas ambientales simuladas
 
-**Prototipo independiente de Andrea Navarro Jiménez.** Esta rama agrega un receptor de datos **simulados** del ESP32 Wokwi y un panel de consulta en PantheraEDGE. No modifica el trabajo de Manuel ni cambia `pantheraid-v2` en producción.
+**Prototipo experimental de Andrea Navarro Jiménez.** Integrado con PantheraEDGE en la rama `pantherasense-integration`, independiente de la versión principal `pantheraid-v2`. No es un sistema de emergencia operativo.
 
-## Arquitectura
+## Funcionalidad
 
-`Wokwi ESP32 + DHT22 → HTTPS POST /api/sense/ingest → FastAPI (Render) → GET /api/sense/latest → PantheraEDGE (Vercel)`
+- **Sin Wokwi abierto:** `GET /api/sense/latest` calcula temperatura y humedad sintéticas bajo demanda mediante la API experimental de Render. No simula incendios espontáneamente ni envía alertas reales. No hay tareas permanentes, almacenamiento científico ni monitoreo real 24/7.
+- **Con Wokwi:** `POST /api/sense/ingest`, autenticado con `X-PantheraSense-Key`, acepta mediciones DHT22 virtuales con `simulation:true`. El nuevo campo **opcional** `gas_alert` (booleano) transmite la salida digital simulada del MQ-2. Los sketches anteriores sin ese campo siguen funcionando.
+- **Panel de incidentes:** una señal `gas_alert:true` procedente de Wokwi muestra una alerta de simulación en el panel. La siguiente lectura normal la desactiva. El botón **Simular alerta de gases** reproduce localmente el aviso sin modificar datos compartidos en Render, y **Finalizar simulacro** lo quita.
+- **Preferencia de origen:** cuando llegan lecturas Wokwi recientes, la API las prioriza; después de 150 segundos sin nuevas lecturas, vuelve a mostrar valores sintéticos de la nube.
+- **Tabla de mediciones:** conserva temperatura, humedad y estado MQ-2. Los mensajes se actualizan mediante consultas del navegador cada 15 segundos.
 
-- `POST /api/sense/ingest`: requiere `X-PantheraSense-Key`, aceptará **únicamente** `simulation:true` y el esquema de datos de PantheraSENSE.
-- `GET /api/sense/latest`: consulta de solo lectura que muestra únicamente datos virtuales no sensibles. Se refresca automáticamente cada 15 segundos.
-- Almacena como máximo 30 mediciones **en memoria de un solo proceso**. Se pierde al reiniciar o suspender Render, o si hay varios procesos/instancias. No equivale a almacenamiento en PostgreSQL.
-- No recibe ni publica coordenadas, imágenes, videos o ubicaciones científicas. No proporciona evidencia de conectividad 5G real.
-- El endpoint se **niega a aceptar datos** si no está definida la variable de entorno `PANTHERASENSE_INGEST_KEY`.
+## Circuito Wokwi
 
-## Requisitos antes de desplegar
+Esta carpeta tiene dos archivos de referencia para el **mismo ESP32**, no un proyecto independiente:
 
-1. Confirmar el espacio de trabajo Render y el servicio de pruebas correspondiente; **no desplegar automáticamente sobre producción**.
-2. En Render definir la variable de entorno secreta `PANTHERASENSE_INGEST_KEY` con al menos 16 caracteres aleatorios generados por el responsable (preferiblemente más de 32).
-3. Publicar y verificar el receptor FastAPI en un ambiente de pruebas. `GET /api/sense/latest` debería devolver `status: "waiting"` inicialmente.
-4. En Wokwi reemplazar el contenido de `sketch.ino` por [el sketch de esta carpeta](sketch.ino); la URL del receptor de pruebas ya está configurada.
-5. Iniciar la simulación. Cuando el monitor serial lo indique, introducir la clave **solo como entrada interactiva del monitor serial** y presionar Enter. La clave permanece en RAM durante esa ejecución; no se incluye en el código fuente ni en el repositorio. No compartir capturas que la muestren ni asumir que el simulador web es un entorno confidencial.
-6. Comprobar `Respuesta HTTP: 202` en el monitor serial; abrir `/api/sense/latest` en el backend o PantheraEDGE en la vista previa de Vercel para verificar temperatura, humedad y recepción. Si se reinicia el ESP32, volver a introducir la clave.
-7. Rotar/revocar la clave temporal al terminar la demostración. Nunca guardarla en un sketch público.
-7. Solo tras comprobarlo todo y aprobarlo expresamente, valorar la migración al frontend y backend de producción.
+- [`sketch.ino`](sketch.ino): DHT22 en GPIO21, LED en GPIO2 y **MQ-2 digital DO en GPIO27**. Usa HTTPS con 20 segundos para conectar y 60 segundos para recibir respuesta.
+- [`diagram.json`](diagram.json): ejemplo de circuito compatible con el sketch, con alimentación, LED y resistencia.
 
-## Verificación automática y local
+En el proyecto Wokwi que ya está abierto, reemplazar el sketch y añadir los cables/componentes equivalentes en `diagram.json`. GitHub no modifica automáticamente ningún proyecto alojado en Wokwi. Ajustar la concentración simulada y el umbral digital del MQ-2 hasta que DO pase a LOW; se enviará `gas_alert:true` en la siguiente lectura programada (~30 segundos). **Un MQ-2 registra gases combustibles: su alerta no confirma humo, llama, incendio ni ubicación cercana a una cámara.**
+
+**Advertencia eléctrica:** estos cables son un ejemplo **exclusivo del simulador**. El módulo MQ-2 puede trabajar con 5 V; en un equipo físico, sus señales eléctricas deben adaptarse a los niveles seguros del ESP32. No conectar directamente el DO de 5 V a un GPIO de 3,3 V sin comprobar compatibilidad/protección. En hardware real se necesita calibración, verificación de certificados TLS, protección de secretos, energía fiable y pruebas de falsas alarmas.
+
+## Seguridad y procedencia
+
+La clave `PANTHERASENSE_INGEST_KEY` se configura **solo** como secreto en Render y se introduce interactivamente en el monitor serial de Wokwi; nunca se guarda en el repositorio. El endpoint de ingestión falla cerrado sin clave o ante una clave incorrecta, exige `simulation:true` y rechaza campos como coordenadas. Máximo 30 mensajes autenticados en RAM (se pierden al reiniciar Render); el historial público muestra hasta 12.
+
+La **demostración de alarma local** no llama a la API, no persiste y no se notifica a otros dispositivos. No se vincula automáticamente a `CAM-01`, ni a ubicaciones registradas, ni a cuerpos de emergencia. La asociación con estaciones reales y un sistema de avisos verificado requieren un desarrollo posterior separado.
+
+## Pruebas
 
 ```bash
-cd v2/backend
-python -m pytest -q test_sense_api.py
-cd ../frontend
-npm install
-npm run build
+cd v2/backend && python -m pytest -q test_sense_api.py
+cd ../frontend && npm install --no-audit --no-fund && npm run build
 ```
 
-## Limitaciones y próximos pasos
-
-Este es un prototipo de integración para enseñanza. `client.setInsecure()` en el sketch omite verificar el certificado HTTPS **solo en Wokwi**; antes de fabricar un equipo real, se necesita verificación TLS, credenciales rotables no extraíbles, limitación de solicitudes, autenticación de acceso, almacenamiento persistente, sincronización y gestión de fallos de red. El ESP32 simulado no mide variables de campo ni utiliza 5G.
-
-**Estado:** implementación preparada exclusivamente en la rama `pantherasense-integration`; pendiente de confirmar Render y probar de extremo a extremo contra un servicio desplegado.
+Todos los valores y alertas de este módulo son simulados. No representan resultados de campo, detección automática de incendios ni comunicaciones 5G reales.
