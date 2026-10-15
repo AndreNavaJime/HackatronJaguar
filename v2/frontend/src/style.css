@@ -1276,3 +1276,11 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
 .panthera-credits-details a{display:inline-block;padding:9px 13px;margin:5px 0;border:1px solid #c69361;border-radius:9px;color:#ffe2b8;background:#493b33;font-size:12px;text-decoration:none}
 .panthera-credits-details a:hover{background:#5b4638}
 @media(max-width:800px){.panthera-author{min-width:210px;margin-top:0;border-top:0;border-left:1px solid #345066;padding:6px 12px}.panthera-credits-dialog{padding:22px}}
+
+/* Project attribution belongs below all modules, never before the navigation. */
+.panthera-bottom-credit{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px 13px;padding:17px 0 104px;margin-top:30px;border-top:1px solid #32475a;color:#9fb2c6}
+.panthera-bottom-credit span{font-size:9px;font-weight:750;letter-spacing:.1em;color:#8ba2b7}
+.panthera-bottom-credit strong{font-size:12px;font-weight:650;color:#dce7f1}
+.panthera-bottom-credit button{font-size:12px;color:#f0c58f;padding:4px 2px;border:0;background:transparent;cursor:pointer}
+.panthera-bottom-credit button:hover,.panthera-bottom-credit button:focus-visible{text-decoration:underline;color:#ffe1b7}
+@media(max-width:700px){.panthera-bottom-credit{justify-content:flex-start;padding-bottom:130px;gap:7px 12px}}
