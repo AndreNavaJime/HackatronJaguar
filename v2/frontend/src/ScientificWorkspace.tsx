@@ -1,6 +1,7 @@
 import React from 'react';
 import ResearchRegistry from './ResearchRegistry';
 import EdgeWorkspace from './EdgeWorkspace';
+import SensePanel from './SensePanel';
 import FireWorkspace from './FireWorkspace';
 import ResearchWorkspace from './ResearchWorkspace';
 import {useLanguage} from './language';
@@ -82,6 +83,7 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
         setCurrent={setCurrent} onUseEvent={onUseEvent}/>
     </div>
+    <div style={{display:section==='PantheraSENSE'?'block':'none'}}><SensePanel /></div>
     {section==='PantheraFIRE'&&<FireWorkspace />}
     <div style={{display:section==='Investigación'?'block':'none'}}>
       <ResearchWorkspace records={records} current={records[0]||current}
