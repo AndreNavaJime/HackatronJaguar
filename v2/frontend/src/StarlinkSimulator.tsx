@@ -39,11 +39,13 @@ export default function StarlinkSimulator(){
     const created=new Date().toISOString();
     if(!fallback){
       setPending(prev=>[...prev,{id,kind,created}].slice(-LIMIT));
-      setEntries(prev=>[{id,kind,route:'satellite',created,result:'queued',estimatedSeconds:null},...prev].slice(0,LIMIT));
+      const entry:DemoEvent={id,kind,route:'satellite',created,result:'queued',estimatedSeconds:null};
+      setEntries(prev=>[entry,...prev].slice(0,LIMIT));
       return;
     }
     const route:Route=fallback;
-    setEntries(prev=>[{id,kind,route,created,result:'delivered',estimatedSeconds:duration},...prev].slice(0,LIMIT));
+    const entry:DemoEvent={id,kind,route,created,result:'delivered',estimatedSeconds:duration};
+    setEntries(prev=>[entry,...prev].slice(0,LIMIT));
   }
   function flush(){
     if(!fallback||!pending.length)return;
