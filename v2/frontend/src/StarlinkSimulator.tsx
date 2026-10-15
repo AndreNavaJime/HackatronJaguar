@@ -86,6 +86,7 @@ export default function StarlinkSimulator(){
         onChange={e=>setCellular(e.target.checked)}/>{tx('Respaldo celular hipotético habilitado',
           'Hypothetical cellular fallback enabled')}</label>
     </div>
+    <details className="method-details starlink-advanced"><summary>{tx('Parámetros avanzados del escenario','Advanced scenario parameters')}</summary>
     <div className="sci-fields">
       {numberControl(tx('Velocidad de subida Starlink (supuesto)','Starlink assumed upload speed'),satUpload,setSatUpload,.1,100,.1,'Mbps')}
       {numberControl(tx('Latencia Starlink (supuesto)','Starlink assumed latency'),satLatency,setSatLatency,1,2000,1,'ms')}
@@ -93,22 +94,22 @@ export default function StarlinkSimulator(){
       {numberControl(tx('Latencia celular (supuesto)','Cellular assumed latency'),cellLatency,setCellLatency,1,2000,1,'ms')}
       {numberControl(tx('Tamaño del mensaje de prueba','Test message size'),payloadKb,setPayloadKb,1,10000,1,'kB')}
     </div>
+    </details>
     <div className="sci-stats">
       <div><span>{tx('Starlink (si disponible)','Starlink (if available)')}</span><strong>{satDuration.toFixed(2)} s</strong></div>
       <div><span>{tx('Celular (si disponible)','Cellular (if available)')}</span><strong>{cellDuration.toFixed(2)} s</strong></div>
       <div><span>{tx('Ruta seleccionada','Selected route')}</span><strong>{fallback??'—'}</strong></div>
       <div><span>{tx('Eventos pendientes','Queued events')}</span><strong>{pending.length}</strong></div>
     </div>
-    <p className="sci-muted">{tx('Modelo ilustrativo = tamaño / velocidad + latencia. No incluye protocolos, congestión, pérdidas, energía, instalación, obstrucciones variables ni variabilidad de Starlink; no es una predicción de rendimiento.',
-      'Illustrative model = size / throughput + latency. Protocol overhead, congestion, packet loss, power, installation, changing obstructions and Starlink variability are excluded; this is not a performance prediction.')}</p>
+    <details className="method-details starlink-method"><summary>{tx('Metodología y limitaciones','Methodology and limitations')}</summary><p className="sci-muted">{tx('Modelo ilustrativo = tamaño / velocidad + latencia. No incluye protocolos, congestión, pérdidas, energía, instalación, obstrucciones variables ni variabilidad de Starlink; no es una predicción de rendimiento.',
+      'Illustrative model = size / throughput + latency. Protocol overhead, congestion, packet loss, power, installation, changing obstructions and Starlink variability are excluded; this is not a performance prediction.')}</p></details>
     <div className="starlink-actions">
       <button type="button" className="sci-secondary" onClick={()=>send('camera')}>{tx('Simular evento de cámara','Simulate camera event')}</button>
       <button type="button" className="sci-secondary" onClick={()=>send('fire')}>{tx('Simular mensaje PantheraFIRE','Simulate PantheraFIRE message')}</button>
       <button type="button" className="sci-secondary" disabled={!fallback||!pending.length} onClick={flush}>{tx('Reenviar cola simulada','Retry simulated queue')}</button>
       <button type="button" className="sci-secondary" disabled={!entries.length&&!pending.length} onClick={reset}>{tx('Limpiar pruebas','Clear tests')}</button>
     </div>
-    <p className="sci-muted">{tx('Los mensajes PantheraFIRE de esta sección son ejercicios locales; NO generan alertas reales, no se envían a PantheraFIRE ni se notifican a Bomberos.',
-      'PantheraFIRE messages here are local drills: no real alarms, no data sent to PantheraFIRE and no emergency dispatch notifications.')}</p>
+    <p className="sci-muted">{tx('Ensayo local: no se transmiten eventos ni se alerta a Bomberos.', 'Local drill: no events are transmitted and emergency services are not contacted.')}</p>
     {entries.length>0&&<div className="sense-table-wrap"><table className="fire-events"><thead><tr>
       <th>{tx('Evento','Event')}</th><th>{tx('Estado','Status')}</th><th>{tx('Ruta','Route')}</th><th>{tx('Tiempo estimado','Estimated time')}</th>
     </tr></thead><tbody>{entries.map(event=><tr key={event.id}>
