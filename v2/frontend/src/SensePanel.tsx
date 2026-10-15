@@ -8,7 +8,6 @@ type Sample={
   received_at_utc:string;
   reading_number:number;
   simulation:true;
-  gas_alert?:boolean;
 };
 type Result={
   status:'waiting'|'live'|'stale';
@@ -31,8 +30,6 @@ export default function SensePanel(){
   const [data,setData]=React.useState<Result|null>(null);
   const [problem,setProblem]=React.useState('');
   const [loading,setLoading]=React.useState(true);
-  // Manual local drill; it never creates a server-side emergency.
-  const [manualDrill,setManualDrill]=React.useState(false);
   const refresh=React.useCallback(async(signal?:AbortSignal)=>{
     try{
       const response=await fetch('/api/sense/latest',{cache:'no-store',signal});
@@ -61,17 +58,14 @@ export default function SensePanel(){
   const cloud=data?.source==='cloud_simulation';
   const active=data?.status==='live'&&!!sample;
   const last=(data?.history??[]).slice(-6).reverse();
-  const wokwiGasSignal=active&&!cloud&&sample?.gas_alert===true;
-  const alertActive=manualDrill||wokwiGasSignal;
-  const gasAvailable=active&&!cloud&&typeof sample?.gas_alert==='boolean';
 
   return <section className="sci-panel sense-panel" aria-label="PantheraSENSE">
     <div className="sci-panel-head">
       <div>
         <h3>PantheraSENSE · {tx('Nodo ambiental','Environmental node')}</h3>
         <p className="sci-muted">{tx(
-          'Monitoreo ambiental · Telemetría y alertas',
-          'Environmental monitoring · Telemetry and alerts'
+          'Monitoreo ambiental · Temperatura y humedad',
+          'Environmental monitoring · Temperature and humidity'
         )}</p>
       </div>
       <span className="sci-tag">{tx('SIMULACIÓN','SIMULATION')}</span>
@@ -112,48 +106,6 @@ export default function SensePanel(){
         <strong className="sense-date">{sample?clock(sample.received_at_utc,language):'—'}</strong>
       </div>
     </div>
-    <div className="sense-gas-header">
-      <div>
-        <h4>{tx('Detección experimental de gases','Experimental gas detection')}</h4>
-        <p className="sci-muted">{tx(
-          'Señales de prueba; no constituye un sistema validado de detección de incendios.',
-          'Test signals; not a validated wildfire detection system.'
-        )}</p>
-      </div>
-      <span className={alertActive?'sense-gas-state sense-gas-active':'sense-gas-state'}>
-        {alertActive?tx('ALERTA DE PRUEBA','TEST ALERT')
-          :gasAvailable?tx('SIN SEÑAL ANÓMALA','NO ABNORMAL SIGNAL')
-          :tx('SIN SENSOR DE GAS ACTIVO','NO ACTIVE GAS SENSOR')}
-      </span>
-    </div>
-    {alertActive&&<div className="sense-fire-alert" role="alert">
-      <div className="sense-fire-alert-title">
-        <span aria-hidden="true">⚠</span>
-        <strong>{tx('SEÑAL ANÓMALA DE GASES · SIMULACIÓN',
-          'ABNORMAL GAS SIGNAL · SIMULATION')}</strong>
-      </div>
-      <p>{manualDrill?tx(
-        'Simulacro activado desde este navegador. No se ha detectado humo ni un incendio real.',
-        'Drill activated in this browser. No actual smoke or fire has been detected.'
-      ):tx(
-        'El MQ-2 virtual de Wokwi superó el umbral digital. Requiere verificación; no confirma humo ni incendio.',
-        'The virtual Wokwi MQ-2 exceeded the digital threshold. Verification is required; this does not confirm smoke or fire.'
-      )}</p>
-      <small>{wokwiGasSignal?tx(
-        'Nodo emisor: '+(sample?.device_id??'—')+' · ubicación no verificada',
-        'Origin node: '+(sample?.device_id??'—')+' · location not verified'
-      ):tx('Evento local de demostración · sin ubicación asociada',
-        'Local demo event · no location assigned')}</small>
-    </div>}
-    <div className="sense-drill-actions">
-      <button type="button" className="sci-secondary" aria-pressed={manualDrill}
-        onClick={()=>setManualDrill(value=>!value)}>
-        {manualDrill?tx('Finalizar simulacro','End drill')
-          :tx('Simular alerta de gases','Simulate gas alert')}
-      </button>
-      <span>{tx('El simulacro solo aparece en este navegador.',
-        'The drill only appears in this browser.')}</span>
-    </div>
     <p className="sense-source-line">{cloud?
       tx('Fuente: generador virtual en la nube · Render','Source: Cloud virtual generator · Render'):
       tx('Fuente: ESP32 virtual · Wokwi','Source: Virtual ESP32 · Wokwi')}</p>
@@ -166,15 +118,12 @@ export default function SensePanel(){
             :tx('Hora recibida','Received')}</th>
           <th>{tx('Temperatura','Temperature')}</th>
           <th>{tx('Humedad','Humidity')}</th>
-          <th>{tx('Señal MQ-2','MQ-2 signal')}</th>
           <th>#</th>
         </tr></thead>
           <tbody>{last.map((entry,i)=><tr key={entry.received_at_utc+'-'+i}>
             <td>{clock(entry.received_at_utc,language)}</td>
             <td>{entry.temperature_c.toFixed(1)} °C</td>
             <td>{entry.humidity_pct.toFixed(1)} %</td>
-            <td>{entry.gas_alert===true?tx('Alerta de prueba','Test alert'):
-              entry.gas_alert===false?tx('Normal','Normal'):'—'}</td>
             <td>{entry.reading_number}</td>
           </tr>)}</tbody>
         </table>
@@ -189,10 +138,6 @@ export default function SensePanel(){
         ):tx(
           'Modo Wokwi: las lecturas proceden del ESP32 virtual y llegan por HTTPS. No son mediciones de campo ni demuestran conectividad 5G real.',
           'Wokwi mode: readings originate from a virtual ESP32 and arrive over HTTPS. They are not field measurements and do not demonstrate real 5G connectivity.'
-        )}</p>
-        <p>{tx(
-          'El MQ-2 indica ciertos gases combustibles, no confirma humo ni incendios. La señal es experimental y no tiene localización verificada de cámara ni calibración para campo. El simulacro se mantiene solo en este navegador; no envía notificaciones externas.',
-          'The MQ-2 indicates some combustible gases, not confirmed smoke or wildfires. Signals are experimental, with no verified camera location or field calibration. The drill stays in this browser and sends no external notifications.'
         )}</p>
         <p>{tx(
           'En modo nube, los valores se generan bajo demanda: no se registra un historial permanente ni se ejecuta una tarea continua con la aplicación cerrada. Si Wokwi envía datos nuevos, se muestran primero. Las lecturas de Wokwi se guardan temporalmente en memoria y se pierden al reiniciar Render.',
