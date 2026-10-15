@@ -9,6 +9,7 @@ import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
 import {ResearchData,loadResearch,persistResearch,flattenObservations} from './researchData';
 import {readStudyData,saveStudyData} from './researchDb';
+import type {CameraFireCandidate} from './cameraEvents';
 
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 type Props={section:string;onNavigate:(section:string)=>void;
@@ -30,7 +31,12 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   const [current,setCurrent]=React.useState<Observation>(()=>newObservation());
   const [incoming,setIncoming]=React.useState<EdgeEvent|null>(null);
   const [openReport,setOpenReport]=React.useState(false);
-  const [fireTestVideo,setFireTestVideo]=React.useState<File|null>(null);
+  const [cameraFireEvents,setCameraFireEvents]=React.useState<CameraFireCandidate[]>(()=>{
+    const stored=loadSession<unknown>('pantheralab_camera_fire_events_v1',[]);
+    return Array.isArray(stored)?stored.filter((v):v is CameraFireCandidate=>
+      typeof v==='object'&&v!==null&&v.simulation===true&&
+      (v.signal==='smoke'||v.signal==='flame')).slice(0,30):[];
+  });
   React.useEffect(()=>{
     if(requestReport){setOpenReport(true);onNavigate('PantheraMONITORING');}
   },[requestReport]);
@@ -53,7 +59,12 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     }).catch(()=>setPersistError(true));
   },[research,researchReady]);
   React.useEffect(()=>saveSession('pantheralab_session_edge_events_v1',events),[events]);
-  const onEvent=(event:EdgeEvent)=>setEvents(previous=>[event,...previous].slice(0,100));
+  React.useEffect(()=>saveSession('pantheralab_camera_fire_events_v1',cameraFireEvents),[cameraFireEvents]);
+  const onEvent=React.useCallback((event:EdgeEvent)=>
+    setEvents(previous=>[event,...previous].slice(0,100)),[]);
+  const onFireEvent=React.useCallback((event:CameraFireCandidate)=>
+    setCameraFireEvents(previous=>[event,...previous].slice(0,30)),[]);
+  const openFire=React.useCallback(()=>onNavigate('PantheraFIRE'),[onNavigate]);
   const onUseEvent=(event:EdgeEvent)=>{
     setIncoming(event);
     onNavigate('PantheraMONITORING');
@@ -87,10 +98,10 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     <div style={{display:section==='PantheraLIVE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
         setCurrent={setCurrent} onUseEvent={onUseEvent}
-        onFireVideo={(file)=>{setFireTestVideo(file);onNavigate('PantheraFIRE');}}/>
+        enabled={section==='PantheraLIVE'} onFireEvent={onFireEvent} onOpenFire={openFire}/>
     </div>
     <div style={{display:section==='PantheraSENSE'?'block':'none'}}><SensePanel /></div>
-    {section==='PantheraFIRE'&&<FireWorkspace incomingVideo={fireTestVideo}/>}
+    {section==='PantheraFIRE'&&<FireWorkspace cameraEvents={cameraFireEvents} onOpenLive={()=>onNavigate('PantheraLIVE')}/>}
     <div style={{display:section==='PantheraSAT'?'block':'none'}}>
       <ResearchWorkspace current={records[0]||current}/>
     </div>
@@ -128,8 +139,8 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       <article className="sci-launch sci-launch-c">
         <span className="sci-module-number">03 / FIELD EVENTS</span>
         <h3>PantheraLIVE</h3>
-        <p>{tx('Simulación PantheraCAM, validación de eventos JSON y cálculos ilustrativos de transferencia 4G/5G.',
-          'PantheraCAM simulation, JSON event validation and illustrative 4G/5G transfer calculations.')}</p>
+        <p>{tx('Cámara virtual automática, conexión de webcam autorizada, eventos JSON y comparación ilustrativa de redes.',
+          'Automatic virtual camera, opt-in device preview, JSON event intake and illustrative network models.')}</p>
         <small>{tx('Eventos de campo · HTTP / JSON','Field events · HTTP / JSON')}</small>
         <button type="button" onClick={()=>onNavigate('PantheraLIVE')}>
           {tx('Abrir Live ↗','Open Live ↗')}</button>
