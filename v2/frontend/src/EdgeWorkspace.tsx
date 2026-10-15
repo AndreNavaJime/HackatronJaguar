@@ -1,13 +1,15 @@
 import React from 'react';
 import {useLanguage} from './language';
 import {EdgeEvent,Observation,apiJson,downloadFile,toCsv} from './scienceShared';
-import AutoCapturesPanel from './AutoCapturesPanel';
+import CameraSourcesPanel from './CameraSourcesPanel';
+import type {CameraFireCandidate} from './cameraEvents';
 
 type Props={events:EdgeEvent[];onEvent:(event:EdgeEvent)=>void;
   current:Observation;setCurrent:(record:Observation)=>void;
-  onUseEvent?:(event:EdgeEvent)=>void;onFireVideo?:(file:File)=>void};
+  onUseEvent?:(event:EdgeEvent)=>void;
+  enabled:boolean;onFireEvent:(event:CameraFireCandidate)=>void;onOpenFire:()=>void};
 
-export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent,onFireVideo}:Props){
+export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent,enabled,onFireEvent,onOpenFire}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [camera,setCamera]=React.useState('CAM-DEMO-01');
   const [latitude,setLatitude]=React.useState('');
@@ -84,8 +86,8 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
   return <div className="sci-screen">
     <div className="sci-heading"><div><span className="sci-kicker">PANTHERALIVE / PANTHERAEDGE ENGINE / 5G</span>
       <h2>{tx('PantheraLIVE · Cámaras y conectividad','PantheraLIVE · Camera events and connectivity')}</h2>
-      <p>{tx('Eventos de cámaras, enlace con el nodo de campo y comparación de tiempos de transmisión (simulación).',
-        'Camera events, field-node connectivity and transfer-time comparison (simulation).')}</p></div>
+      <p>{tx('Fuentes de cámara, recepción de eventos y comparación de conectividad. Detección IA solo si el servidor lo permite.',
+        'Camera sources, event intake and connectivity models. AI inference only where the backend supports it.')}</p></div>
       <span className="sci-tag">{tx('EVENTOS DE CAMPO','FIELD EVENTS')}</span></div>
     <div className="sci-inline-info" role="note"><span className="sci-info-dot" aria-hidden="true" />
       <p><strong>{tx('Entorno de integración','Integration environment')}</strong> · {tx(
@@ -94,7 +96,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     </div>
 
 
-    <AutoCapturesPanel onEvent={onEvent} onFireVideo={onFireVideo}/>
+    <CameraSourcesPanel enabled={enabled} onEvent={onEvent} onFireEvent={onFireEvent} onOpenFire={onOpenFire}/>
 
     <div className="sci-2col">
       <section className="sci-panel">
@@ -142,6 +144,9 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     <section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Eventos de la sesión','Session events')}</h3>
         <span className="sci-tag">{events.length} {tx('eventos','events')}</span></div>
+      {events.some(event=>event.source==='camera_virtual_simulation'||event.source==='browser_camera_megadetector_opt_in')&&
+        <p className="sci-warning">{tx('Los eventos virtuales son sintéticos y los de webcam solo metadatos preliminares. No son observaciones científicas verificadas ni denuncias de caza furtiva.',
+          'Virtual events are synthetic and webcam events are preliminary metadata only. They are not verified scientific observations or poaching reports.')}</p>}
       {events.length===0?<p className="sci-muted">{tx('Todavía no hay eventos. Podés simular una captura o validar un JSON.',
         'No events yet. Simulate a capture or validate JSON.')}</p>:
       <><div className="sci-table-wrap"><table className="sci-table">
@@ -150,7 +155,10 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         <tbody>{events.map((event,i)=><tr key={event.event_id+'-'+i}>
           <td>{event.event_id}</td><td>{event.camera_id}</td><td>{event.timestamp}</td>
           <td>{event.hmac_status}</td><td>{event.source}</td>
-          <td><button className="sci-inline" type="button" onClick={()=>{
+          <td>{(event.source==='camera_virtual_simulation'||event.source==='browser_camera_megadetector_opt_in'
+                ||event.class==='person')
+              ?<span className="sci-muted">{tx('Revisión en LIVE · no transferible','LIVE review · no transfer')}</span>
+              :<button className="sci-inline" type="button" onClick={()=>{
             setCurrent({...current,camera_id:event.camera_id,
               camera_latitude:event.latitude,camera_longitude:event.longitude,
               altitude_m:event.altitude,temperature_c:event.temperature,
@@ -158,7 +166,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
             onUseEvent?.(event);
             setNotice(tx('Metadatos enviados a PantheraMONITORING. Vinculá el evento con una estación y revisá los datos.',
               'Metadata sent to PantheraMONITORING. Link the event to a deployment and review it.'));
-          }}>{tx('Usar en MONITORING','Send to MONITORING')}</button></td></tr>)}</tbody>
+          }}>{tx('Usar en MONITORING','Send to MONITORING')}</button>}</td></tr>)}</tbody>
       </table></div>
       <details className="method-details edge-exports"><summary>{tx('Exportaciones técnicas · JSON y CSV','Technical exports · JSON and CSV')}</summary><div className="sci-actions">
         <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.json',
