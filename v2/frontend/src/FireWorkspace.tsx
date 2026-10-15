@@ -2,6 +2,7 @@ import React from 'react';
 import {useLanguage} from './language';
 import FireVisionPanel from './FireVisionPanel';
 import type {CameraFireCandidate} from './cameraEvents';
+import {loadSession,saveSession} from './scienceShared';
 
 type Sample = {
   device_id:string;
@@ -33,7 +34,15 @@ export default function FireWorkspace({cameraEvents,onOpenLive}:{
   const [loading,setLoading]=React.useState(true);
   const [problem,setProblem]=React.useState('');
   const [drill,setDrill]=React.useState(false);
-  const [cameraDecisions,setCameraDecisions]=React.useState<Record<string,'reviewed'|'dismissed'>>({});
+  const [cameraDecisions,setCameraDecisions]=React.useState<Record<string,'reviewed'|'dismissed'>>(()=>{
+    const saved=loadSession<unknown>('pantheralab_fire_review_decisions_v1',{});
+    if(!saved||typeof saved!=='object'||Array.isArray(saved))return {};
+    return Object.fromEntries(Object.entries(saved).filter(([id,v])=>
+      id.length<150&&(v==='reviewed'||v==='dismissed'))) as Record<string,'reviewed'|'dismissed'>;
+  });
+  React.useEffect(()=>{
+    saveSession('pantheralab_fire_review_decisions_v1',cameraDecisions);
+  },[cameraDecisions]);
   const refresh=React.useCallback(async (signal?:AbortSignal)=>{
     try {
       const response=await fetch('/api/sense/latest',{cache:'no-store',signal});
