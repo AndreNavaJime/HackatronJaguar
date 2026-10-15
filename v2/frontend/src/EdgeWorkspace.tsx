@@ -5,9 +5,9 @@ import AutoCapturesPanel from './AutoCapturesPanel';
 
 type Props={events:EdgeEvent[];onEvent:(event:EdgeEvent)=>void;
   current:Observation;setCurrent:(record:Observation)=>void;
-  onUseEvent?:(event:EdgeEvent)=>void};
+  onUseEvent?:(event:EdgeEvent)=>void;onFireVideo?:(file:File)=>void};
 
-export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent}:Props){
+export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent,onFireVideo}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [camera,setCamera]=React.useState('CAM-DEMO-01');
   const [latitude,setLatitude]=React.useState('');
@@ -94,7 +94,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     </div>
 
 
-    <AutoCapturesPanel onEvent={onEvent}/>
+    <AutoCapturesPanel onEvent={onEvent} onFireVideo={onFireVideo}/>
 
     <div className="sci-2col">
       <section className="sci-panel">
