@@ -81,10 +81,10 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     </label>;
 
   return <div className="sci-screen">
-    <div className="sci-heading"><div><span className="sci-kicker">PANTHERAEDGE / LOCAL REFLEX / 5G</span>
-      <h2>{tx('PantheraEDGE · Eventos y conectividad','PantheraEDGE · Events and connectivity')}</h2>
-      <p>{tx('Simulación de cámaras, lectura de JSON del nodo y comparación de tiempos de transferencia.',
-        'Camera simulation, node JSON reading and transfer-time comparison.')}</p></div>
+    <div className="sci-heading"><div><span className="sci-kicker">PANTHERALIVE / PANTHERAEDGE ENGINE / 5G</span>
+      <h2>{tx('PantheraLIVE · Cámaras y conectividad','PantheraLIVE · Camera events and connectivity')}</h2>
+      <p>{tx('Eventos de cámaras, enlace con el nodo de campo y comparación de tiempos de transmisión (simulación).',
+        'Camera events, field-node connectivity and transfer-time comparison (simulation).')}</p></div>
       <span className="sci-tag">{tx('EVENTOS DE CAMPO','FIELD EVENTS')}</span></div>
     <div className="sci-inline-info" role="note"><span className="sci-info-dot" aria-hidden="true" />
       <p><strong>{tx('Entorno de integración','Integration environment')}</strong> · {tx(
