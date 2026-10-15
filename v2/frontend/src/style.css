@@ -1253,3 +1253,26 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
 .starlink-actions{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0}
 .starlink-actions button{flex:1 1 180px;min-height:43px}
 @media(max-width:650px){.starlink-status{align-items:flex-start}.starlink-controls .sci-field{min-width:100%}}
+
+/* Discreet scientific authorship and opt-in project contact, including mobile. */
+.panthera-author{margin-top:14px;padding:13px 10px 4px;border-top:1px solid #2c4050;display:flex;flex-direction:column;gap:6px}
+.panthera-author span{font-size:9px;letter-spacing:.11em;font-weight:750;color:#91a6b9}
+.panthera-author strong{font-size:12px;font-weight:650;color:#d8e2ec;line-height:1.45}
+.panthera-author button{border:0;background:none;text-align:left;padding:5px 0;color:#e2bb83;font-size:11px;cursor:pointer}
+.panthera-author button:hover,.panthera-author button:focus-visible{color:#ffdaad;text-decoration:underline}
+.panthera-credits-overlay{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:20px;background:rgba(5,13,22,.78)}
+.panthera-credits-dialog{position:relative;max-width:510px;width:100%;max-height:calc(100dvh - 40px);overflow-y:auto;padding:27px;border:1px solid #465b70;border-radius:17px;background:linear-gradient(150deg,#172739,#122132);color:#e6eff7;box-shadow:0 20px 70px rgba(0,0,0,.4)}
+.panthera-credits-kicker{color:#e5b77b;font-size:10px;letter-spacing:.13em;font-weight:800}
+.panthera-credits-dialog h2{font-size:21px;margin:8px 0 10px;color:#f4f8fb}
+.panthera-credits-dialog>p{font-size:13px;line-height:1.7;color:#bbcad9}
+.panthera-credits-close{position:absolute;right:14px;top:12px;border:1px solid #50657b;border-radius:9px;background:#22364b;color:#eff7ff;font-size:24px;width:36px;height:36px;cursor:pointer}
+.panthera-credits-group{display:flex;flex-direction:column;gap:6px;padding:15px 0;border-top:1px solid #3b5063;border-bottom:1px solid #3b5063}
+.panthera-credits-group span{font-size:10px;letter-spacing:.07em;color:#a7bacb}
+.panthera-credits-group strong{font-size:15px;color:#fff0d8}
+.panthera-credits-group small{font-size:11px;color:#a7bacb}
+.panthera-credits-details{margin-top:10px;border-bottom:1px solid #3b5063;padding:2px 0 10px}
+.panthera-credits-details summary{cursor:pointer;padding:9px 0;font-size:13px;font-weight:700;color:#e0eaf5}
+.panthera-credits-details p{font-size:12px;line-height:1.7;color:#b7cadd}
+.panthera-credits-details a{display:inline-block;padding:9px 13px;margin:5px 0;border:1px solid #c69361;border-radius:9px;color:#ffe2b8;background:#493b33;font-size:12px;text-decoration:none}
+.panthera-credits-details a:hover{background:#5b4638}
+@media(max-width:800px){.panthera-author{min-width:210px;margin-top:0;border-top:0;border-left:1px solid #345066;padding:6px 12px}.panthera-credits-dialog{padding:22px}}
