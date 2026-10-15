@@ -1,4 +1,5 @@
 import React from 'react';
+import SensePanel from './SensePanel';
 import {useLanguage} from './language';
 import {EdgeEvent,Observation,apiJson,downloadFile,toCsv} from './scienceShared';
 
@@ -91,6 +92,8 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         'Los eventos de prueba y los recibidos por JSON se conservan en esta sesión. La conexión automática a dispositivos físicos y la sincronización en nube aún no están habilitadas.',
         'Test events and imported JSON events are retained in this session. Automatic field-device connections and cloud synchronization are not enabled.')}</p>
     </div>
+
+    <SensePanel />
 
     <div className="sci-2col">
       <section className="sci-panel">
