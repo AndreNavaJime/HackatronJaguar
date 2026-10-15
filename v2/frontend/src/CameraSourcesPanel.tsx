@@ -45,6 +45,8 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
   const streamRef=React.useRef<MediaStream|null>(null);
   const tick=React.useRef(0);
   const mounted=React.useRef(true);
+  const enabledRef=React.useRef(enabled);
+  enabledRef.current=enabled;
   const lock=React.useRef(false);
   const lastClassTime=React.useRef<Record<string,number>>({});
   const demoRef=React.useRef<ReturnType<typeof window.setInterval>|null>(null);
@@ -55,6 +57,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
     streamRef.current=null;
     if(videoRef.current)videoRef.current.srcObject=null;
     setWebcamRunning(false);setAnalyzeEnabled(false);setAnalysisStatus('');
+    setPermission(false);setRecognition(null);
   },[]);
   const stopDemo=React.useCallback(()=>{
     if(demoRef.current!==null){window.clearInterval(demoRef.current);demoRef.current=null;}
@@ -131,7 +134,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
       const stream=await navigator.mediaDevices.getUserMedia({
         audio:false,video:{width:{ideal:640},height:{ideal:360},facingMode:{ideal:'environment'}}
       });
-      if(!mounted.current||!enabled){stream.getTracks().forEach(t=>t.stop());return;}
+      if(!mounted.current||!enabledRef.current){stream.getTracks().forEach(t=>t.stop());return;}
       streamRef.current=stream;
       setMode('device');setWebcamRunning(true);
       if(videoRef.current){
