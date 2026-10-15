@@ -103,7 +103,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
     setMode('virtual');setVirtualRunning(true);
     // Deliberate demonstration sequence: no imagery and NO ML inference.
     const sequence:('empty'|'animal'|'empty'|'person'|'empty'|'smoke'|'empty'|'flame')[]=
-      ['empty','animal','empty','person','empty','smoke','empty','flame'];
+      ['animal','empty','smoke','empty','person','empty','flame','empty'];
     function step(){
       const kind=sequence[tick.current%sequence.length];
       tick.current++;
@@ -254,8 +254,8 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
             {tx('Ver avisos en PantheraFIRE ↗','View PantheraFIRE events ↗')}</button>
         </div>
         <p className="sci-muted">{tx(
-          'La simulación produce eventos cada pocos segundos, incluidos momentos sin evento. No ejecuta IA, no simula imágenes de jaguares, no avisa a emergencias y no genera evidencias científicas.',
-          'The simulation emits periodic events, including no-event intervals. It runs no AI, creates no jaguar imagery, sends no emergency notifications and produces no scientific evidence.')}</p>
+          'La simulación produce eventos cada pocos segundos, incluidos momentos sin evento. No ejecuta IA, no simula imágenes de jaguares, no avisa a emergencias y no genera evidencias científicas. Detectar una persona no implica caza furtiva.',
+          'The simulation emits periodic events, including no-event intervals. It runs no AI, creates no jaguar imagery, sends no emergency notifications and produces no scientific evidence. A person event never means poaching.')}</p>
         {virtualCount>0&&<p className="sci-notice">{virtualCount} {tx('eventos de demostración emitidos','demonstration events emitted')}</p>}
       </div>
     </div>:<div className="camera-source-body">
