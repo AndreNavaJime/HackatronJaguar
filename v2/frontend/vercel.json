@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://pantheraid-backend.onrender.com/api/:path*"
+      "destination": "https://pantherasense-backend-test.onrender.com/api/:path*"
     }
   ]
 }
