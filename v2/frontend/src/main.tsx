@@ -68,6 +68,7 @@ function photoPreviewJpeg(file:File):Promise<string>{
 function App() {
   const { language, setLanguage, t } = useLanguage();
   const [section, setSection] = React.useState('Resumen');
+  const [showCredits,setShowCredits]=React.useState(false);
   const [apiState, setApiState] = React.useState<ApiState>('checking');
   const [aiAvailable, setAiAvailable] = React.useState(false);
   const [liteAvailable, setLiteAvailable] = React.useState(false);
@@ -242,6 +243,13 @@ function App() {
         <span className="sidebar-connection-dot" aria-hidden="true" />
         <div><strong>Panthera API</strong><small>{t(apiState==='connected'?'En línea':apiState==='checking'?'Verificando…':'Sin conexión')}</small></div>
       </div>
+      <div className="panthera-author">
+        <span>{language==='en'?'PROJECT CONCEPT & PROTOTYPE':'CONCEPTO Y PROTOTIPO'}</span>
+        <strong>Andrea Navarro Jiménez</strong>
+        <button type="button" onClick={()=>setShowCredits(true)}>
+          {language==='en'?'Credits & contact':'Créditos y contacto'} ↗
+        </button>
+      </div>
       <small className="sidebar-footer">PANTHERALAB / V2.0<br />{language==='en'?'SCIENTIFIC MONITORING':'MONITOREO CIENTÍFICO'}</small>
     </aside>
     <main>
@@ -339,6 +347,39 @@ function App() {
         </button>
       </div>
     </main>
+    {showCredits&&<div className="panthera-credits-overlay"
+      onMouseDown={event=>{if(event.target===event.currentTarget)setShowCredits(false);}}>
+      <section className="panthera-credits-dialog" role="dialog" aria-modal="true"
+        aria-labelledby="panthera-credits-title">
+        <button type="button" className="panthera-credits-close" autoFocus
+          onClick={()=>setShowCredits(false)} aria-label={language==='en'?'Close':'Cerrar'}>×</button>
+        <span className="panthera-credits-kicker">PANTHERALAB / 2026</span>
+        <h2 id="panthera-credits-title">{language==='en'?'About the project':'Acerca del proyecto'}</h2>
+        <p>{language==='en'
+          ?'Experimental biodiversity conservation platform integrating field events, satellite context and clearly labeled simulations.'
+          :'Plataforma experimental para la conservación de la biodiversidad, con eventos de campo, contexto satelital y simulaciones identificadas.'}</p>
+        <div className="panthera-credits-group">
+          <span>{language==='en'?'CONCEPT AND PROTOTYPE DEVELOPMENT':'CONCEPTO Y DESARROLLO DEL PROTOTIPO'}</span>
+          <strong>Andrea Navarro Jiménez</strong>
+          <small>Costa Rica · 2026</small>
+        </div>
+        <details className="panthera-credits-details">
+          <summary>{language==='en'?'Professional contact':'Contacto profesional'}</summary>
+          <p>{language==='en'?'For collaboration or project inquiries:':'Para colaboraciones o consultas sobre el proyecto:'}</p>
+          <a href="mailto:andrenavarrojime@gmail.com?subject=Consulta%20sobre%20PantheraLAB">
+            {language==='en'?'Send an email ↗':'Enviar correo ↗'}</a>
+        </details>
+        <details className="panthera-credits-details">
+          <summary>{language==='en'?'Technologies and acknowledgments':'Tecnologías y reconocimientos'}</summary>
+          <p>{language==='en'
+            ?'The prototype uses external tools and services, including open-source software, Copernicus/Sentinel data and connectivity simulations. Third-party licenses, credits and contributions remain independent.'
+            :'El prototipo utiliza herramientas y servicios externos, incluidos programas de código abierto, datos Copernicus/Sentinel y simulaciones de conectividad. Las licencias, créditos y contribuciones de terceros deben reconocerse por separado.'}</p>
+          <p>{language==='en'
+            ?'Experimental features are not validated field monitoring or operational emergency services.'
+            :'Las funciones experimentales no constituyen monitoreo de campo validado ni servicios operativos de emergencia.'}</p>
+        </details>
+      </section>
+    </div>}
   </div>;
 }
 
