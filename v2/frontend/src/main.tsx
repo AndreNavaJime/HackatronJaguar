@@ -12,9 +12,9 @@ import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
 
-const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'Investigación', 'PantheraFIRE'];
+const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraEDGE', 'PantheraSENSE', 'Investigación', 'PantheraFIRE'];
 const sectionSymbols: Record<string, string> = {
-  Resumen: '◈', PantheraID: '◎', PantheraMONITORING: '▦', PantheraEDGE: '⌁', PantheraFIRE: '♨', Investigación: '✦',
+  Resumen: '◈', PantheraID: '◎', PantheraMONITORING: '▦', PantheraEDGE: '⌁', PantheraSENSE: '◉', PantheraFIRE: '♨', Investigación: '✦',
 };
 type ApiState = 'checking' | 'connected' | 'disconnected';
 type ImageResult = {
@@ -205,7 +205,8 @@ function App() {
       const entry=labels[registryTab]||labels.projects;
       return en?entry[1]:entry[0];
     }
-    if(section==='PantheraEDGE')return en?'Next: explore research':'Siguiente: explorar investigación';
+    if(section==='PantheraEDGE')return en?'Next: environmental sensors':'Siguiente: sensores ambientales';
+    if(section==='PantheraSENSE')return en?'Next: explore research':'Siguiente: explorar investigación';
     if(section==='Investigación')return en?'Next: review environmental alerts':'Siguiente: revisar alertas ambientales';
     return en?'Next: consolidated report':'Siguiente: informe integral';
   })();
@@ -219,7 +220,8 @@ function App() {
       return;
     }
     if(section==='PantheraMONITORING'){setMonitorNextRequest(n=>n+1);return;}
-    if(section==='PantheraEDGE'){setSection('Investigación');return;}
+    if(section==='PantheraEDGE'){setSection('PantheraSENSE');return;}
+    if(section==='PantheraSENSE'){setSection('Investigación');return;}
     if(section==='Investigación'){setSection('PantheraFIRE');return;}
     setSection('Resumen');
   }
