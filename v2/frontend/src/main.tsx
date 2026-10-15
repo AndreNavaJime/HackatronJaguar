@@ -243,13 +243,6 @@ function App() {
         <span className="sidebar-connection-dot" aria-hidden="true" />
         <div><strong>Panthera API</strong><small>{t(apiState==='connected'?'En línea':apiState==='checking'?'Verificando…':'Sin conexión')}</small></div>
       </div>
-      <div className="panthera-author">
-        <span>{language==='en'?'PROJECT CONCEPT & PROTOTYPE':'CONCEPTO Y PROTOTIPO'}</span>
-        <strong>Andrea Navarro Jiménez</strong>
-        <button type="button" onClick={()=>setShowCredits(true)}>
-          {language==='en'?'Credits & contact':'Créditos y contacto'} ↗
-        </button>
-      </div>
       <small className="sidebar-footer">PANTHERALAB / V2.0<br />{language==='en'?'SCIENTIFIC MONITORING':'MONITOREO CIENTÍFICO'}</small>
     </aside>
     <main>
@@ -346,6 +339,13 @@ function App() {
           <span>{workflowLabel}</span><span aria-hidden="true">→</span>
         </button>
       </div>
+      <footer className="panthera-bottom-credit">
+        <span>{language==='en'?'CONCEPT & PROTOTYPE':'CONCEPTO Y PROTOTIPO'}</span>
+        <strong>Andrea Navarro Jiménez</strong>
+        <button type="button" onClick={()=>setShowCredits(true)}>
+          {language==='en'?'Credits & contact':'Créditos y contacto'} ↗
+        </button>
+      </footer>
     </main>
     {showCredits&&<div className="panthera-credits-overlay"
       onMouseDown={event=>{if(event.target===event.currentTarget)setShowCredits(false);}}>
