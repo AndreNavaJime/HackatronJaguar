@@ -18,7 +18,7 @@ type Job={
   state:'uploading'|'processing'|'completed'|'failed';
   stage:string;processed:number;total:number;error:string|null;result:VideoResult|null;
 };
-type ReviewState='accepted'|'discarded';
+type ReviewState='accepted'|'discarded'|'human_review';
 type Props={onEvent:(event:EdgeEvent)=>void};
 
 const MAX_SIZE=250*1024*1024;
@@ -297,7 +297,7 @@ export default function AutoCapturesPanel({onEvent}:Props){
           return <article key={frame.sample} className="auto-event">
             <div className={'auto-frame '+(hasPerson&&!revealed[frame.sample]?'auto-sensitive':'')}>
               {hasPerson&&!revealed[frame.sample]
-                ?<div className="auto-protected"><strong>{tx('Imagen restringida','Restricted image')}</strong>
+                ?<div className="auto-protected"><strong>{tx('Vista previa oculta','Preview hidden')}</strong>
                   <small>{tx('Posible persona detectada','Possible person detected')}</small>
                   <button type="button" className="sci-secondary" onClick={()=>setRevealed(previous=>({...previous,[frame.sample]:true}))}>
                     {tx('Mostrar para revisión','Reveal for review')}</button></div>
@@ -305,7 +305,7 @@ export default function AutoCapturesPanel({onEvent}:Props){
             </div>
             <div className="auto-event-info">
               <div className="auto-event-title"><strong>{tx('Muestra','Sample')} {frame.sample} · {clock(frame.time_seconds)}</strong>
-                <span className="sci-tag">{status==='accepted'?tx('ACEPTADA','ACCEPTED'):status==='discarded'?tx('DESCARTADA','DISCARDED'):tx('PENDIENTE','PENDING')}</span></div>
+                <span className="sci-tag">{status==='accepted'?tx('ACEPTADA','ACCEPTED'):status==='discarded'?tx('DESCARTADA','DISCARDED'):status==='human_review'?tx('REVISIÓN HUMANA','HUMAN REVIEW'):tx('PENDIENTE','PENDING')}</span></div>
               <p className="sci-muted">{hasAnimal?tx('Animal posible','Possible animal')+' · '+frame.counts.animal+' · '+
                 Math.round(highest(frame,'animal')*100)+'%':''}
                 {hasAnimal&&hasPerson?' · ':''}{hasPerson?tx('Persona posible · privacidad','Possible person · privacy')+' · '+frame.counts.person:''}
@@ -318,23 +318,26 @@ export default function AutoCapturesPanel({onEvent}:Props){
                 {hasAnimal&&!hasPerson&&<button type="button" className="action-button"
                   disabled={!!status||busyReview!==null} onClick={()=>void accept(frame)}>
                   {tx('Confirmar animal · enviar evento','Confirm animal · add event')}</button>}
+                {hasPerson&&!status&&<button type="button" className="sci-secondary"
+                  onClick={()=>setReviews(prev=>({...prev,[frame.sample]:'human_review'}))}>
+                  {tx('Marcar presencia humana para revisión','Flag human presence for review')}</button>}
                 {!status&&<button type="button" className="sci-secondary"
                   onClick={()=>setReviews(prev=>({...prev,[frame.sample]:'discarded'}))}>
                   {tx('Descartar muestra','Discard sample')}</button>}
-                {status&&<button type="button" className="sci-inline"
+                {status&&status!=='accepted'&&<button type="button" className="sci-inline"
                   onClick={()=>setReviews(prev=>{const next={...prev};delete next[frame.sample];return next;})}>
                   {tx('Reabrir decisión','Reopen decision')}</button>}
               </div>
               {hasPerson&&<p className="sci-warning">{tx(
-                'Privacidad: no enviar a MONITORING. Si corresponde, eliminá el archivo temporal.',
-                'Privacy: do not send to MONITORING. Delete temporary footage when appropriate.')}</p>}
+                'La detección de una persona no demuestra caza furtiva. Registrá solamente presencia humana, sin acusaciones automáticas. Esta vista oculta la imagen visualmente, pero NO establece seguridad ni permisos de acceso: no subás evidencia sensible al servidor de prueba.',
+                'A person detection does not establish poaching. Flag human presence only, without automatic accusations. The preview is merely visually hidden and is NOT access control: do not upload sensitive evidence to this test server.')}</p>}
             </div>
           </article>;
         })}
       </div>
       <p className="sci-muted">{tx(
-        '«Descartar muestra» solo cambia la decisión de revisión: NO elimina el video original. Usá «Eliminar video y análisis del servidor» al terminar. Los trabajos expiran del servidor temporal aproximadamente una hora después de finalizar; en un servicio público sin autenticación usá únicamente videos de prueba autorizados.',
-        'Discard sample only changes the review decision: it does NOT delete the original video. Use Delete video and analysis from server after review. Jobs expire from the temporary server about one hour after completion; only authorized test footage belongs on a public service without authentication.')}</p>
+        '«Descartar muestra» solo cambia una anotación y no borra el video. «Marcar presencia humana» tampoco envía denuncias ni preserva pruebas. Conservá evidencia sensible únicamente en un sistema autorizado y seguro. El servidor experimental no tiene autenticación: usá solo videos de prueba autorizados y borrá el análisis temporal al terminar.',
+        'Discard sample changes only a review annotation and does not delete the video. Flag human presence neither sends reports nor preserves evidence. Sensitive footage requires an authorized secure system. This experimental server has no authentication: use authorized test videos only and delete temporary analysis when finished.')}</p>
     </div>}
   </section>;
 }
