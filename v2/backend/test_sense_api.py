@@ -69,6 +69,7 @@ def test_valid_telemetry_is_visible_but_temporary():
     assert recent["latest"]["temperature_c"] == 24.0
     assert recent["latest"]["humidity_pct"] == 40
     assert recent["latest"]["simulation"] is True
+    assert recent["latest"]["gas_alert"] is False  # Legacy Wokwi is compatible.
     assert len(recent["history"]) == 1
 
 
@@ -81,12 +82,37 @@ def test_valid_telemetry_is_visible_but_temporary():
     {"reading_number": -1},
     {"device_id": "../secret"},
     {"latitude": 10.4},
+    {"gas_alert": "not-a-bool"},
 ])
 def test_invalid_or_sensitive_payload_rejected(changes):
     payload = dict(VALID, **changes)
     response = client.post("/api/sense/ingest", json=payload,
                            headers={"X-PantheraSense-Key": KEY})
     assert response.status_code == 422, response.text
+
+
+def test_mq2_simulated_gas_signal_reaches_dashboard():
+    payload = dict(VALID, gas_alert=True)
+    response = client.post("/api/sense/ingest", json=payload,
+                           headers={"X-PantheraSense-Key": KEY})
+    assert response.status_code == 202
+    data = client.get("/api/sense/latest").json()
+    assert data["source"] == "wokwi_virtual"
+    assert data["simulation"] is True
+    assert data["latest"]["gas_alert"] is True
+    assert data["history"][0]["gas_alert"] is True
+    assert "fire_confirmed" not in data["latest"]
+    assert "latitude" not in data["latest"]
+
+
+def test_next_normal_message_clears_gas_signal():
+    for n, alarm in [(1, True), (2, False)]:
+        payload = dict(VALID, reading_number=n, gas_alert=alarm)
+        assert client.post("/api/sense/ingest", json=payload,
+                           headers={"X-PantheraSense-Key": KEY}).status_code == 202
+    data = client.get("/api/sense/latest").json()
+    assert data["latest"]["gas_alert"] is False
+    assert data["history"][-2]["gas_alert"] is True
 
 
 def test_oversize_json_rejected():
