@@ -12,6 +12,8 @@ from __future__ import annotations
 import json
 import logging
 import math
+import time
+from threading import Lock
 from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -28,6 +30,9 @@ EARTH_SEARCH = "https://earth-search.aws.element84.com/v1/search"
 S2_COLLECTION = "sentinel-2-c1-l2a"
 WORLD_COVER_BASE = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/"
 SIZE = 96
+_analysis_lock = Lock()
+_last_analysis_at = 0.0
+MIN_ANALYSIS_INTERVAL = 45.0  # global demo throttle; protect the free Render instance
 WORLD_COVER_CLASSES = (10,)
 VALID_SCL_CLASSES = (4, 5, 7)  # vegetation, bare soil, unclassified; no water/cloud/shadow
 
@@ -301,4 +306,14 @@ def _analyze(q: VegetationQuery):
 
 @router.post("/analyze")
 async def analyze_vegetation(query: VegetationQuery):
-    return await run_in_threadpool(_analyze, query)
+    global _last_analysis_at
+    if not _analysis_lock.acquire(blocking=False):
+        raise HTTPException(429, "Ya se está procesando una consulta satelital. Esperá a que termine.")
+    try:
+        now = time.monotonic()
+        if now - _last_analysis_at < MIN_ANALYSIS_INTERVAL:
+            raise HTTPException(429, "Esperá 45 segundos entre consultas satelitales en el servidor gratuito.")
+        _last_analysis_at = now
+        return await run_in_threadpool(_analyze, query)
+    finally:
+        _analysis_lock.release()
