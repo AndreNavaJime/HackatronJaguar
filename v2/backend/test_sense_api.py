@@ -69,7 +69,7 @@ def test_valid_telemetry_is_visible_but_temporary():
     assert recent["latest"]["temperature_c"] == 24.0
     assert recent["latest"]["humidity_pct"] == 40
     assert recent["latest"]["simulation"] is True
-    assert recent["latest"]["gas_alert"] is False  # Legacy Wokwi is compatible.
+    assert recent["latest"]["gas_alert"] is None  # Legacy DHT22-only firmware has no MQ-2.
     assert len(recent["history"]) == 1
 
 
