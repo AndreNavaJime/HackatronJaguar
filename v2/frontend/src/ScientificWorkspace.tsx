@@ -86,6 +86,7 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       {persistError&&<p className="sci-warning" role="alert">{tx(
         'No fue posible guardar cambios en este navegador. Exportá un respaldo privado antes de salir.',
         'Could not save changes in this browser. Export a private backup before leaving.')}</p>}
+      <AIResultsPanel />
       <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
         onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
         onClearEvidence={onClearEvidence} reportRequested={openReport}
@@ -95,7 +96,6 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     </div>
     <div style={{display:section==='PantheraMONITORING'?'block':'none'}}>
       <ScientificRecordsPanel records={records} onOpenReports={()=>setOpenReport(true)}/>
-      <AIResultsPanel />
     </div>
     <div style={{display:section==='PantheraLIVE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
