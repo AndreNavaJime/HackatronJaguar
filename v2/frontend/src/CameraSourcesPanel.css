@@ -71,7 +71,7 @@
 .edge-network-body>p{margin:0}
 .camera-modes button{flex:1 1 auto}
 @media(max-width:640px){
-  .camera-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .camera-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .camera-modes button{padding:10px 5px;font-size:11px;white-space:normal}
   .live-event-card{align-items:stretch}
   .live-event-actions{width:100%}
