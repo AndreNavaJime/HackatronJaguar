@@ -30,3 +30,20 @@ Los pesos se descargan la primera vez, sujetos a la disponibilidad y licencias d
 **Pendiente:** pruebas reales de instalación e inferencia en Colab, capacidad de cómputo dedicada, autenticación, transferencia segura y almacenamiento de clips de interés. Nada de esto se considera desplegado ni validado automáticamente.
 
 Fuentes: [MegaDetector](https://github.com/microsoft/MegaDetector) y [SpeciesNet](https://github.com/google/cameratrapai).
+
+## Importar resultados reales en PantheraLAB / Vercel
+
+La rama experimental `pantherasense-integration` incorpora el componente `v2/frontend/src/AIResultsPanel.tsx` en la parte superior de **PantheraMONITORING**.
+
+1. Ejecutar [el cuaderno Colab](https://colab.research.google.com/github/AndreNavaJime/HackatronJaguar/blob/pantherasense-integration/notebooks/PantheraLAB_IA_Real_Colab.ipynb), con GPU para SAM 2.
+2. Descargar `resultado_pantheralab.json` (y opcionalmente la imagen anotada, comparación visual y máscaras).
+3. Abrir la versión **experimental actualizada** de PantheraLAB y entrar en **PantheraMONITORING → Laboratorio de IA → Importar resultado JSON**.
+4. Se muestran la detección de MegaDetector, la región LR-ASPP, máscaras SAM 2 y las propuestas taxonómicas de SpeciesNet; los resultados pueden revisarse y exportarse a CSV/JSON. También se pueden abrir imágenes locales por separado.
+5. **Importante:** el JSON y las imágenes son archivos distintos; el panel no comprueba automáticamente que correspondan al mismo análisis. Registrar la cámara real, nombre del revisor y especie confirmada solo cuando la evidencia lo respalde.
+
+**Arquitectura:** GitHub contiene el cuaderno y frontend; Google Colab ejecuta inferencia temporalmente; Vercel aloja el frontend; Render sirve la API experimental separada. No existe conexión permanente desde Vercel a una sesión gratuita de Colab ni se ejecuta SAM 2 en Render free.
+
+**Persistencia:** informes importados guardados exclusivamente como metadatos en `sessionStorage` del navegador (máx. 20 por sesión); no se guardan ni suben imágenes. Los campos revisados tampoco se incorporan automáticamente al registro oficial del estudio. Exportar como respaldo antes de cerrar la pestaña y volver a importar cuando sea necesario.
+
+**Estado del despliegue (16-oct-2026):** el código experimental ya contiene el panel, pero Vercel devolvió `402 api-deployments-free-per-day` y bloqueó una nueva publicación. El enlace de vista previa existente puede servir una versión anterior hasta que haya un despliegue READY del commit actual. No confundir código guardado en GitHub con una aplicación ya publicada.
+
