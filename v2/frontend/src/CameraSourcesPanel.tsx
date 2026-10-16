@@ -11,15 +11,15 @@ type Props={
 type Capability='checking'|'ready'|'missing'|'unreachable';
 type Recognition={animals:number;persons:number;vehicles:number;at:string};
 
-function newEvent(camera:string,kind:'animal'|'person',source:string,confidence:number|null,simulation:boolean):EdgeEvent{
+function newEvent(camera:string,kind:'animal'|'person',source:string,confidence:number|null):EdgeEvent{
   const at=new Date().toISOString();
   return {
     event_id:'LIVE-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,7).toUpperCase(),
     camera_id:camera,timestamp:at,event:'camera_detection_candidate',
     contract_version:'panthera-v1.0',latitude:null,longitude:null,altitude:null,
     temperature:null,humidity:null,class:kind,confidence,
-    image_url:'',clip_url:'',transport:simulation?'virtual_event_engine':'browser_frame_review',
-    hmac_status:'NOT_CONFIGURED',source,status:simulation?'SIMULATED':'PENDING_REVIEW',
+    image_url:'',clip_url:'',transport:'browser_frame_review',
+    hmac_status:'NOT_CONFIGURED',source,status:'PENDING_REVIEW',
   };
 }
 
@@ -28,10 +28,6 @@ function parseError(e:unknown){return e instanceof Error?e.message:String(e);}
 export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
-  const [virtualRunning,setVirtualRunning]=React.useState(false);
-  const [virtualLast,setVirtualLast]=React.useState('');
-  const [virtualCount,setVirtualCount]=React.useState(0);
-  const [cameraId,setCameraId]=React.useState('CAM-VIRTUAL-01');
   const [whepUrl,setWhepUrl]=React.useState('');
   const [webcamRunning,setWebcamRunning]=React.useState(false);
   const [cameraProblem,setCameraProblem]=React.useState('');
@@ -44,15 +40,13 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const videoRef=React.useRef<HTMLVideoElement>(null);
   const streamRef=React.useRef<MediaStream|null>(null);
   const peerRef=React.useRef<RTCPeerConnection|null>(null);
-  const tick=React.useRef(0);
   const mounted=React.useRef(true);
   const enabledRef=React.useRef(enabled);
   enabledRef.current=enabled;
-  const modeRef=React.useRef<'virtual'|'device'|'remote'>('device');
+  const modeRef=React.useRef<'device'|'remote'>('remote');
   const lock=React.useRef(false);
   const lastClassTime=React.useRef<Record<string,number>>({});
-  const demoRef=React.useRef<ReturnType<typeof window.setInterval>|null>(null);
-  const [mode,setMode]=React.useState<'virtual'|'device'|'remote'>('device');
+  const [mode,setMode]=React.useState<'device'|'remote'>('remote');
 
   const stopCamera=React.useCallback(()=>{
     peerRef.current?.close();peerRef.current=null;
@@ -62,24 +56,19 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
     setWebcamRunning(false);setAnalyzeEnabled(false);setAnalysisStatus('');
     setPermission(false);setRecognition(null);setSpecies([]);
   },[]);
-  const stopDemo=React.useCallback(()=>{
-    if(demoRef.current!==null){window.clearInterval(demoRef.current);demoRef.current=null;}
-    setVirtualRunning(false);
-  },[]);
-
   React.useEffect(()=>{
     mounted.current=true;
-    return ()=>{mounted.current=false;stopDemo();stopCamera();};
-  },[stopDemo,stopCamera]);
+    return ()=>{mounted.current=false;stopCamera();};
+  },[stopCamera]);
   React.useEffect(()=>{
-    if(!enabled){stopDemo();stopCamera();}
-  },[enabled,stopDemo,stopCamera]);
+    if(!enabled)stopCamera();
+  },[enabled,stopCamera]);
 
   React.useEffect(()=>{
-    const onVisibility=()=>{if(document.hidden){stopDemo();stopCamera();}};
+    const onVisibility=()=>{if(document.hidden)stopCamera();};
     document.addEventListener('visibilitychange',onVisibility);
     return ()=>document.removeEventListener('visibilitychange',onVisibility);
-  },[stopDemo,stopCamera]);
+  },[stopCamera]);
 
   React.useEffect(()=>{
     const controller=new AbortController();
@@ -98,32 +87,8 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
     return ()=>controller.abort();
   },[]);
 
-  function startDemo(){
-    stopCamera();stopDemo();
-    tick.current=0;setVirtualCount(0);setVirtualLast(tx('Esperando eventos…','Waiting for events…'));
-    modeRef.current='virtual';
-    setMode('virtual');setVirtualRunning(true);
-    // Deliberate demonstration sequence: no imagery and NO ML inference.
-    // Synthetic wildlife/person events for the review workflow; no fire here.
-    const sequence:('empty'|'animal'|'person')[]=['animal','empty','person','empty'];
-    function step(){
-      const kind=sequence[tick.current%sequence.length];
-      tick.current++;
-      if(kind==='empty'){
-        setVirtualLast(tx('Sin evento · no se conserva video','No event · no footage stored'));
-        return;
-      }
-      setVirtualCount(v=>v+1);
-      const camera=cameraId.trim().slice(0,80)||'CAM-VIRTUAL-01';
-      onEvent(newEvent(camera,kind,'camera_virtual_simulation',null,true));
-      setVirtualLast(kind==='animal'?tx('DEMO · Animal · evento en LIVE','DEMO · Animal · LIVE event')
-        :tx('DEMO · Persona · revisión restringida','DEMO · Person · private review'));
-    }
-    step();demoRef.current=window.setInterval(step,4500);
-  }
-
   async function startCamera(){
-    stopDemo();stopCamera();setCameraProblem('');
+    stopCamera();setCameraProblem('');
     if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){
       setCameraProblem(tx('El acceso a cámara requiere HTTPS o localhost y un navegador compatible.',
         'Camera access requires HTTPS or localhost and a supported browser.'));
@@ -150,7 +115,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   }
 
   async function startRemote(){
-    stopDemo();stopCamera();setCameraProblem('');
+    stopCamera();setCameraProblem('');
     try{
       const remote=await connectWhep(whepUrl.trim());
       if(!mounted.current||!enabledRef.current||modeRef.current!=='remote'){
@@ -208,7 +173,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
             const best=Array.isArray(payload.detections)
               ?Math.max(0,...payload.detections.filter((d:any)=>d.class_name===kind)
                 .map((d:any)=>typeof d.confidence==='number'?d.confidence:0)):0;
-            onEvent(newEvent(camera,kind,'browser_camera_megadetector_opt_in',best||null,false));
+            onEvent(newEvent(camera,kind,'browser_camera_megadetector_opt_in',best||null));
           }
         }
       }catch(e){
@@ -232,59 +197,39 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
       'Wildlife detection available. SpeciesNet suggests species if its model is configured.');
   return <section className="sci-panel camera-sources" aria-label={tx('Centro de cámaras','Camera center')}>
     <div className="sci-panel-head">
-      <h3>{tx('Cámara de fauna','Wildlife camera')}</h3>
+      <h3>{tx('Conexión de cámaras de fauna','Wildlife camera connection')}</h3>
       <span className="sci-tag">{tx('EN PRUEBAS','IN TESTING')}</span>
     </div>
-    <div className="camera-modes">
-      <button type="button" aria-pressed={mode==='device'} className={mode==='device'?'active':''}
-        onClick={()=>{modeRef.current='device';stopDemo();stopCamera();setMode('device');}}>{tx('Este dispositivo','This device')}</button>
+    <div className="camera-modes" role="group" aria-label={tx('Tipo de cámara','Camera type')}>
       <button type="button" aria-pressed={mode==='remote'} className={mode==='remote'?'active':''}
-        onClick={()=>{modeRef.current='remote';stopDemo();stopCamera();setMode('remote');}}>{tx('WebRTC · IP','WebRTC · IP')}</button>
-      <button type="button" aria-pressed={mode==='virtual'} className={mode==='virtual'?'active':''}
-        onClick={()=>{modeRef.current='virtual';stopCamera();stopDemo();setMode('virtual');}}>{tx('Simulación','Simulation')}</button>
+        onClick={()=>{modeRef.current='remote';stopCamera();setMode('remote');}}>
+        {tx('Cámara de campo','Field camera')}</button>
+      <button type="button" aria-pressed={mode==='device'} className={mode==='device'?'active':''}
+        onClick={()=>{modeRef.current='device';stopCamera();setMode('device');}}>
+        {tx('Cámara local','Local camera')}</button>
     </div>
-    {mode==='virtual'?<div className="camera-source-body">
-      <div className="camera-virtual-scene">
-        <div className="camera-live-light"><i className={virtualRunning?'on':''}/>{virtualRunning?tx('EMULANDO EVENTOS','SIMULATING EVENTS'):tx('EN ESPERA','STANDBY')}</div>
-        <strong>CAM · PantheraLAB</strong>
-        <span>{virtualRunning?virtualLast:tx('Fuente de eventos virtuales · no contiene imágenes reales',
-          'Virtual event source · no real imagery')}</span>
-        <small>{tx('Fauna y personas → PantheraLIVE','Wildlife and people → PantheraLIVE')}</small>
-      </div>
-      <div className="camera-source-controls">
-        <label className="sci-field"><span>{tx('ID de cámara virtual','Virtual camera ID')}</span>
-          <input value={cameraId} maxLength={80} disabled={virtualRunning}
-            onChange={e=>setCameraId(e.target.value)}/></label>
-        <div className="camera-action-row">
-          {!virtualRunning?<button type="button" className="action-button" onClick={startDemo} disabled={!enabled}>
-            {tx('Iniciar cámara virtual','Start virtual camera')}</button>
-            :<button type="button" className="sci-secondary" onClick={stopDemo}>
-              {tx('Detener simulación','Stop simulation')}</button>}
-        </div>
-        <p className="sci-muted">{tx(
-          'Solo eventos ficticios de fauna y personas. No se genera evidencia científica.',
-          'Fictional wildlife/person events only. No scientific evidence is generated.')}</p>
-        {virtualCount>0&&<p className="sci-notice">{virtualCount} {tx('eventos de demostración emitidos','demonstration events emitted')}</p>}
-      </div>
-    </div>:<div className="camera-source-body">
+    <div className="camera-source-body">
       <div className="camera-device-scene">
         <video ref={videoRef} playsInline autoPlay muted aria-label={tx('Vista previa de cámara','Camera preview')}/>
         {!webcamRunning&&<div className="camera-device-idle"><strong>{tx('Cámara desconectada','Camera disconnected')}</strong>
-          <small>{tx('Conectá para ver el video en vivo.',
-            'Connect to see live video.')}</small></div>}
+          <small>{mode==='remote'
+            ?tx('Conectá una cámara remota para iniciar la transmisión.',
+              'Connect a remote camera to start streaming.')
+            :tx('Activá la cámara del celular o computadora.',
+              'Turn on your phone or computer camera.')}</small></div>}
         <div className="camera-live-light"><i className={webcamRunning?'on':''}/>
-          {webcamRunning?tx('VISTA PREVIA LOCAL','LOCAL PREVIEW'):tx('NO CONECTADA','NOT CONNECTED')}</div>
+          {webcamRunning?tx('CONECTADA','CONNECTED'):tx('NO CONECTADA','NOT CONNECTED')}</div>
       </div>
       <div className="camera-source-controls">
-        {mode==='remote'&&<label className="sci-field"><span>{tx('URL HTTPS · WHEP / go2rtc','HTTPS URL · WHEP / go2rtc')}</span>
+        {mode==='remote'&&<label className="sci-field"><span>{tx('Dirección de la cámara (WHEP HTTPS)','Camera address (WHEP HTTPS)')}</span>
           <input type="url" value={whepUrl} disabled={webcamRunning}
             placeholder="https://servidor.example/api/webrtc?src=camera1"
             onChange={e=>setWhepUrl(e.target.value)} autoComplete="off" spellCheck={false}/></label>}
         <div className="camera-action-row">
           {!webcamRunning?<button type="button" className="action-button" disabled={!enabled||(mode==='remote'&&!whepUrl.trim())}
             onClick={()=>void (mode==='remote'?startRemote():startCamera())}>{mode==='remote'
-              ?tx('Conectar WebRTC','Connect WebRTC')
-              :tx('Conectar cámara','Connect camera')}</button>
+              ?tx('Conectar cámara de campo','Connect field camera')
+              :tx('Activar cámara local','Start local camera')}</button>
             :<button type="button" className="sci-secondary" onClick={stopCamera}>
               {tx('Desconectar','Disconnect')}</button>}
         </div>
@@ -316,6 +261,6 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
             'Preliminary events only; clips are not yet saved.')}</p>
         </div>
       </div>
-    </div>}
+    </div>
   </section>;
 }
