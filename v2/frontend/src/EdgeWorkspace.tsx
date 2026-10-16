@@ -108,8 +108,8 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
       </label>}
       {visibleEvents.length===0?<p className="sci-muted">
         {events.length===0
-          ?tx('Los eventos aparecerán aquí al conectar una cámara o iniciar la demostración.',
-            'Events appear here after connecting a camera or starting the demo.')
+          ?tx('Los eventos llegarán aquí cuando se detecte fauna o presencia humana.',
+            'Events appear here when wildlife or people are detected.')
           :tx('No hay eventos pendientes en pantalla. Podés mostrar los descartados.',
             'No pending events on screen. You can show dismissed ones.')}</p>
       :<div className="live-event-list">
