@@ -100,7 +100,7 @@ export default function FireCameraPanel({onEvent}:Props){
           fireCallback.current({
             id:'FIRE-IA-'+Date.now().toString(36).toUpperCase(),
             camera_id:'CAM-FIRE-LOCAL',recorded_at:new Date().toISOString(),
-            signal:'smoke',source:'pyroengine_browser_camera',
+            signal:'fire',source:'pyroengine_browser_camera',
             confidence:data.confidence,simulation:false,verified:false
           });
         }
