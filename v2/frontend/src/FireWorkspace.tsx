@@ -1,6 +1,6 @@
 import React from 'react';
 import {useLanguage} from './language';
-import FireVisionPanel from './FireVisionPanel';
+import FireCameraPanel from './FireCameraPanel';
 import type {CameraFireCandidate} from './cameraEvents';
 import {loadSession,saveSession} from './scienceShared';
 
@@ -25,8 +25,8 @@ function localDate(raw:string, language:string) {
     date.toLocaleString(language==='en'?'en-US':'es-CR');
 }
 
-export default function FireWorkspace({cameraEvents,onOpenLive}:{
-  cameraEvents:CameraFireCandidate[];onOpenLive:()=>void;
+export default function FireWorkspace({cameraEvents,onFireEvent}:{
+  cameraEvents:CameraFireCandidate[];onFireEvent:(event:CameraFireCandidate)=>void;
 }) {
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
@@ -79,38 +79,39 @@ export default function FireWorkspace({cameraEvents,onOpenLive}:{
       <div>
         <span className="fire-kicker">PANTHERAFIRE / ENVIRONMENTAL ALERTS</span>
         <h2>PantheraFIRE · {tx('Alertas ambientales','Environmental alerts')}</h2>
-        <p>{tx('Centro experimental de señales virtuales de gases, revisión visual local de video y simulacros. Sin detección validada de incendios reales ni notificaciones automáticas.',
-          'Experimental virtual gas monitoring, local video screening and drills. No validated wildfire detection or emergency dispatch.')}</p>
+        <p>{tx('Cámara de incendios, señales ambientales y revisión de indicios.',
+          'Wildfire camera, environmental sensors and candidate review.')}</p>
       </div>
       <span className="fire-pill">{tx('ENTORNO DE SIMULACIÓN','SIMULATION ENVIRONMENT')}</span>
     </div>
 
+    <FireCameraPanel onEvent={onFireEvent}/>
+
     <section className="fire-card camera-fire-inbox" style={{marginBottom:15}}>
       <div className="sci-panel-head">
-        <h3>{tx('Eventos de cámaras · Posible humo o llama','Camera events · Possible smoke or flame')}</h3>
-        <span className="fire-pill">{tx('SOLO DEMOSTRACIÓN','DEMONSTRATION ONLY')}</span>
+        <h3>{tx('Indicios visuales de incendio','Visual fire candidates')}</h3>
+        <span className="fire-pill">{tx('REVISIÓN HUMANA','HUMAN REVIEW')}</span>
       </div>
       <p>{tx(
-        'Aquí llegan los avisos sintéticos de la cámara virtual de PantheraLIVE. No son mediciones de humo, resultados de IA ni reportes de un incendio real.',
-        'This inbox receives synthetic alerts from the PantheraLIVE virtual camera. They are not smoke measurements, AI detections or reports of a real wildfire.')}</p>
-      <div className="fire-control"><button type="button" onClick={onOpenLive}>
-        {tx('Abrir cámara virtual en PantheraLIVE ↗','Open virtual camera in PantheraLIVE ↗')}</button>
-        <span>{cameraEvents.length} {tx('eventos recibidos en la sesión','session events')}</span>
-      </div>
+        'Las pruebas virtuales se distinguen de los posibles indicios analizados por PyroEngine. Ninguno confirma un incendio.',
+        'Virtual tests are labeled separately from PyroEngine model candidates. Neither confirms a wildfire.')}</p>
+      <p className="sci-muted">{cameraEvents.length} {tx('indicios recibidos','candidates received')}</p>
       {cameraEvents.length===0
         ?<p className="sci-muted">{tx(
-          'Sin eventos de cámara. En PantheraLIVE seleccioná «Cámara virtual» y presioná Iniciar.',
-          'No camera events. In PantheraLIVE choose Virtual camera and press Start.')}</p>
+          'Sin indicios. Podés probar la simulación desde la cámara de PantheraFIRE.',
+          'No candidates. Test the simulation from the PantheraFIRE camera.')}</p>
         :<div className="camera-fire-list">
           {cameraEvents.map(item=><div key={item.id} className="camera-fire-entry">
             <div>
-              <strong>{item.signal==='smoke'?tx('Posible humo · DEMO','Possible smoke · DEMO'):
-                tx('Posible llama · DEMO','Possible flame · DEMO')}</strong>
-              <small>{item.camera_id} · {localDate(item.recorded_at,language)} ·
-                {' '}{tx('ubicación no verificada','location not verified')}</small>
+              <strong>{item.simulation
+                ?tx('Simulación de humo','Smoke simulation')
+                :tx('Posible incendio · IA','Possible wildfire · AI')}</strong>
+              <small>{item.camera_id} · {localDate(item.recorded_at,language)}
+                {typeof item.confidence==='number'?' · '+Math.round(item.confidence*100)+'%':''}</small>
               <small>{cameraDecisions[item.id]==='reviewed'?tx('Marcado para verificación humana','Flagged for human review'):
                 cameraDecisions[item.id]==='dismissed'?tx('Descartado en la vista','Dismissed in the view'):
-                tx('Pendiente · evento sintético','Pending · synthetic event')}</small>
+                item.simulation?tx('Pendiente · evento sintético','Pending · synthetic event')
+                :tx('Pendiente · modelo sin validar','Pending · unvalidated model')}</small>
             </div>
             <div className="fire-control">
               <button type="button" onClick={()=>setCameraDecisions(v=>({...v,[item.id]:'reviewed'}))}>
@@ -121,8 +122,8 @@ export default function FireWorkspace({cameraEvents,onOpenLive}:{
           </div>)}
         </div>}
       <p className="fire-note">{tx(
-        'Estos avisos NO activan la alarma ambiental ni se envían al 9-1-1. Para detectar humo de verdad se requiere un modelo especializado y verificación en campo.',
-        'These alerts do NOT activate the environmental alarm or contact emergency services. Real smoke detection requires a dedicated model and field validation.')}</p>
+        'No se notifican automáticamente emergencias. Las predicciones requieren verificación científica y de campo.',
+        'No automatic emergency dispatch. All model predictions require field verification.')}</p>
     </section>
 
     <section className="fire-status" aria-label={tx('Estado de vigilancia','Monitoring status')}>
@@ -191,11 +192,6 @@ export default function FireWorkspace({cameraEvents,onOpenLive}:{
           'The app is not connected to fire dispatch. No alert or drill automatically calls, sends messages, or notifies 9-1-1.')}</div>
       </section>
     </div>
-    <details className="fire-card fire-detail" style={{marginTop:14}}>
-      <summary>{tx('Herramienta opcional · examinar video local sin IA','Optional tool · screen local video without AI')}</summary>
-      <FireVisionPanel/>
-    </details>
-
     <section className="fire-card" style={{marginTop:14}}>
       <h3>{tx('Registro reciente de señales de prueba · Wokwi','Recent simulated signal log · Wokwi')}</h3>
       {recent.length===0?<p>{tx('No hay señales MQ-2 recientes en las lecturas disponibles. Los simulacros manuales no se almacenan como incidentes.',
