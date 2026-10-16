@@ -23,6 +23,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     saveSession('pantheralab_live_review_decisions_v1',reviewDecisions);
   },[reviewDecisions]);
   const [busy,setBusy]=React.useState(false);
+  const [showDiscarded,setShowDiscarded]=React.useState(false);
   const [networkSource,setNetworkSource]=React.useState<'reference'|'measured'>('reference');
   const [rawMB,setRawMB]=React.useState(8);
   const [filteredMB,setFilteredMB]=React.useState(1.2);
@@ -69,6 +70,17 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
   const avoided=Math.max(0,rawMB-filteredMB);
   const reduction=rawMB>0?Math.max(0,100*avoided/rawMB):0;
 
+  const cameraCandidate=(event:EdgeEvent)=>
+    event.source==='camera_virtual_simulation'||event.source==='browser_camera_megadetector_opt_in'
+    ||event.class==='person';
+  const visibleEvents=events.filter(event=>showDiscarded||reviewDecisions[event.event_id]!=='discard');
+  const discardedCount=events.filter(event=>reviewDecisions[event.event_id]==='discard').length;
+  const pendingCount=events.filter(event=>cameraCandidate(event)&&!reviewDecisions[event.event_id]).length;
+  const displayedTime=(iso:string)=>{
+    const parsed=new Date(iso);
+    return Number.isNaN(parsed.getTime())?iso:parsed.toLocaleString(language==='en'?'en-US':'es-CR',
+      {dateStyle:'short',timeStyle:'short'});
+  };
   const numberInput=(label:string,value:number,setter:(n:number)=>void,min:number,max:number,unit:string)=>
     <label className="sci-field"><span>{label} ({unit})</span>
       <input type="number" step="any" min={min} max={max} value={value}
@@ -85,53 +97,88 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
 
     {notice&&<p className="sci-notice" role="status">{notice}</p>}
 
-    <section className="sci-panel">
-      <div className="sci-panel-head"><h3>{tx('Eventos de la sesión','Session events')}</h3>
-        <span className="sci-tag">{events.length} {tx('eventos','events')}</span></div>
-      {events.some(event=>event.source==='camera_virtual_simulation'||event.source==='browser_camera_megadetector_opt_in')&&
-        <p className="sci-muted">{tx('Simulaciones y detecciones sin validar; una persona detectada no implica caza furtiva.',
-          'Simulations and unverified detections; a person detection is not evidence of poaching.')}</p>}
-      {events.length===0?<p className="sci-muted">{tx('Sin eventos. Conectá una cámara o iniciá la simulación.',
-        'No events. Connect a camera or start the simulation.')}</p>:
-      <><div className="sci-table-wrap"><table className="sci-table">
-        <thead><tr><th>ID</th><th>{tx('Cámara','Camera')}</th><th>{tx('Fecha','Time')}</th>
-          <th>HMAC</th><th>{tx('Origen','Source')}</th><th>{tx('Acción','Action')}</th></tr></thead>
-        <tbody>{events.map((event,i)=><tr key={event.event_id+'-'+i}>
-          <td>{event.event_id}</td><td>{event.camera_id}</td><td>{event.timestamp}</td>
-          <td>{event.hmac_status}</td><td>{event.source}</td>
-          <td>{(event.source==='camera_virtual_simulation'||event.source==='browser_camera_megadetector_opt_in'
-                ||event.class==='person')
-              ?<div className="camera-review-controls">
-                  <span className="sci-muted">{reviewDecisions[event.event_id]==='review'
-                    ?tx('Marcado para revisar','Marked for review')
-                    :reviewDecisions[event.event_id]==='discard'
-                      ?tx('Descartado visualmente','Dismissed visually')
-                      :tx('Sin validar','Not reviewed')}</span>
-                  <button className="sci-inline" type="button"
-                    onClick={()=>setReviewDecisions(v=>({...v,[event.event_id]:'review'}))}>
-                    {tx('Revisar','Review')}</button>
-                  <button className="sci-inline" type="button"
-                    onClick={()=>setReviewDecisions(v=>({...v,[event.event_id]:'discard'}))}>
-                    {tx('Descartar','Dismiss')}</button>
-                </div>
-              :<button className="sci-inline" type="button" onClick={()=>{
-            setCurrent({...current,camera_id:event.camera_id,
-              camera_latitude:event.latitude,camera_longitude:event.longitude,
-              altitude_m:event.altitude,temperature_c:event.temperature,
-              humidity_percent:event.humidity,edge_event_id:event.event_id});
-            onUseEvent?.(event);
-            setNotice(tx('Metadatos enviados a PantheraMONITORING. Vinculá el evento con una estación y revisá los datos.',
-              'Metadata sent to PantheraMONITORING. Link the event to a deployment and review it.'));
-          }}>{tx('Usar en MONITORING','Send to MONITORING')}</button>}</td></tr>)}</tbody>
-      </table></div>
-      <details className="method-details edge-exports"><summary>{tx('Exportaciones técnicas · JSON y CSV','Technical exports · JSON and CSV')}</summary><div className="sci-actions">
-        <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.json',
-          JSON.stringify(events.map(event=>({...event,
-            manual_review:reviewDecisions[event.event_id]||'not_reviewed',
-            species_verified:false})),null,2),'application/json')}>JSON ↓</button>
-        <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.csv',
-          toCsv(events as unknown as Record<string,unknown>[]),'text/csv')}>CSV ↓</button>
-      </div></details></>}
+    <section className="sci-panel live-events">
+      <div className="sci-panel-head">
+        <h3>{tx('Eventos por revisar','Events for review')}</h3>
+        <span className="sci-tag">{pendingCount} {tx('pendientes','pending')}</span>
+      </div>
+      {discardedCount>0&&<label className="live-show-discarded">
+        <input type="checkbox" checked={showDiscarded} onChange={e=>setShowDiscarded(e.target.checked)}/>
+        {tx('Mostrar descartados','Show dismissed')} ({discardedCount})
+      </label>}
+      {visibleEvents.length===0?<p className="sci-muted">
+        {events.length===0
+          ?tx('Los eventos aparecerán aquí al conectar una cámara o iniciar la demostración.',
+            'Events appear here after connecting a camera or starting the demo.')
+          :tx('No hay eventos pendientes en pantalla. Podés mostrar los descartados.',
+            'No pending events on screen. You can show dismissed ones.')}</p>
+      :<div className="live-event-list">
+        {visibleEvents.map((event,i)=>{
+          const candidate=cameraCandidate(event);
+          const simulated=event.source==='camera_virtual_simulation';
+          const label=event.class==='person'?tx('Persona','Person'):
+            event.class==='animal'?tx('Posible animal','Possible animal'):
+            tx('Evento recibido','Incoming event');
+          const decision=reviewDecisions[event.event_id];
+          return <article className="live-event-card" key={event.event_id+'-'+i}>
+            <div className="live-event-main">
+              <div className="live-event-heading">
+                <strong>{label}</strong>
+                <span className={'live-event-badge'+(simulated?' simulation':'')}>
+                  {simulated?tx('SIMULACIÓN','SIMULATION'):candidate?tx('SIN VALIDAR','UNVERIFIED'):tx('IMPORTADO','IMPORTED')}
+                </span>
+              </div>
+              <div className="live-event-meta">
+                <span>{event.camera_id}</span>
+                <span>{displayedTime(event.timestamp)}</span>
+                {typeof event.confidence==='number'&&event.confidence>0&&
+                  <span>{Math.round(event.confidence*100)}% {tx('del detector','detector score')}</span>}
+              </div>
+              {decision&&<span className="live-event-decision">
+                {decision==='review'?tx('Marcado para revisión científica','Flagged for scientific review'):
+                  tx('Descartado de la bandeja','Dismissed from queue')}
+              </span>}
+            </div>
+            <div className="live-event-actions">
+              {candidate?<>
+                <button type="button" className="sci-secondary" disabled={decision==='review'}
+                  onClick={()=>setReviewDecisions(v=>({...v,[event.event_id]:'review'}))}>
+                  {tx('Marcar para revisión','Flag for review')}</button>
+                <button type="button" className="sci-secondary" disabled={decision==='discard'}
+                  onClick={()=>setReviewDecisions(v=>({...v,[event.event_id]:'discard'}))}>
+                  {tx('Descartar','Dismiss')}</button>
+                {decision&&<button type="button" className="sci-inline"
+                  onClick={()=>setReviewDecisions(v=>{
+                    const next={...v};delete next[event.event_id];return next;
+                  })}>{tx('Restablecer','Reset')}</button>}
+              </>:<button type="button" className="sci-secondary" onClick={()=>{
+                setCurrent({...current,camera_id:event.camera_id,
+                  camera_latitude:event.latitude,camera_longitude:event.longitude,
+                  altitude_m:event.altitude,temperature_c:event.temperature,
+                  humidity_percent:event.humidity,edge_event_id:event.event_id});
+                onUseEvent?.(event);
+                setNotice(tx('Metadatos enviados a MONITORING para revisión.',
+                  'Metadata sent to MONITORING for review.'));
+              }}>{tx('Revisar en MONITORING','Review in MONITORING')}</button>}
+            </div>
+          </article>;
+        })}
+      </div>}
+      {events.length>0&&<details className="method-details edge-exports">
+        <summary>{tx('Exportar eventos · JSON / CSV','Export events · JSON / CSV')}</summary>
+        <div className="sci-actions">
+          <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.json',
+            JSON.stringify(events.map(event=>({...event,
+              manual_review:reviewDecisions[event.event_id]||'not_reviewed',
+              species_verified:false})),null,2),'application/json')}>JSON ↓</button>
+          <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.csv',
+            toCsv(events.map(event=>({...event,
+              manual_review:reviewDecisions[event.event_id]||'not_reviewed'})) as Record<string,unknown>[]),'text/csv')}>CSV ↓</button>
+        </div>
+      </details>}
+      <p className="sci-muted live-event-note">{tx(
+        'Los eventos virtuales son ficticios; los de IA requieren validación. No se guardan clips ni se acusa a personas automáticamente.',
+        'Virtual events are fictional; AI events need validation. No clips are stored or people automatically accused.')}</p>
     </section>
 
       <details className="sci-panel edge-advanced"><summary>{tx('Integración técnica · JSON / nodos','Technical integration · JSON / nodes')}</summary>
@@ -152,11 +199,11 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
         }}>{tx('Validar JSON e incorporar evento','Validate JSON and add event')}</button>
       </section></details>
 
-    <section className="sci-panel">
-      <div className="sci-panel-head"><h3>{tx('Modelo de transmisión · 5G / 4G','Transmission model · 5G / 4G')}</h3>
-        <span className="sci-tag">{tx('ESCENARIO DE REFERENCIA','REFERENCE SCENARIO')}</span></div>
-      <p className="sci-muted">{tx('Compará escenarios de transmisión a partir de tamaños de archivo, velocidades y latencias configurables. Los tiempos son proyecciones, no mediciones de red en tiempo real.',
-        'Compare transmission scenarios using configurable payload sizes, speeds and latency. Results are projections, not live network measurements.')}</p>
+    <details className="sci-panel edge-network-details">
+      <summary>{tx('Comparación técnica · 5G / 4G','Technical comparison · 5G / 4G')}</summary>
+      <div className="edge-network-body">
+        <p className="sci-muted">{tx('Escenarios de referencia, no velocidades medidas.',
+          'Reference scenarios, not measured speeds.')}</p>
       <div className="sci-switch" role="group" aria-label={tx('Fuente de datos','Data source')}>
         <button type="button" className={networkSource==='reference'?'selected':''}
           onClick={()=>setNetworkSource('reference')}>{tx('Supuestos de referencia','Reference assumptions')}</button>
@@ -192,6 +239,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
           estimated_raw_seconds:rawSec,estimated_filtered_5g_seconds:edgeSec,
           estimated_filtered_4g_seconds:fourGSec,estimated_payload_reduction:reduction,
           measured_network_kpis:false},null,2),'application/json')}>JSON ↓</button></details>
-    </section>
+      </div>
+    </details>
   </div>;
 }
