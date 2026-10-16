@@ -86,9 +86,19 @@ def _classify_species(frame: Image.Image, detections: list[dict]):
             classes = result.get('classifications', {})
             labels = classes.get('classes', [])
             scores = classes.get('scores', [])
+            if not labels:
+                return []
+            # SpeciesNet labels contain taxonomy and a final common name.
+            # "blank" means this crop was not classified as a recognizable
+            # animal; never display it as a species observation.
+            top_label = str(labels[0]).rsplit(';', 1)[-1].strip()
+            if top_label.lower() == 'blank':
+                return []
             return [
-                {'label': str(label), 'score': round(float(score), 4)}
+                {'label': str(label).rsplit(';', 1)[-1].strip(),
+                 'score': round(float(score), 4)}
                 for label, score in list(zip(labels, scores))[:5]
+                if str(label).rsplit(';', 1)[-1].strip().lower() != 'blank'
             ]
         except Exception as error:
             log.exception('SpeciesNet inference error')
@@ -111,7 +121,7 @@ def wildlife_frame(frame: Image.Image, threshold: float):
         if species_enabled():
             try:
                 species = _classify_species(frame, output.get('detections', []))
-                status = 'suggested' if species else 'not_available'
+                status = 'suggested' if species else 'not_identified'
             except LiveModelUnavailable:
                 status = 'error'
         else:
