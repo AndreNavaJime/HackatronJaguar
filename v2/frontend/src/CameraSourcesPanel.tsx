@@ -2,6 +2,7 @@ import React from 'react';
 import {useLanguage} from './language';
 import type {EdgeEvent} from './scienceShared';
 import './CameraSourcesPanel.css';
+import {connectWhep} from './whep';
 
 type Props={
   enabled:boolean;
@@ -31,6 +32,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const [virtualLast,setVirtualLast]=React.useState('');
   const [virtualCount,setVirtualCount]=React.useState(0);
   const [cameraId,setCameraId]=React.useState('CAM-VIRTUAL-01');
+  const [whepUrl,setWhepUrl]=React.useState('');
   const [webcamRunning,setWebcamRunning]=React.useState(false);
   const [cameraProblem,setCameraProblem]=React.useState('');
   const [capability,setCapability]=React.useState<Capability>('checking');
@@ -41,17 +43,19 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const [analysisStatus,setAnalysisStatus]=React.useState('');
   const videoRef=React.useRef<HTMLVideoElement>(null);
   const streamRef=React.useRef<MediaStream|null>(null);
+  const peerRef=React.useRef<RTCPeerConnection|null>(null);
   const tick=React.useRef(0);
   const mounted=React.useRef(true);
   const enabledRef=React.useRef(enabled);
   enabledRef.current=enabled;
-  const modeRef=React.useRef<'virtual'|'device'>('virtual');
+  const modeRef=React.useRef<'virtual'|'device'|'remote'>('virtual');
   const lock=React.useRef(false);
   const lastClassTime=React.useRef<Record<string,number>>({});
   const demoRef=React.useRef<ReturnType<typeof window.setInterval>|null>(null);
-  const [mode,setMode]=React.useState<'virtual'|'device'>('virtual');
+  const [mode,setMode]=React.useState<'virtual'|'device'|'remote'>('virtual');
 
   const stopCamera=React.useCallback(()=>{
+    peerRef.current?.close();peerRef.current=null;
     for(const track of streamRef.current?.getTracks()||[])track.stop();
     streamRef.current=null;
     if(videoRef.current)videoRef.current.srcObject=null;
@@ -145,6 +149,26 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
     }catch(e){setCameraProblem(tx('No se pudo abrir la cámara: ','Cannot open device camera: ')+parseError(e));}
   }
 
+  async function startRemote(){
+    stopDemo();stopCamera();setCameraProblem('');
+    try{
+      const remote=await connectWhep(whepUrl.trim());
+      if(!mounted.current||!enabledRef.current||modeRef.current!=='remote'){
+        remote.peer.close();remote.stream.getTracks().forEach(t=>t.stop());
+        return;
+      }
+      peerRef.current=remote.peer;streamRef.current=remote.stream;
+      setWebcamRunning(true);
+      if(videoRef.current){
+        videoRef.current.srcObject=remote.stream;
+        void videoRef.current.play().catch(()=>{});
+      }
+    }catch(error){
+      setCameraProblem(tx('No fue posible conectar WebRTC (revisá HTTPS, CORS y el gateway). ',
+        'WebRTC connection failed (check HTTPS, CORS and gateway). ')+parseError(error));
+    }
+  }
+
   React.useEffect(()=>{
     if(!webcamRunning||!enabled||!analyzeEnabled||!permission||capability!=='ready')return;
     let active=true;
@@ -218,7 +242,9 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
       <button type="button" aria-pressed={mode==='virtual'} className={mode==='virtual'?'active':''}
         onClick={()=>{modeRef.current='virtual';stopCamera();stopDemo();setMode('virtual');}}>{tx('Cámara virtual','Virtual camera')}</button>
       <button type="button" aria-pressed={mode==='device'} className={mode==='device'?'active':''}
-        onClick={()=>{modeRef.current='device';stopDemo();stopCamera();setMode('device');}}>{tx('Cámara del dispositivo','Device camera')}</button>
+        onClick={()=>{modeRef.current='device';stopDemo();stopCamera();setMode('device');}}>{tx('Este dispositivo','This device')}</button>
+      <button type="button" aria-pressed={mode==='remote'} className={mode==='remote'?'active':''}
+        onClick={()=>{modeRef.current='remote';stopDemo();stopCamera();setMode('remote');}}>{tx('WebRTC · IP','WebRTC · IP')}</button>
     </div>
     {mode==='virtual'?<div className="camera-source-body">
       <div className="camera-virtual-scene">
@@ -253,16 +279,22 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
           {webcamRunning?tx('VISTA PREVIA LOCAL','LOCAL PREVIEW'):tx('NO CONECTADA','NOT CONNECTED')}</div>
       </div>
       <div className="camera-source-controls">
+        {mode==='remote'&&<label className="sci-field"><span>{tx('URL HTTPS · WHEP / go2rtc','HTTPS URL · WHEP / go2rtc')}</span>
+          <input type="url" value={whepUrl} disabled={webcamRunning}
+            placeholder="https://servidor.example/api/webrtc?src=camera1"
+            onChange={e=>setWhepUrl(e.target.value)} autoComplete="off" spellCheck={false}/></label>}
         <div className="camera-action-row">
-          {!webcamRunning?<button type="button" className="action-button" disabled={!enabled}
-            onClick={()=>void startCamera()}>{tx('Conectar cámara de este dispositivo','Connect this device camera')}</button>
+          {!webcamRunning?<button type="button" className="action-button" disabled={!enabled||(mode==='remote'&&!whepUrl.trim())}
+            onClick={()=>void (mode==='remote'?startRemote():startCamera())}>{mode==='remote'
+              ?tx('Conectar WebRTC','Connect WebRTC')
+              :tx('Conectar cámara','Connect camera')}</button>
             :<button type="button" className="sci-secondary" onClick={stopCamera}>
-              {tx('Desconectar cámara','Disconnect camera')}</button>}
+              {tx('Desconectar','Disconnect')}</button>}
         </div>
         {cameraProblem&&<p className="sci-warning" role="alert">{cameraProblem}</p>}
         <p className="sci-muted">{tx(
-          'Abrir la cámara solo muestra una vista previa local. No se graba ni envía video por defecto. Un stream RTSP de cámara trampa requerirá un adaptador/gateway compatible.',
-          'Opening the camera only shows a local preview. No recording or uploads occur by default. Camera-trap RTSP streams require a compatible gateway/adapter.')}</p>
+          'Vista previa sin grabación. WebRTC requiere un gateway autorizado con HTTPS y CORS.',
+          'Preview without recording. WebRTC requires an authorized HTTPS/CORS gateway.')}</p>
         <div className="camera-ai">
           <strong>{tx('Filtro opcional de animales y personas · MegaDetector',
             'Optional wildlife/person screening · MegaDetector')}</strong>
