@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from detection import DetectorUnavailable, detect_image
+from live_ai import (capabilities as live_capabilities, wildlife_frame, fire_frame,
+                     LiveModelUnavailable)
 from video_api import router as video_router
 from scientific_api import router as scientific_router, edge_router
 from study_reports import router as study_report_router
@@ -57,7 +59,32 @@ def capabilities():
         'video_job_storage': 'temporary_one_hour',
         'supabase': 'not_configured',
         'edge_ingestion': 'not_migrated',
+        'live_ai': live_capabilities(),
     }
+
+
+@app.get('/api/live/capabilities')
+def live_capability_status():
+    return live_capabilities()
+
+
+@app.post('/api/live/wildlife-frame')
+async def analyze_live_wildlife_frame(request: Request, threshold: float = Query(0.30, ge=0.1, le=0.9)):
+    # Same 12 MB/image-type validation as PantheraID. Source files are not stored.
+    _, frame, _, _ = await _read_image(request)
+    try:
+        return await run_in_threadpool(wildlife_frame, frame, threshold)
+    except LiveModelUnavailable as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.post('/api/fire/frame')
+async def analyze_live_fire_frame(request: Request):
+    _, frame, _, _ = await _read_image(request)
+    try:
+        return await run_in_threadpool(fire_frame, frame)
+    except LiveModelUnavailable as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 async def _read_image(request: Request):
