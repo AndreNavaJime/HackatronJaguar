@@ -1,14 +1,11 @@
 import React from 'react';
 import {useLanguage} from './language';
 import type {EdgeEvent} from './scienceShared';
-import type {CameraFireCandidate} from './cameraEvents';
 import './CameraSourcesPanel.css';
 
 type Props={
   enabled:boolean;
   onEvent:(event:EdgeEvent)=>void;
-  onFireEvent:(event:CameraFireCandidate)=>void;
-  onOpenFire:()=>void;
 };
 type Capability='checking'|'ready'|'missing'|'unreachable';
 type Recognition={animals:number;persons:number;vehicles:number;at:string};
@@ -27,7 +24,7 @@ function newEvent(camera:string,kind:'animal'|'person',source:string,confidence:
 
 function parseError(e:unknown){return e instanceof Error?e.message:String(e);}
 
-export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFire}:Props){
+export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [virtualRunning,setVirtualRunning]=React.useState(false);
@@ -40,6 +37,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
   const [permission,setPermission]=React.useState(false);
   const [analyzeEnabled,setAnalyzeEnabled]=React.useState(false);
   const [recognition,setRecognition]=React.useState<Recognition|null>(null);
+  const [species,setSpecies]=React.useState<{label:string;score:number}[]>([]);
   const [analysisStatus,setAnalysisStatus]=React.useState('');
   const videoRef=React.useRef<HTMLVideoElement>(null);
   const streamRef=React.useRef<MediaStream|null>(null);
@@ -58,7 +56,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
     streamRef.current=null;
     if(videoRef.current)videoRef.current.srcObject=null;
     setWebcamRunning(false);setAnalyzeEnabled(false);setAnalysisStatus('');
-    setPermission(false);setRecognition(null);
+    setPermission(false);setRecognition(null);setSpecies([]);
   },[]);
   const stopDemo=React.useCallback(()=>{
     if(demoRef.current!==null){window.clearInterval(demoRef.current);demoRef.current=null;}
@@ -83,11 +81,11 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
     const controller=new AbortController();
     async function check(){
       try{
-        const response=await fetch('/api/capabilities',{cache:'no-store',signal:controller.signal});
+        const response=await fetch('/api/live/capabilities',{cache:'no-store',signal:controller.signal});
         if(!response.ok)throw new Error('HTTP '+response.status);
-        const data=await response.json() as {video_ai?:string;animal_detection?:string};
+        const data=await response.json() as {wildlife_detector?:string};
         if(!controller.signal.aborted)setCapability(
-          data.animal_detection==='optional_dependencies_installed'?'ready':'missing');
+          data.wildlife_detector==='available'?'ready':'missing');
       }catch{
         if(!controller.signal.aborted)setCapability('unreachable');
       }
@@ -102,31 +100,20 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
     modeRef.current='virtual';
     setMode('virtual');setVirtualRunning(true);
     // Deliberate demonstration sequence: no imagery and NO ML inference.
-    const sequence:('empty'|'animal'|'empty'|'person'|'empty'|'smoke'|'empty'|'flame')[]=
-      ['animal','empty','smoke','empty','person','empty','flame','empty'];
+    // Synthetic wildlife/person events for the review workflow; no fire here.
+    const sequence:('empty'|'animal'|'person')[]=['animal','empty','person','empty'];
     function step(){
       const kind=sequence[tick.current%sequence.length];
       tick.current++;
       if(kind==='empty'){
-        setVirtualLast(tx('Escena sin evento · no se guarda video','No event · no footage stored'));
+        setVirtualLast(tx('Sin evento · no se conserva video','No event · no footage stored'));
         return;
       }
       setVirtualCount(v=>v+1);
       const camera=cameraId.trim().slice(0,80)||'CAM-VIRTUAL-01';
-      if(kind==='animal'||kind==='person'){
-        onEvent(newEvent(camera,kind,'camera_virtual_simulation',null,true));
-        setVirtualLast(kind==='animal'?tx('Evento DEMO: animal · enviado a LIVE','DEMO event: animal · sent to LIVE'):
-          tx('Evento DEMO: persona · revisión reservada','DEMO event: person · review only'));
-      }else{
-        const fire:CameraFireCandidate={
-          id:'FIRE-DEMO-'+Date.now().toString(36).toUpperCase()+'-'+tick.current,
-          camera_id:camera,recorded_at:new Date().toISOString(),
-          signal:kind,source:'virtual_camera_simulation',simulation:true,verified:false,
-        };
-        onFireEvent(fire);
-        setVirtualLast(kind==='smoke'?tx('Evento DEMO: posible humo → PantheraFIRE','DEMO event: possible smoke → PantheraFIRE'):
-          tx('Evento DEMO: posible llama → PantheraFIRE','DEMO event: possible flame → PantheraFIRE'));
-      }
+      onEvent(newEvent(camera,kind,'camera_virtual_simulation',null,true));
+      setVirtualLast(kind==='animal'?tx('DEMO · Animal · evento en LIVE','DEMO · Animal · LIVE event')
+        :tx('DEMO · Persona · revisión restringida','DEMO · Person · private review'));
     }
     step();demoRef.current=window.setInterval(step,4500);
   }
@@ -173,7 +160,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
         context.drawImage(video,0,0,640,360);
         const frame=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/jpeg',.68));
         if(!frame||!active)return;
-        const response=await fetch('/api/images/detect?threshold=0.30',{
+        const response=await fetch('/api/live/wildlife-frame?threshold=0.30',{
           method:'POST',body:frame,headers:{'Content-Type':'image/jpeg'},signal:controller.signal,
         });
         let payload:any=null;
@@ -185,6 +172,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
           throw new Error('El servidor devolvió un formato de detecciones inesperado.');
         const snapshot={animals:counts.animal,persons:counts.person,vehicles:counts.vehicle||0,at:new Date().toISOString()};
         setRecognition(snapshot);
+        setSpecies(Array.isArray(payload.speciesnet?.suggestions)?payload.speciesnet.suggestions:[]);
         setAnalysisStatus(tx('Último fotograma analizado · no se guarda imagen ni clip en la sesión.',
           'Latest frame processed · no image or clip stored in the session.'));
         const camera='CAM-DISPOSITIVO-LOCAL';
@@ -216,8 +204,8 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
       'MegaDetector is not installed on this server. Preview works; AI detection is disabled.')
     :capability==='unreachable'?tx('No hay conexión con la API de análisis. La cámara puede mostrarse localmente.',
       'Analysis API is unreachable. Device camera preview still works locally.')
-    :tx('Dependencias de MegaDetector detectadas; la inferencia requiere que los pesos y recursos funcionen.',
-      'MegaDetector dependencies detected; successful inference still requires model weights and compute.');
+    :tx('Detección de fauna disponible. SpeciesNet sugerirá especies si el modelo está configurado.',
+      'Wildlife detection available. SpeciesNet suggests species if its model is configured.');
   return <section className="sci-panel camera-sources" aria-label={tx('Centro de cámaras','Camera center')}>
     <div className="sci-panel-head">
       <h3>{tx('Fuentes de cámara · eventos automáticos','Camera sources · automatic events')}</h3>
@@ -238,8 +226,7 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
         <strong>CAM · PantheraLAB</strong>
         <span>{virtualRunning?virtualLast:tx('Fuente de eventos virtuales · no contiene imágenes reales',
           'Virtual event source · no real imagery')}</span>
-        <small>{tx('Fauna · personas → LIVE   |   humo · llamas → FIRE',
-          'Wildlife · people → LIVE   |   smoke · flames → FIRE')}</small>
+        <small>{tx('Fauna y personas → PantheraLIVE','Wildlife and people → PantheraLIVE')}</small>
       </div>
       <div className="camera-source-controls">
         <label className="sci-field"><span>{tx('ID de cámara virtual','Virtual camera ID')}</span>
@@ -250,12 +237,10 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
             {tx('Iniciar cámara virtual','Start virtual camera')}</button>
             :<button type="button" className="sci-secondary" onClick={stopDemo}>
               {tx('Detener simulación','Stop simulation')}</button>}
-          <button type="button" className="sci-secondary" onClick={onOpenFire}>
-            {tx('Ver avisos en PantheraFIRE ↗','View PantheraFIRE events ↗')}</button>
         </div>
         <p className="sci-muted">{tx(
-          'La simulación produce eventos cada pocos segundos, incluidos momentos sin evento. No ejecuta IA, no simula imágenes de jaguares, no avisa a emergencias y no genera evidencias científicas. Detectar una persona no implica caza furtiva.',
-          'The simulation emits periodic events, including no-event intervals. It runs no AI, creates no jaguar imagery, sends no emergency notifications and produces no scientific evidence. A person event never means poaching.')}</p>
+          'Solo eventos ficticios de fauna y personas. No se genera evidencia científica.',
+          'Fictional wildlife/person events only. No scientific evidence is generated.')}</p>
         {virtualCount>0&&<p className="sci-notice">{virtualCount} {tx('eventos de demostración emitidos','demonstration events emitted')}</p>}
       </div>
     </div>:<div className="camera-source-body">
@@ -283,28 +268,23 @@ export default function CameraSourcesPanel({enabled,onEvent,onFireEvent,onOpenFi
             'Optional wildlife/person screening · MegaDetector')}</strong>
           <p className="sci-muted">{capabilityMessage}</p>
           <label className="camera-permission"><input type="checkbox" checked={permission}
-            disabled={!webcamRunning||capability!=='ready'||analyzeEnabled}
-            onChange={e=>setPermission(e.target.checked)}/>
+            disabled={!webcamRunning||capability!=='ready'}
+            onChange={e=>{setPermission(e.target.checked);setAnalyzeEnabled(e.target.checked);}}/>
             <span>{tx(
               'Autorizo transmitir fotogramas individuales al backend para inferencia. No usar con personas identificables ni escenas sensibles: el servidor experimental no tiene autenticación.',
               'I authorize sending individual frames to the backend for inference. Do not use with identifiable people or sensitive scenes: the experimental server has no authentication.')}</span></label>
-          <div className="camera-action-row">
-            {!analyzeEnabled?<button type="button" className="sci-secondary"
-              disabled={!webcamRunning||!permission||capability!=='ready'}
-              onClick={()=>{lastClassTime.current={};setAnalysisStatus('');setAnalyzeEnabled(true);}}>
-              {tx('Activar análisis IA (cada 12 s)','Enable AI screening (every 12 s)')}</button>
-              :<button type="button" className="sci-secondary" onClick={()=>setAnalyzeEnabled(false)}>
-                {tx('Detener análisis IA','Stop AI screening')}</button>}
-          </div>
+          {analyzeEnabled&&<p className="sci-notice" role="status">{tx('Análisis automático activo · cada 12 segundos','Automatic screening active · every 12 seconds')}</p>}
           {analysisStatus&&<p className="sci-notice" role="status">{analysisStatus}</p>}
+          {species.length>0&&<p className="sci-muted">{tx('SpeciesNet · sugerencia sin validar: ','SpeciesNet · unverified suggestion: ')}
+            {species[0].label} ({Math.round(species[0].score*100)}%)</p>}
           {recognition&&<div className="camera-counts">
             <span>{tx('Animales','Animals')}: <b>{recognition.animals}</b></span>
             <span>{tx('Personas','People')}: <b>{recognition.persons}</b></span>
             <span>{tx('Vehículos','Vehicles')}: <b>{recognition.vehicles}</b></span>
           </div>}
           <p className="sci-muted">{tx(
-            'Solo se generan metadatos preliminares en la sesión; no se graban clips, no se confirma ninguna especie y no se detectan incendios con MegaDetector. No usar como vigilancia de seguridad.',
-            'Only preliminary session metadata is generated: no clips recorded, no species identification and no fire recognition by MegaDetector. Not for security surveillance.')}</p>
+            'Los eventos son preliminares; no se guardan clips ni se verifican especies automáticamente.',
+            'Events are preliminary; clips are not stored and species are not automatically verified.')}</p>
         </div>
       </div>
     </div>}
