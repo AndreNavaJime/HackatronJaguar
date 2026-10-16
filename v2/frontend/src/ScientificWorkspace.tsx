@@ -34,8 +34,9 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   const [cameraFireEvents,setCameraFireEvents]=React.useState<CameraFireCandidate[]>(()=>{
     const stored=loadSession<unknown>('pantheralab_camera_fire_events_v1',[]);
     return Array.isArray(stored)?stored.filter((v):v is CameraFireCandidate=>
-      typeof v==='object'&&v!==null&&v.simulation===true&&
-      (v.signal==='smoke'||v.signal==='flame')).slice(0,30):[];
+      typeof v==='object'&&v!==null&&
+      (v.source==='virtual_fire_simulation'||v.source==='pyroengine_browser_camera')&&
+      (v.signal==='smoke'||v.signal==='flame'||v.signal==='fire')).slice(0,30):[];
   });
   React.useEffect(()=>{
     if(requestReport){setOpenReport(true);onNavigate('PantheraMONITORING');}
@@ -64,7 +65,6 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     setEvents(previous=>[event,...previous].slice(0,100)),[]);
   const onFireEvent=React.useCallback((event:CameraFireCandidate)=>
     setCameraFireEvents(previous=>[event,...previous].slice(0,30)),[]);
-  const openFire=React.useCallback(()=>onNavigate('PantheraFIRE'),[onNavigate]);
   const onUseEvent=(event:EdgeEvent)=>{
     setIncoming(event);
     onNavigate('PantheraMONITORING');
@@ -98,10 +98,10 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     <div style={{display:section==='PantheraLIVE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
         setCurrent={setCurrent} onUseEvent={onUseEvent}
-        enabled={section==='PantheraLIVE'} onFireEvent={onFireEvent} onOpenFire={openFire}/>
+        enabled={section==='PantheraLIVE'}/>
     </div>
     <div style={{display:section==='PantheraSENSE'?'block':'none'}}><SensePanel /></div>
-    {section==='PantheraFIRE'&&<FireWorkspace cameraEvents={cameraFireEvents} onOpenLive={()=>onNavigate('PantheraLIVE')}/>}
+    {section==='PantheraFIRE'&&<FireWorkspace cameraEvents={cameraFireEvents} onFireEvent={onFireEvent}/>}
     <div style={{display:section==='PantheraSAT'?'block':'none'}}>
       <ResearchWorkspace current={records[0]||current}/>
     </div>
