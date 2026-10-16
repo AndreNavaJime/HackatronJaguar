@@ -1,2 +1,6 @@
-# Instalación opcional (puede descargar paquetes grandes y pesos del modelo).
+# Opcional para un servidor privado de IA con RAM/CPU/GPU suficientes.
+# NO agregar al build del Render free (512 MB RAM); no es el requirements.txt base.
+# MegaDetector V6 (Microsoft AI for Good).
 PytorchWildlife
+# Clasificador de especies de Google. Descarga pesos al primer uso.
+speciesnet
