@@ -49,11 +49,10 @@ def capabilities():
     }
 
 
-def _classify_species(frame: Image.Image):
-    """Use Google's SpeciesNet crop/whole-image classifier on candidate wildlife.
+def _classify_species(frame: Image.Image, detections: list[dict]):
+    """SpeciesNet crop classifier uses the highest-confidence MegaDetector animal.
 
-    This optional step is NOT performed on frames that also contain people.
-    Classifications are suggestions for a human expert, not identifications.
+    Human frames are excluded in wildlife_frame. Results are hypotheses only.
     """
     global _species_model
     if not species_enabled():
@@ -65,7 +64,24 @@ def _classify_species(frame: Image.Image):
                 _species_model = SpeciesNetClassifier(
                     model_name=os.environ['PANTHERA_SPECIESNET_MODEL'].strip()
                 )
-            preprocessed = _species_model.preprocess(frame.convert('RGB'))
+            candidates = sorted(
+                (item for item in detections
+                 if item.get('class_name') == 'animal'
+                 and isinstance(item.get('bbox_xyxy'), list)
+                 and len(item['bbox_xyxy']) == 4),
+                key=lambda item: item.get('confidence', 0), reverse=True,
+            )
+            if not candidates:
+                return None
+            x1, y1, x2, y2 = candidates[0]['bbox_xyxy']
+            x1 = max(0, min(frame.width - 1, int(x1)))
+            y1 = max(0, min(frame.height - 1, int(y1)))
+            x2 = max(x1 + 1, min(frame.width, int(x2)))
+            y2 = max(y1 + 1, min(frame.height, int(y2)))
+            cropped = frame.convert('RGB').crop((x1, y1, x2, y2))
+            if cropped.width < 12 or cropped.height < 12:
+                return None
+            preprocessed = _species_model.preprocess(cropped)
             result = _species_model.predict('camera_frame.jpg', preprocessed)
             classes = result.get('classifications', {})
             labels = classes.get('classes', [])
@@ -94,7 +110,7 @@ def wildlife_frame(frame: Image.Image, threshold: float):
     if counts.get('animal', 0)>0 and counts.get('person', 0)==0:
         if species_enabled():
             try:
-                species = _classify_species(frame)
+                species = _classify_species(frame, output.get('detections', []))
                 status = 'suggested' if species else 'not_available'
             except LiveModelUnavailable:
                 status = 'error'
