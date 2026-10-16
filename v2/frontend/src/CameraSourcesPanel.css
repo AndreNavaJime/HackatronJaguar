@@ -46,3 +46,34 @@
 .camera-review-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:225px}
 .camera-review-controls .sci-muted{font-size:11px;flex-basis:100%}
 .camera-review-controls .sci-inline{font-size:11px;padding:5px 8px;border-radius:7px;background:rgba(95,131,157,.13)}
+
+
+/* PantheraLIVE: compact event triage rather than engineering forms. */
+.live-events{display:grid;gap:11px}
+.live-events .sci-panel-head{margin-bottom:0}
+.live-show-discarded{display:flex;gap:9px;align-items:center;font-size:12px;color:#b9cbda}
+.live-show-discarded input{accent-color:#3bd0af}
+.live-event-list{display:grid;gap:10px;max-height:540px;overflow:auto;padding-right:3px}
+.live-event-card{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border:1px solid rgba(122,165,175,.29);border-radius:11px;background:rgba(12,31,43,.66);padding:13px 15px;min-width:0}
+.live-event-main{display:grid;gap:6px;min-width:0;flex:1 1 215px}
+.live-event-heading{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.live-event-heading strong{font-size:14px;color:#eafaf5}
+.live-event-badge{border:1px solid rgba(117,192,170,.37);background:rgba(38,127,106,.14);color:#b2e1d2;border-radius:5px;padding:4px 7px;letter-spacing:.04em;font-size:10px;font-weight:750}
+.live-event-badge.simulation{color:#cbd8e2;border-color:rgba(171,187,209,.31);background:rgba(114,133,155,.13)}
+.live-event-meta{display:flex;flex-wrap:wrap;gap:5px 13px;font-size:11px;color:#b0c5d1;overflow-wrap:anywhere}
+.live-event-decision{font-size:11px;color:#90dbc0}
+.live-event-actions{display:flex;gap:7px;flex:0 1 auto;align-items:center;flex-wrap:wrap}
+.live-event-actions button{font-size:11px;padding:8px 10px;min-height:36px;white-space:normal}
+.live-event-actions button:disabled{opacity:.45;cursor:default}
+.live-event-note{font-size:11px!important;margin:0}
+.sci-panel.edge-advanced>summary,.edge-network-details>summary{font-size:14px;cursor:pointer;color:#c7ddd9;font-weight:700;padding:8px 0}
+.edge-network-body{display:grid;gap:12px;padding-top:14px}
+.edge-network-body>p{margin:0}
+.camera-modes button{flex:1 1 auto}
+@media(max-width:640px){
+  .camera-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .camera-modes button{padding:10px 5px;font-size:11px;white-space:normal}
+  .live-event-card{align-items:stretch}
+  .live-event-actions{width:100%}
+  .live-event-actions button{flex:1 1 95px}
+}
