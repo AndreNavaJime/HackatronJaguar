@@ -2,6 +2,7 @@ import React from 'react';
 import {useLanguage} from './language';
 import type {CameraFireCandidate} from './cameraEvents';
 import './FireCameraPanel.css';
+import {connectWhep} from './whep';
 
 type Props={onEvent:(event:CameraFireCandidate)=>void};
 type Readiness='checking'|'ready'|'missing'|'offline';
@@ -11,11 +12,15 @@ export default function FireCameraPanel({onEvent}:Props){
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [cameraActive,setCameraActive]=React.useState(false);
   const [permission,setPermission]=React.useState(false);
+  const [cameraMode,setCameraMode]=React.useState<'device'|'remote'>('device');
+  const [whepUrl,setWhepUrl]=React.useState('');
   const [readiness,setReadiness]=React.useState<Readiness>('checking');
   const [status,setStatus]=React.useState('');
   const [score,setScore]=React.useState<number|null>(null);
   const video=React.useRef<HTMLVideoElement|null>(null);
   const stream=React.useRef<MediaStream|null>(null);
+  const peer=React.useRef<RTCPeerConnection|null>(null);
+  const modeRef=React.useRef<'device'|'remote'>('device');
   const lastCandidate=React.useRef(0);
   const inFlight=React.useRef(false);
   const mounted=React.useRef(true);
@@ -23,6 +28,7 @@ export default function FireCameraPanel({onEvent}:Props){
   fireCallback.current=onEvent;
 
   const stop=React.useCallback(()=>{
+    peer.current?.close();peer.current=null;
     stream.current?.getTracks().forEach(track=>track.stop());
     stream.current=null;
     if(video.current)video.current.srcObject=null;
@@ -49,13 +55,17 @@ export default function FireCameraPanel({onEvent}:Props){
 
   async function start(){
     setStatus('');
-    if(!navigator.mediaDevices?.getUserMedia||!window.isSecureContext){
+    if(cameraMode==='device'&&(!navigator.mediaDevices?.getUserMedia||!window.isSecureContext)){
       setStatus(tx('Se requiere HTTPS y permiso de cámara.','HTTPS and camera access are required.'));return;
     }
     try{
-      const current=await navigator.mediaDevices.getUserMedia({audio:false,video:{
+      const remote=cameraMode==='remote'?await connectWhep(whepUrl.trim()):null;
+      const current=remote?.stream||await navigator.mediaDevices.getUserMedia({audio:false,video:{
         width:{ideal:640},height:{ideal:360},facingMode:{ideal:'environment'}}});
-      if(!mounted.current||document.hidden){current.getTracks().forEach(t=>t.stop());return;}
+      if(!mounted.current||document.hidden||modeRef.current!==cameraMode){
+        remote?.peer.close();current.getTracks().forEach(t=>t.stop());return;
+      }
+      peer.current=remote?.peer||null;
       stream.current=current;
       if(video.current){
         video.current.srcObject=current;
@@ -135,8 +145,21 @@ export default function FireCameraPanel({onEvent}:Props){
         {!cameraActive&&<span>{tx('Cámara sin conectar','Camera disconnected')}</span>}
       </div>
       <div className="fire-camera-controls">
+        <div className="camera-modes">
+          <button type="button" className={cameraMode==='device'?'active':''}
+            onClick={()=>{stop();modeRef.current='device';setCameraMode('device');}}>
+            {tx('Dispositivo','Device')}</button>
+          <button type="button" className={cameraMode==='remote'?'active':''}
+            onClick={()=>{stop();modeRef.current='remote';setCameraMode('remote');}}>
+            {tx('WebRTC · IP','WebRTC · IP')}</button>
+        </div>
+        {cameraMode==='remote'&&<label className="sci-field">
+          <span>{tx('URL HTTPS · WHEP','HTTPS WHEP URL')}</span>
+          <input type="url" value={whepUrl} disabled={cameraActive} autoComplete="off"
+            placeholder="https://servidor.example/api/webrtc?src=cam"
+            onChange={e=>setWhepUrl(e.target.value)}/></label>}
         <div className="fire-control">
-          {!cameraActive?<button type="button" onClick={()=>void start()}>
+          {!cameraActive?<button type="button" disabled={cameraMode==='remote'&&!whepUrl.trim()} onClick={()=>void start()}>
             {tx('Conectar cámara','Connect camera')}</button>
             :<button type="button" onClick={stop}>{tx('Desconectar','Disconnect')}</button>}
           <button type="button" onClick={demo}>{tx('Simular indicio','Simulate candidate')}</button>
