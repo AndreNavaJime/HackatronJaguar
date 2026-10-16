@@ -173,7 +173,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
               species_verified:false})),null,2),'application/json')}>JSON ↓</button>
           <button type="button" className="sci-secondary" onClick={()=>downloadFile('PantheraEDGE_eventos.csv',
             toCsv(events.map(event=>({...event,
-              manual_review:reviewDecisions[event.event_id]||'not_reviewed'})) as Record<string,unknown>[]),'text/csv')}>CSV ↓</button>
+              manual_review:reviewDecisions[event.event_id]||'not_reviewed'})) as unknown as Record<string,unknown>[]),'text/csv')}>CSV ↓</button>
         </div>
       </details>}
       <p className="sci-muted live-event-note">{tx(
