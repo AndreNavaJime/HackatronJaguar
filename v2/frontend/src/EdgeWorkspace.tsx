@@ -10,11 +10,6 @@ type Props={events:EdgeEvent[];onEvent:(event:EdgeEvent)=>void;
 
 export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent,enabled}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
-  const [camera,setCamera]=React.useState('CAM-DEMO-01');
-  const [latitude,setLatitude]=React.useState('');
-  const [longitude,setLongitude]=React.useState('');
-  const [temperature,setTemperature]=React.useState('');
-  const [humidity,setHumidity]=React.useState('');
   const [rawJson,setRawJson]=React.useState('');
   const [remoteUrl,setRemoteUrl]=React.useState('');
   const [notice,setNotice]=React.useState('');
@@ -47,17 +42,6 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     }catch(err){setNotice(err instanceof Error?err.message:String(err));}
     finally{setBusy(false);}
   }
-  const demo=()=>({
-    contract_version:'panthera-v1.0',
-    event_id:'EDGE-DEMO-'+Date.now().toString(36).toUpperCase(),
-    timestamp:new Date().toISOString(),camera_id:camera||'CAM-DEMO-01',
-    event:'new_capture',status:'RECEIVED',
-    source:'PantheraCAM local simulator',transport:'Wi-Fi 2.4 / LoRa demo',
-    latitude:latitude.trim()===''?null:Number(latitude),
-    longitude:longitude.trim()===''?null:Number(longitude),
-    environment:{temperature:temperature.trim()===''?null:Number(temperature),
-      humidity:humidity.trim()===''?null:Number(humidity)},
-  });
   async function remote(){
     let url:URL;
     try{url=new URL(remoteUrl);if(url.protocol!=='https:')throw new Error(
@@ -94,72 +78,21 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
   return <div className="sci-screen">
     <div className="sci-heading"><div><span className="sci-kicker">PANTHERALIVE / PANTHERAEDGE ENGINE / 5G</span>
       <h2>{tx('PantheraLIVE · Cámaras y conectividad','PantheraLIVE · Camera events and connectivity')}</h2>
-      <p>{tx('Fuentes de cámara, recepción de eventos y comparación de conectividad. Detección IA solo si el servidor lo permite.',
-        'Camera sources, event intake and connectivity models. AI inference only where the backend supports it.')}</p></div>
+      <p>{tx('Conectá una cámara y revisá detecciones de fauna o personas.',
+        'Connect a camera and review wildlife or person detections.')}</p></div>
       <span className="sci-tag">{tx('EVENTOS DE CAMPO','FIELD EVENTS')}</span></div>
-    <div className="sci-inline-info" role="note"><span className="sci-info-dot" aria-hidden="true" />
-      <p><strong>{tx('Entorno de integración','Integration environment')}</strong> · {tx(
-        'Los eventos de prueba y los recibidos por JSON se conservan en esta sesión. La conexión automática a dispositivos físicos y la sincronización en nube aún no están habilitadas.',
-        'Test events and imported JSON events are retained in this session. Automatic field-device connections and cloud synchronization are not enabled.')}</p>
-    </div>
-
-
     <CameraSourcesPanel enabled={enabled} onEvent={onEvent}/>
 
-    <div className="sci-2col">
-      <details className="sci-panel edge-advanced">
-        <summary>{tx('Herramienta avanzada · evento PantheraCAM manual','Advanced tool · manual PantheraCAM event')}</summary>
-        <section>
-        <div className="sci-panel-head"><h3>{tx('Generador de eventos PantheraCAM','PantheraCAM event generator')}</h3>
-          <span className="sci-tag">{tx('SIMULACIÓN','SIMULATION')}</span></div>
-        <p className="sci-muted">{tx('Creá un evento de prueba con datos de estación configurables para verificar el flujo de captura.',
-          'Create a test event using configurable station data to verify the capture workflow.')}</p>
-        <div className="sci-fields sci-fields-2">
-          <label className="sci-field"><span>{tx('ID de cámara','Camera ID')}</span>
-            <input value={camera} onChange={e=>setCamera(e.target.value)}/></label>
-          <label className="sci-field"><span>{tx('Latitud (opcional)','Latitude (optional)')}</span>
-            <input value={latitude} placeholder="9.7489" type="number" step="any" onChange={e=>setLatitude(e.target.value)}/></label>
-          <label className="sci-field"><span>{tx('Longitud (opcional)','Longitude (optional)')}</span>
-            <input value={longitude} placeholder="-83.7534" type="number" step="any" onChange={e=>setLongitude(e.target.value)}/></label>
-          <label className="sci-field"><span>{tx('Temperatura °C (opcional)','Temperature °C (optional)')}</span>
-            <input value={temperature} type="number" step="any" onChange={e=>setTemperature(e.target.value)}/></label>
-          <label className="sci-field"><span>{tx('Humedad % (opcional)','Humidity % (optional)')}</span>
-            <input value={humidity} type="number" step="any" onChange={e=>setHumidity(e.target.value)}/></label>
-        </div>
-        <button type="button" className="action-button" disabled={busy} onClick={()=>void ingest(demo())}>
-          {tx('Simular captura PantheraCAM','Simulate PantheraCAM capture')}</button>
-        </section>
-      </details>
-      <details className="sci-panel edge-advanced"><summary>{tx('Herramientas avanzadas · JSON y endpoints','Advanced tools · JSON and endpoints')}</summary>
-      <section>
-        <div className="sci-panel-head"><h3>{tx('Puente HTTP / Wokwi / nodo de campo','HTTP bridge / Wokwi / field node')}</h3>
-          <span className="sci-tag">JSON · HTTP</span></div>
-        <p className="sci-muted">{tx('Pegá el JSON del emulador de Manuel o recuperalo de un endpoint HTTPS público con CORS.',
-          'Paste JSON from Manuel’s emulator or retrieve it from a public CORS-enabled HTTPS endpoint.')}</p>
-        <label className="sci-field"><span>{tx('Endpoint HTTPS del nodo (opcional)','Node HTTPS endpoint (optional)')}</span>
-          <input type="url" value={remoteUrl} onChange={e=>setRemoteUrl(e.target.value)}
-            placeholder="https://example.org/api/latest-event"/></label>
-        <button type="button" className="sci-secondary" disabled={busy||!remoteUrl.trim()}
-          onClick={()=>void remote()}>{tx('Consultar endpoint desde navegador','Fetch endpoint in browser')}</button>
-        <label className="sci-field"><span>{tx('JSON del evento','Event JSON')}</span>
-          <textarea rows={7} value={rawJson} onChange={e=>setRawJson(e.target.value)}
-            placeholder='{"event_id":"EDGE-01","camera_id":"CT-07","temperature":24.5}'/></label>
-        <button type="button" className="action-button" disabled={busy||!rawJson.trim()} onClick={()=>{
-          try{const obj=JSON.parse(rawJson);void ingest(obj);}
-          catch{setNotice(tx('JSON inválido; corregí su sintaxis.','Invalid JSON; correct its syntax.'));}
-        }}>{tx('Validar JSON e incorporar evento','Validate JSON and add event')}</button>
-      </section></details>
-    </div>
     {notice&&<p className="sci-notice" role="status">{notice}</p>}
 
     <section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Eventos de la sesión','Session events')}</h3>
         <span className="sci-tag">{events.length} {tx('eventos','events')}</span></div>
       {events.some(event=>event.source==='camera_virtual_simulation'||event.source==='browser_camera_megadetector_opt_in')&&
-        <p className="sci-warning">{tx('Los eventos virtuales son sintéticos y los de webcam solo metadatos preliminares. No son observaciones científicas verificadas ni denuncias de caza furtiva.',
-          'Virtual events are synthetic and webcam events are preliminary metadata only. They are not verified scientific observations or poaching reports.')}</p>}
-      {events.length===0?<p className="sci-muted">{tx('Todavía no hay eventos. Podés simular una captura o validar un JSON.',
-        'No events yet. Simulate a capture or validate JSON.')}</p>:
+        <p className="sci-muted">{tx('Simulaciones y detecciones sin validar; una persona detectada no implica caza furtiva.',
+          'Simulations and unverified detections; a person detection is not evidence of poaching.')}</p>}
+      {events.length===0?<p className="sci-muted">{tx('Sin eventos. Conectá una cámara o iniciá la simulación.',
+        'No events. Connect a camera or start the simulation.')}</p>:
       <><div className="sci-table-wrap"><table className="sci-table">
         <thead><tr><th>ID</th><th>{tx('Cámara','Camera')}</th><th>{tx('Fecha','Time')}</th>
           <th>HMAC</th><th>{tx('Origen','Source')}</th><th>{tx('Acción','Action')}</th></tr></thead>
@@ -200,6 +133,24 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
           toCsv(events as unknown as Record<string,unknown>[]),'text/csv')}>CSV ↓</button>
       </div></details></>}
     </section>
+
+      <details className="sci-panel edge-advanced"><summary>{tx('Integración técnica · JSON / nodos','Technical integration · JSON / nodes')}</summary>
+      <section>
+        <div className="sci-panel-head"><h3>{tx('Puente HTTP / Wokwi / nodo de campo','HTTP bridge / Wokwi / field node')}</h3>
+          <span className="sci-tag">JSON · HTTP</span></div>
+        <label className="sci-field"><span>{tx('Endpoint HTTPS del nodo (opcional)','Node HTTPS endpoint (optional)')}</span>
+          <input type="url" value={remoteUrl} onChange={e=>setRemoteUrl(e.target.value)}
+            placeholder="https://example.org/api/latest-event"/></label>
+        <button type="button" className="sci-secondary" disabled={busy||!remoteUrl.trim()}
+          onClick={()=>void remote()}>{tx('Consultar endpoint desde navegador','Fetch endpoint in browser')}</button>
+        <label className="sci-field"><span>{tx('JSON del evento','Event JSON')}</span>
+          <textarea rows={7} value={rawJson} onChange={e=>setRawJson(e.target.value)}
+            placeholder='{"event_id":"EDGE-01","camera_id":"CT-07","temperature":24.5}'/></label>
+        <button type="button" className="action-button" disabled={busy||!rawJson.trim()} onClick={()=>{
+          try{const obj=JSON.parse(rawJson);void ingest(obj);}
+          catch{setNotice(tx('JSON inválido; corregí su sintaxis.','Invalid JSON; correct its syntax.'));}
+        }}>{tx('Validar JSON e incorporar evento','Validate JSON and add event')}</button>
+      </section></details>
 
     <section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Modelo de transmisión · 5G / 4G','Transmission model · 5G / 4G')}</h3>
