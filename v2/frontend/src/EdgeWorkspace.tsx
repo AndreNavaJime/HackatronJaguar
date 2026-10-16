@@ -2,14 +2,13 @@ import React from 'react';
 import {useLanguage} from './language';
 import {EdgeEvent,Observation,apiJson,downloadFile,toCsv,loadSession,saveSession} from './scienceShared';
 import CameraSourcesPanel from './CameraSourcesPanel';
-import type {CameraFireCandidate} from './cameraEvents';
 
 type Props={events:EdgeEvent[];onEvent:(event:EdgeEvent)=>void;
   current:Observation;setCurrent:(record:Observation)=>void;
   onUseEvent?:(event:EdgeEvent)=>void;
-  enabled:boolean;onFireEvent:(event:CameraFireCandidate)=>void;onOpenFire:()=>void};
+  enabled:boolean;};
 
-export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent,enabled,onFireEvent,onOpenFire}:Props){
+export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEvent,enabled}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [camera,setCamera]=React.useState('CAM-DEMO-01');
   const [latitude,setLatitude]=React.useState('');
@@ -105,7 +104,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     </div>
 
 
-    <CameraSourcesPanel enabled={enabled} onEvent={onEvent} onFireEvent={onFireEvent} onOpenFire={onOpenFire}/>
+    <CameraSourcesPanel enabled={enabled} onEvent={onEvent}/>
 
     <div className="sci-2col">
       <details className="sci-panel edge-advanced">
