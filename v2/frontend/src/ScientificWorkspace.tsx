@@ -5,6 +5,7 @@ import SensePanel from './SensePanel';
 import FireWorkspace from './FireWorkspace';
 import ResearchWorkspace from './ResearchWorkspace';
 import ScientificRecordsPanel from './ScientificRecordsPanel';
+import AIResultsPanel from './AIResultsPanel';
 import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
 import {ResearchData,loadResearch,persistResearch,flattenObservations} from './researchData';
@@ -94,6 +95,7 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     </div>
     <div style={{display:section==='PantheraMONITORING'?'block':'none'}}>
       <ScientificRecordsPanel records={records} onOpenReports={()=>setOpenReport(true)}/>
+      <AIResultsPanel />
     </div>
     <div style={{display:section==='PantheraLIVE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
