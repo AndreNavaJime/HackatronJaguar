@@ -1,0 +1,70 @@
+/* Real Colab evidence intake, local-only review within PantheraMONITORING. */
+.ai-review{margin:24px 0 30px;min-width:0}
+.ai-review-head{align-items:flex-start}
+.ai-review-head h3{margin:8px 0 6px;font-size:clamp(20px,2vw,27px)}
+.ai-review-head p{margin:4px 0 12px;max-width:740px}
+.ai-review-flow{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:12px 0;margin:6px 0 16px;color:#bce3ce}
+.ai-review-flow span{border:1px solid #315d47;border-radius:8px;padding:7px 11px;background:#0b2519;font-size:12px}
+.ai-review-flow b{color:#7ac9a4;font-size:13px}
+.ai-review-actions,.ai-review-toolbar,.ai-review-review-actions{display:flex;flex-wrap:wrap;align-items:end;gap:12px}
+.ai-review-file{display:flex;flex-direction:column;gap:8px;flex:1;min-width:220px;font-weight:600;font-size:13px;color:#d8eadf}
+.ai-review-file input,.ai-review-image-input input{display:block;width:100%;max-width:100%;background:#0c2119;color:#e0f6e7;border:1px dashed #608a72;padding:10px;border-radius:9px;font-size:13px}
+.ai-review-colab{display:inline-block;text-decoration:none;border:1px solid #529070;background:#153925;color:#d8f7e5;border-radius:8px;padding:12px 15px;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.ai-review-colab:hover{background:#205338}
+.ai-review-disclaimer{font-size:12px;margin:16px 0 12px;line-height:1.55}
+.ai-review-empty{border:1px dashed #50745e;border-radius:12px;padding:24px;background:#0d261b;margin-top:14px}
+.ai-review-empty strong{font-size:17px}.ai-review-empty p{margin-bottom:0}
+.ai-review-stats{margin:14px 0;grid-template-columns:repeat(4,minmax(0,1fr))}
+.ai-review-stats strong{font-size:21px;overflow-wrap:anywhere}
+.ai-review-toolbar{margin:18px 0;align-items:flex-end}
+.ai-review-toolbar label{min-width:210px;flex:1;display:flex;flex-direction:column;gap:5px;font-size:13px;color:#c7dfd0}
+.ai-review-toolbar select{background:#103122;color:#e6f9eb;border:1px solid #3d7453;padding:11px;border-radius:9px;width:100%;max-width:100%}
+.ai-review-record{border:1px solid #365d48;background:#0c221a;border-radius:15px;padding:clamp(14px,2.4vw,24px)}
+.ai-review-record-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ai-review-record-head strong{font-size:16px}
+.ai-review-models{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:19px 0}
+.ai-review-models article{margin:0;min-width:0;padding:14px;border-radius:12px;border:1px solid #2a5841;background:#113322}
+.ai-review-models article strong{font-size:14px;display:block;margin:0 0 5px;color:#e5f8ea}
+.ai-review-models article small{font-size:11px;color:#9dbbab}
+.ai-review-models article p{margin:8px 0 0;overflow-wrap:anywhere;font-size:14px}
+.ai-review-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+.ai-review-columns>div{min-width:0}
+.ai-review-columns h4,.ai-review-validation h4{margin:6px 0 14px;font-size:16px;color:#d8f2e2}
+.ai-review-species-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:7px;margin:0 0 13px;font-size:13px}
+.ai-review-species-row>span{overflow-wrap:anywhere}
+.ai-review-species-row>strong{font-variant-numeric:tabular-nums}
+.ai-review-meter{grid-column:1/-1;background:#153b29;border-radius:9px;height:7px;overflow:hidden}
+.ai-review-meter i{display:block;height:100%;border-radius:9px;background:#55cb92}
+.ai-review-views{padding:10px 0;display:grid;gap:9px}
+.ai-review-views>div{padding:10px;border:1px solid #355840;border-radius:8px;background:#102e21}
+.ai-review-views strong,.ai-review-views small{display:block;overflow-wrap:anywhere}
+.ai-review-views small{color:#8cad9b;font-size:11px}
+.ai-review-views p{margin:5px 0 0;font-size:12px}
+.ai-review-image-input{display:block;margin:12px 0;color:#c3dfce;font-size:13px}
+.ai-review-image-input input{margin-top:5px}
+.ai-review-images{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px;align-items:start}
+.ai-review-images figure{margin:0;padding:8px;border:1px solid #365943;border-radius:11px;background:#071810}
+.ai-review-images img{width:100%;height:auto;max-height:300px;object-fit:contain;display:block;border-radius:7px}
+.ai-review-images figcaption{font-size:11px;color:#a7cdb5;margin-top:7px}
+.ai-review-validation{border-top:1px solid #355441;margin-top:24px;padding-top:20px}
+.ai-review-inputs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ai-review-inputs label,.ai-review-notes{display:flex;flex-direction:column;gap:6px;color:#c8ddcf;font-size:12px}
+.ai-review-inputs input,.ai-review-notes textarea{width:100%;background:#0b291c;color:#f2fff7;border:1px solid #416c53;border-radius:9px;padding:11px;font-size:14px}
+.ai-review-notes{margin-top:14px}
+.ai-review-check{display:flex;align-items:flex-start;gap:9px;margin:18px 0;font-size:13px;line-height:1.5;color:#d8f2de}
+.ai-review-check input{width:17px;height:17px;margin-top:2px;flex-shrink:0}
+.ai-review-review-actions{margin:12px 0}
+.ai-review-review-actions button{min-height:39px}
+@media(max-width:900px){
+  .ai-review-models{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ai-review-columns{grid-template-columns:1fr}
+  .ai-review-inputs{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .ai-review-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ai-review-models{grid-template-columns:1fr 1fr}
+  .ai-review-models article{padding:10px}
+  .ai-review-flow{gap:6px}.ai-review-flow span{font-size:10px;padding:6px}
+  .ai-review-toolbar>*{max-width:100%}
+  .ai-review-record{padding:13px}
+}
