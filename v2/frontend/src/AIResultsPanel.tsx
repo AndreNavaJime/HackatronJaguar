@@ -52,6 +52,7 @@ function parseReport(data:unknown,filename:string):AIRecord{
     throw new Error('El informe no contiene una fecha de ejecución válida.');
   const model=string(detector.model,100);
   if(!model)throw new Error('No se identifica el modelo MegaDetector.');
+  if(detections.length>500)throw new Error('Informe demasiado grande: más de 500 detecciones.');
   const views=list(classification.views).slice(0,8).flatMap(item=>{
     const v=object(item);if(!v)return [];
     return [{crop:string(v.crop,100),source:string(v.region_provenance,130),
