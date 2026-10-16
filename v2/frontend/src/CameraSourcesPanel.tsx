@@ -48,11 +48,11 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const mounted=React.useRef(true);
   const enabledRef=React.useRef(enabled);
   enabledRef.current=enabled;
-  const modeRef=React.useRef<'virtual'|'device'|'remote'>('virtual');
+  const modeRef=React.useRef<'virtual'|'device'|'remote'>('device');
   const lock=React.useRef(false);
   const lastClassTime=React.useRef<Record<string,number>>({});
   const demoRef=React.useRef<ReturnType<typeof window.setInterval>|null>(null);
-  const [mode,setMode]=React.useState<'virtual'|'device'|'remote'>('virtual');
+  const [mode,setMode]=React.useState<'virtual'|'device'|'remote'>('device');
 
   const stopCamera=React.useCallback(()=>{
     peerRef.current?.close();peerRef.current=null;
@@ -232,19 +232,16 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
       'Wildlife detection available. SpeciesNet suggests species if its model is configured.');
   return <section className="sci-panel camera-sources" aria-label={tx('Centro de cámaras','Camera center')}>
     <div className="sci-panel-head">
-      <h3>{tx('Fuentes de cámara · eventos automáticos','Camera sources · automatic events')}</h3>
-      <span className="sci-tag">{tx('INTEGRACIÓN EXPERIMENTAL','EXPERIMENTAL INTEGRATION')}</span>
+      <h3>{tx('Cámara de fauna','Wildlife camera')}</h3>
+      <span className="sci-tag">{tx('EN PRUEBAS','IN TESTING')}</span>
     </div>
-    <p className="sci-muted">{tx(
-      'PantheraLIVE es el punto de entrada de las cámaras. Los archivos manuales se analizan únicamente en PantheraID. Aquí probamos eventos desde una fuente virtual o una cámara del dispositivo.',
-      'PantheraLIVE is the camera entry point. Manual file analysis belongs only in PantheraID. Here we test events with a virtual source or a device camera.')}</p>
     <div className="camera-modes">
-      <button type="button" aria-pressed={mode==='virtual'} className={mode==='virtual'?'active':''}
-        onClick={()=>{modeRef.current='virtual';stopCamera();stopDemo();setMode('virtual');}}>{tx('Cámara virtual','Virtual camera')}</button>
       <button type="button" aria-pressed={mode==='device'} className={mode==='device'?'active':''}
         onClick={()=>{modeRef.current='device';stopDemo();stopCamera();setMode('device');}}>{tx('Este dispositivo','This device')}</button>
       <button type="button" aria-pressed={mode==='remote'} className={mode==='remote'?'active':''}
         onClick={()=>{modeRef.current='remote';stopDemo();stopCamera();setMode('remote');}}>{tx('WebRTC · IP','WebRTC · IP')}</button>
+      <button type="button" aria-pressed={mode==='virtual'} className={mode==='virtual'?'active':''}
+        onClick={()=>{modeRef.current='virtual';stopCamera();stopDemo();setMode('virtual');}}>{tx('Simulación','Simulation')}</button>
     </div>
     {mode==='virtual'?<div className="camera-source-body">
       <div className="camera-virtual-scene">
@@ -273,8 +270,8 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
       <div className="camera-device-scene">
         <video ref={videoRef} playsInline autoPlay muted aria-label={tx('Vista previa de cámara','Camera preview')}/>
         {!webcamRunning&&<div className="camera-device-idle"><strong>{tx('Cámara desconectada','Camera disconnected')}</strong>
-          <small>{tx('Abrí la webcam o cámara del teléfono con el permiso del navegador.',
-            'Open your computer or phone camera with browser permission.')}</small></div>}
+          <small>{tx('Conectá para ver el video en vivo.',
+            'Connect to see live video.')}</small></div>}
         <div className="camera-live-light"><i className={webcamRunning?'on':''}/>
           {webcamRunning?tx('VISTA PREVIA LOCAL','LOCAL PREVIEW'):tx('NO CONECTADA','NOT CONNECTED')}</div>
       </div>
@@ -292,19 +289,19 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
               {tx('Desconectar','Disconnect')}</button>}
         </div>
         {cameraProblem&&<p className="sci-warning" role="alert">{cameraProblem}</p>}
-        <p className="sci-muted">{tx(
-          'Vista previa sin grabación. WebRTC requiere un gateway autorizado con HTTPS y CORS.',
-          'Preview without recording. WebRTC requires an authorized HTTPS/CORS gateway.')}</p>
+        {mode==='remote'&&<p className="sci-muted">{tx(
+          'Se requiere un gateway WHEP compatible, HTTPS y CORS.',
+          'Requires a WHEP-compatible gateway, HTTPS and CORS.')}</p>
         <div className="camera-ai">
-          <strong>{tx('Filtro opcional de animales y personas · MegaDetector',
-            'Optional wildlife/person screening · MegaDetector')}</strong>
+          <strong>{tx('Detección automática · MegaDetector / SpeciesNet',
+            'Automatic detection · MegaDetector / SpeciesNet')}</strong>
           <p className="sci-muted">{capabilityMessage}</p>
           <label className="camera-permission"><input type="checkbox" checked={permission}
             disabled={!webcamRunning||capability!=='ready'}
             onChange={e=>{setPermission(e.target.checked);setAnalyzeEnabled(e.target.checked);}}/>
             <span>{tx(
-              'Autorizo transmitir fotogramas individuales al backend para inferencia. No usar con personas identificables ni escenas sensibles: el servidor experimental no tiene autenticación.',
-              'I authorize sending individual frames to the backend for inference. Do not use with identifiable people or sensitive scenes: the experimental server has no authentication.')}</span></label>
+              'Activar análisis: enviará fotogramas al servidor cada 12 s. No usar con personas identificables; el servidor no tiene acceso protegido.',
+              'Enable analysis: sends frames every 12 s. Do not use with identifiable people; the server is not access-protected.')}</span></label>
           {analyzeEnabled&&<p className="sci-notice" role="status">{tx('Análisis automático activo · cada 12 segundos','Automatic screening active · every 12 seconds')}</p>}
           {analysisStatus&&<p className="sci-notice" role="status">{analysisStatus}</p>}
           {species.length>0&&<p className="sci-muted">{tx('SpeciesNet · sugerencia sin validar: ','SpeciesNet · unverified suggestion: ')}
@@ -315,8 +312,8 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
             <span>{tx('Vehículos','Vehicles')}: <b>{recognition.vehicles}</b></span>
           </div>}
           <p className="sci-muted">{tx(
-            'Los eventos son preliminares; no se guardan clips ni se verifican especies automáticamente.',
-            'Events are preliminary; clips are not stored and species are not automatically verified.')}</p>
+            'Solo genera eventos preliminares; aún no guarda clips.',
+            'Preliminary events only; clips are not yet saved.')}</p>
         </div>
       </div>
     </div>}
