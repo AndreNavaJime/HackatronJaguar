@@ -153,33 +153,33 @@ function App() {
     setImageError('');
   }
 
-  async function inspectImage() {
-    if (!selectedImage) return;
-    if (selectedImage.size > 12 * 1024 * 1024) {
-      setImageError(t('El tamaño máximo permitido es de 12 MB.'));
-      return;
-    }
-    setUploading(true);
-    setImageError('');
-    setImageResult(null);
-    try {
-      const response = await apiFetch('/api/images/inspect', {
-        method: 'POST',
-        headers: { 'Content-Type': selectedImage.type || 'application/octet-stream' },
-        body: selectedImage,
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(typeof payload.detail === 'string' ? payload.detail : t('Error al leer la imagen.'));
-      }
-      setImageResult(payload as ImageResult);
-      setImageEvidenceId(createAnalysisId());
-    } catch (err) {
-      setImageError(err instanceof Error ? err.message : t('No se pudo enviar la imagen.'));
-    } finally {
-      setUploading(false);
-    }
-  }
+  // Validate metadata automatically; scientific registration no longer requires a second button.
+  React.useEffect(()=>{
+    if(!selectedImage||apiState!=='connected')return;
+    const ctl=new AbortController();
+    setUploading(true);setImageError('');setImageResult(null);
+    void (async()=>{
+      try{
+        if(selectedImage.size>12*1024*1024)throw new Error('La fotografía supera 12 MB.');
+        const response=await apiFetch('/api/images/inspect',{
+          method:'POST',headers:{'Content-Type':selectedImage.type||'application/octet-stream'},
+          body:selectedImage,signal:ctl.signal,
+        });
+        const json:unknown=await response.json();
+        if(!response.ok){
+          const detail=typeof json==='object'&&json!==null&&'detail' in json
+            ?(json as {detail:unknown}).detail:null;
+          throw new Error(typeof detail==='string'?detail:'No se pudo validar la fotografía.');
+        }
+        if(ctl.signal.aborted)return;
+        setImageResult(json as ImageResult);setImageEvidenceId(createAnalysisId());
+      }catch(error){
+        if(ctl.signal.aborted)return;
+        setImageError(error instanceof Error?error.message:String(error));
+      }finally{if(!ctl.signal.aborted)setUploading(false);}
+    })();
+    return ()=>ctl.abort();
+  },[selectedImage,apiState]);
 
 
   async function continueWithPhoto(){
@@ -296,8 +296,8 @@ function App() {
         <div className="panel-heading">
           <div><h2>PantheraSCAN · {language==='en'?'Wildlife evidence screening':'Exploración de evidencia de fauna'}</h2>
             <p>{language==='en'
-              ?'Select a photo for automatic lightweight pattern exploration, or analyze a camera-trap video. Wildlife recognition requires a separately enabled AI model.'
-              :'Seleccioná una fotografía para explorar patrones automáticamente o analizá videos de cámaras trampa. Reconocer animales con IA requiere habilitar un modelo adicional.'}</p></div>
+              ?'Select a photograph or video frame and compare coat patterns with known individuals.'
+              :'Seleccioná una fotografía o fotograma y compará el pelaje con individuos conocidos.'}</p></div>
           <span className="tag">{language==='en'?'VIDEO + PHOTO':'VIDEO + FOTO'}</span>
         </div>
         <nav className="scan-media-shortcuts" aria-label={language==='en'?'Choose media type':'Elegir tipo de archivo'}>
@@ -324,29 +324,22 @@ function App() {
             <span className="tag">OpenCV · CPU</span>
           </header>
           <p className="sci-muted">{language==='en'
-            ?'Selecting a photo automatically explores its texture on Render. Wildlife detection additionally requires an enabled AI model; file validation is optional.'
-            :'Al seleccionar una foto se explora automáticamente su textura en Render. Con un modelo IA habilitado también se detecta fauna; la validación del archivo es opcional.'}</p>
+            ?'Select a clear animal flank; matching is available below. Automatic detection requires an enabled AI model.'
+            :'Seleccioná un buen costado del animal; la comparación está disponible abajo. La detección automática requiere un modelo de IA activo.'}</p>
         <div className="upload-layout">
           <div className="upload-controls">
             <label htmlFor="panthera-image">{language==='en'?'Select photo (max 12 MB)':'Seleccionar fotografía (máximo 12 MB)'}</label>
             <input id="panthera-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} aria-describedby="panthera-photo-auto-hint" />
             <p id="panthera-photo-auto-hint" className="scan-photo-auto-hint" role="status">
               {language==='en'
-                ? 'Automatic: select an image to start. The “Validate file” button is optional.'
-                : 'Automático: al elegir la foto empieza el análisis. El botón “Validar archivo” es opcional.'}
+                ? 'The image is prepared automatically. Select the flank and compare with known individuals.'
+                : 'El archivo se prepara automáticamente. Seleccioná el flanco y compará con individuos conocidos.'}
             </p>
-            <button className="action-button" disabled={!selectedImage || uploading || apiState !== 'connected'} onClick={() => void inspectImage()}>
-              {uploading?(language==='en'?'Validating…':'Validando…'):(language==='en'?'Validate photo file (no AI)':'Validar archivo de foto (sin IA)')}
-            </button>
+            {uploading&&<p className="sci-muted" role="status">{language==='en'?'Preparing photo…':'Preparando fotografía…'}</p>}
             {imageError && <p role="alert" className="upload-error">{imageError}</p>}
-            {imageResult && <div className="image-result" role="status">
-              <strong>✓ {language==='en'?'File validated — no animal analysis':'Archivo validado — sin análisis de fauna'}</strong>
-              <dl><dt>{t("Formato")}</dt><dd>{imageResult.format}</dd><dt>{t("Dimensiones")}</dt><dd>{imageResult.width} × {imageResult.height} px</dd><dt>{t("Tamaño")}</dt><dd>{(imageResult.size_bytes / 1024 / 1024).toFixed(2)} MB</dd><dt>{t("Almacenada")}</dt><dd>{t("No")}</dd></dl>
-              <p>{language==='en'?'File validation completed. Species identification was not performed.':'Validación del archivo completada. No se ha realizado identificación de especies.'}</p>
-              <p className="sci-muted">{language==='en'
-                ?'Use Next in the bottom bar to register this photo as one capture awaiting scientific review.'
-                :'Usá Siguiente en la barra inferior para registrar esta fotografía como una captura pendiente de revisión científica.'}</p>
-            </div>}
+            {imageResult&&<p className="scan-photo-metadata" role="status">
+              ✓ {language==='en'?'Ready for scientific review':'Lista para revisión científica'} · {imageResult.width} × {imageResult.height} px
+            </p>}
           </div>
           <div className="image-frame">
             {previewUrl ? <img src={previewUrl} alt={t('Vista previa de la fotografía seleccionada')} /> : <div className="empty-preview">{t("Aquí aparecerá la fotografía seleccionada")}</div>}
@@ -355,14 +348,13 @@ function App() {
         </div>
         {selectedImage && <DetectionPanel file={selectedImage}
           enabled={apiState === 'connected' && !uploading} />}
-        {selectedImage && !aiAvailable && <p className="sci-muted" role="status">
-          {language==='en'
-            ? 'Render runs lightweight texture exploration only; animal/species detection requires a separately enabled AI model.'
-            : 'Render ejecuta únicamente una exploración ligera de texturas; la detección de animales o especies requiere activar un modelo de IA por separado.'}
-        </p>}
+
         </section>
         <IndividualMatcherPanel photo={selectedImage} enabled={apiState==='connected'} />
-        <PantheraRosettesPanel />
+        <details className="method-details method-details-compact">
+          <summary>{language==='en'?'Previous Colab integration (optional)':'Importación antigua de Colab (opcional)'}</summary>
+          <PantheraRosettesPanel />
+        </details>
         <div id="panthera-video-section" className="scan-video-feature">
           <header className="scan-video-feature-heading">
             <h3>{language==='en'?'Videos · sequence analysis':'Videos · análisis de secuencias'}</h3>
