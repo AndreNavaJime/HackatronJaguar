@@ -2,6 +2,7 @@ import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import FireCameraPanel from './FireCameraPanel';
+import FirePublicEvents from './FirePublicEvents';
 import type {CameraFireCandidate} from './cameraEvents';
 import {loadSession,saveSession} from './scienceShared';
 
@@ -86,6 +87,7 @@ export default function FireWorkspace({cameraEvents,onFireEvent}:{
       <span className="fire-pill">{tx('ENTORNO DE SIMULACIÓN','SIMULATION ENVIRONMENT')}</span>
     </div>
 
+    <FirePublicEvents />
     <FireCameraPanel onEvent={onFireEvent}/>
 
     <section className="fire-card camera-fire-inbox" style={{marginBottom:15}}>
