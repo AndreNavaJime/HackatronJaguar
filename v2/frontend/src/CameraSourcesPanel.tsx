@@ -4,6 +4,7 @@ import {useLanguage} from './language';
 import type {EdgeEvent} from './scienceShared';
 import './CameraSourcesPanel.css';
 import {connectWhep} from './whep';
+import LocalAnimalClips from './LocalAnimalClips';
 
 type Props={
   enabled:boolean;
@@ -44,10 +45,10 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const mounted=React.useRef(true);
   const enabledRef=React.useRef(enabled);
   enabledRef.current=enabled;
-  const modeRef=React.useRef<'device'|'remote'>('remote');
+  const modeRef=React.useRef<'device'|'remote'>('device');
   const lock=React.useRef(false);
   const lastClassTime=React.useRef<Record<string,number>>({});
-  const [mode,setMode]=React.useState<'device'|'remote'>('remote');
+  const [mode,setMode]=React.useState<'device'|'remote'>('device');
 
   const stopCamera=React.useCallback(()=>{
     peerRef.current?.close();peerRef.current=null;
@@ -72,6 +73,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   },[stopCamera]);
 
   React.useEffect(()=>{
+    if(mode!=='remote')return;
     const controller=new AbortController();
     async function check(){
       try{
@@ -86,7 +88,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
     }
     void check();
     return ()=>controller.abort();
-  },[]);
+  },[mode]);
 
   async function startCamera(){
     stopCamera();setCameraProblem('');
@@ -198,7 +200,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
       'Wildlife detection available. SpeciesNet suggests species if its model is configured.');
   return <section className="sci-panel camera-sources" aria-label={tx('Centro de cámaras','Camera center')}>
     <div className="sci-panel-head">
-      <h3>{tx('Conexión de cámaras de fauna','Wildlife camera connection')}</h3>
+      <h3>{tx('PantheraLIVE · Captura selectiva de fauna','PantheraLIVE · Selective animal recording')}</h3>
       <span className="sci-tag">{tx('EN PRUEBAS','IN TESTING')}</span>
     </div>
     <div className="camera-modes" role="group" aria-label={tx('Tipo de cámara','Camera type')}>
@@ -238,6 +240,9 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
         {mode==='remote'&&<p className="sci-muted">{tx(
           'Se requiere un gateway WHEP compatible, HTTPS y CORS.',
           'Requires a WHEP-compatible gateway, HTTPS and CORS.')}</p>}
+        {mode==='remote'&&<details className="method-details method-details-compact camera-advanced-server">
+          <summary>{tx('Análisis de servidor (opcional, pendiente de modelo)',
+            'Server analysis (optional, model not yet installed)')}</summary>
         <div className="camera-ai">
           <strong>{tx('Detección automática · MegaDetector / SpeciesNet',
             'Automatic detection · MegaDetector / SpeciesNet')}</strong>
@@ -246,8 +251,8 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
             disabled={!webcamRunning||capability!=='ready'}
             onChange={e=>{setPermission(e.target.checked);setAnalyzeEnabled(e.target.checked);}}/>
             <span>{tx(
-              'Activar análisis: enviará fotogramas al servidor cada 12 s. No usar con personas identificables; el servidor no tiene acceso protegido.',
-              'Enable analysis: sends frames every 12 s. Do not use with identifiable people; the server is not access-protected.')}</span></label>
+              'Análisis experimental: examina un fotograma cada 12 s; NO graba videos. No activar con personas identificables.',
+              'Experimental screening: examines one frame every 12 s; it does NOT record video. Do not enable with identifiable people.')}</span></label>
           {analyzeEnabled&&<p className="sci-notice" role="status">{tx('Análisis automático activo · cada 12 segundos','Automatic screening active · every 12 seconds')}</p>}
           {analysisStatus&&<p className="sci-notice" role="status">{analysisStatus}</p>}
           {species.length>0&&<p className="sci-muted">{tx('SpeciesNet · sugerencia sin validar: ','SpeciesNet · unverified suggestion: ')}
@@ -261,7 +266,10 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
             'Solo genera eventos preliminares; aún no guarda clips.',
             'Preliminary events only; clips are not yet saved.')}</p>
         </div>
+        </details>}
       </div>
     </div>
+    {mode==='device'&&<LocalAnimalClips stream={webcamRunning?streamRef.current:null}
+      video={videoRef.current}/>}
   </section>;
 }
