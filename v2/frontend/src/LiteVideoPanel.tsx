@@ -1,7 +1,7 @@
 import {apiFetch,apiUrl} from './apiClient';
 import React from 'react';
 import { useLanguage } from './language';
-import {VideoResult,VideoSession,VideoEvidenceBatch,saveVideoSession,getVideoSession,
+import {VideoResult,VideoSession,VideoEvidenceBatch,VideoFrameEvidence,saveVideoSession,getVideoSession,
   listVideoSessions,deleteVideoSession,getActiveVideoId,setActiveVideoId,
   createAnalysisId,selectionBatch} from './videoWorkspaceDb';
 
@@ -25,8 +25,9 @@ async function readResponse(response:Response) {
 }
 
 export type VideoWorkflowState={hasResult:boolean;selectedCount:number};
-export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState,nextRequest=0}:{enabled:boolean;
+export default function LiteVideoPanel({enabled,onRecordEvidence,onAnalyzeFrames,onWorkflowState,nextRequest=0}:{enabled:boolean;
   onRecordEvidence?:(item:VideoEvidenceBatch)=>void;
+  onAnalyzeFrames?:(frames:VideoFrameEvidence[],sourceFilename:string)=>void;
   onWorkflowState?:(state:VideoWorkflowState)=>void;nextRequest?:number}) {
   const {language}=useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
@@ -100,6 +101,11 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
   const changeSelection=(sample:number)=>setSelectedSamples(previous=>
     previous.includes(sample)?previous.filter(x=>x!==sample):
     previous.length>=6?previous:[...previous,sample]);
+  function reviewFlankFrames(samplesToAnalyze=selectedSamples){
+    if(!result||!onAnalyzeFrames||!samplesToAnalyze.length)return;
+    const chosen=new Set(samplesToAnalyze);
+    onAnalyzeFrames(result.frames.filter(f=>chosen.has(f.sample)).slice(0,6),latestFilename);
+  }
   function continueReview(samplesToSend=selectedSamples){
     if(!onRecordEvidence||!result||!analysisId||!jobId||!samplesToSend.length)return;
     setSelectedSamples(samplesToSend);
@@ -318,13 +324,17 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
       </div>
       <div className="video-selection-summary">
         <div><strong>{tx('Evidencias para el estudio','Evidence for the study')}</strong>
-          <p>{tx('Seleccioná hasta seis fotogramas. Se guardarán como evidencia de UNA captura, sin multiplicar los encuentros.',
-            'Select up to six frames. They will be linked to ONE capture rather than counted as separate encounters.')}</p>
+          <p>{tx('Elegí hasta seis fotogramas para revisar el pelaje y comparar individuos. Registrar evidencia es una acción independiente.',
+            'Select up to six frames to examine coats and compare individuals. Recording evidence is a separate action.')}</p>
         </div><span className="sci-tag">{selectedSamples.length}/6</span>
       </div>
       {onRecordEvidence&&selectedSamples.length>0&&<div className="video-next-actions">
         <button type="button" className="sci-secondary"
           onClick={()=>setSelectedSamples([])}>{tx('Limpiar selección','Clear selection')}</button>
+        {onAnalyzeFrames&&<button type="button" className="action-button"
+          onClick={()=>reviewFlankFrames()}>
+          {tx('Examinar pelaje de fotogramas seleccionados →','Examine coat patterns in selected frames →')}
+        </button>}
       </div>}
       <div className="video-downloads">
         <h4>{tx('Descargas para revisión científica','Downloads for scientific review')}</h4>
@@ -360,6 +370,10 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
             <small>{tx('Píxeles cambiados','Changed pixels')}: {pct(frame.motion_score)}</small>
             <a className="download-link" download={'pantherascan_muestra_'+String(frame.sample).padStart(3,'0')+'.jpg'}
               href={frame.image}>{tx('Descargar fotograma ↓','Download frame ↓')}</a>
+            {onAnalyzeFrames&&<button type="button" className="action-button frame-analyze-action"
+              onClick={()=>reviewFlankFrames([frame.sample])}>
+              {tx('Examinar pelaje de este fotograma →','Examine this frame’s coat →')}
+            </button>}
             {onRecordEvidence&&<button type="button" className="sci-secondary"
               onClick={()=>continueReview([frame.sample])}>
               {tx('Registrar solo este fotograma ↗','Register this frame only ↗')}</button>}
