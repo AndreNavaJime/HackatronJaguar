@@ -475,6 +475,26 @@ function App() {
           <span>{workflowLabel}</span><span aria-hidden="true">→</span>
         </button>
       </div>
+      {section==='Resumen'&&<section className="panthera-innovation" aria-labelledby="innovation-heading" style={{margin:'28px 0',padding:'clamp(20px,4vw,36px)',border:'1px solid rgba(148,163,184,.2)',borderRadius:22,background:'linear-gradient(135deg,rgba(15,35,52,.96),rgba(12,27,38,.96))',color:'#edf7f6'}}>
+        <span style={{fontSize:11,letterSpacing:'.18em',color:'#8cd7c5',fontWeight:700}}>PANTHERALAB / RESEARCH & DEVELOPMENT</span>
+        <h2 id="innovation-heading" style={{fontSize:'clamp(23px,3vw,34px)',margin:'12px 0 8px',color:'#f4fbfa'}}>{language==='zh'?'技术创新与原型':language==='en'?'Innovation & prototypes':'Innovación y prototipos'}</h2>
+        <p style={{maxWidth:660,opacity:.82,lineHeight:1.65}}>{language==='zh'?'用于生物多样性保护的实验性环境监测和野生动物研究技术。':language==='en'?'Experimental technologies for environmental observation, wildlife monitoring and conservation research.':'Tecnologías experimentales para la observación ambiental, el monitoreo de fauna y la investigación para la conservación.'}</p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16,marginTop:22}}>
+          <article style={{padding:22,border:'1px solid rgba(148,163,184,.23)',borderRadius:16,background:'rgba(255,255,255,.045)'}}>
+            <span aria-hidden="true" style={{fontSize:28}}>◉</span>
+            <h3 style={{color:'#fff',margin:'14px 0 8px'}}>PantheraSENSE</h3>
+            <p style={{fontSize:14,lineHeight:1.6,opacity:.82}}>{language==='zh'?'环境变量监测与实验性数据传输。':language==='en'?'Environmental sensing and experimental transmission of scientific measurements.':'Monitoreo de variables ambientales y transmisión experimental de mediciones científicas.'}</p>
+            <small style={{letterSpacing:'.08em',color:'#8cd7c5'}}>{language==='zh'?'模拟原型':language==='en'?'SIMULATION PROTOTYPE':'PROTOTIPO EN SIMULACIÓN'}</small>
+          </article>
+          <article style={{padding:22,border:'1px solid rgba(148,163,184,.23)',borderRadius:16,background:'rgba(255,255,255,.045)'}}>
+            <span aria-hidden="true" style={{fontSize:28}}>◇</span>
+            <h3 style={{color:'#fff',margin:'14px 0 8px'}}>VIGÍA Cam</h3>
+            <p style={{fontSize:14,lineHeight:1.6,opacity:.82}}>{language==='zh'?'用于野生动物相机的数据连接与记录管理概念。':language==='en'?'Connectivity concept for camera traps and wildlife evidence management.':'Concepto de conectividad para cámaras trampa y gestión de registros de fauna.'}</p>
+            <small style={{letterSpacing:'.08em',color:'#8cd7c5'}}>{language==='zh'?'概念验证':language==='en'?'PROOF OF CONCEPT':'PRUEBA DE CONCEPTO'}</small>
+          </article>
+        </div>
+        <p style={{margin:'22px 0 0',fontSize:12,opacity:.66}}>{language==='zh'?'概念与实验开发：Andrea Navarro Jiménez · Costa Rica':language==='en'?'Concept and experimental development: Andrea Navarro Jiménez · Costa Rica':'Concepto y desarrollo experimental: Andrea Navarro Jiménez · Costa Rica'}</p>
+      </section>}
       <footer className="panthera-bottom-credit">
         <span>{language==='en'?'CONCEPT & PROTOTYPE':'CONCEPTO Y PROTOTIPO'}</span>
         <strong>Andrea Navarro Jiménez</strong>
