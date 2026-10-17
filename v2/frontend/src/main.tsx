@@ -12,6 +12,7 @@ import type {VideoWorkflowState} from './LiteVideoPanel';
 import ScientificWorkspace from './ScientificWorkspace';
 import PantheraRosettesPanel from './PantheraRosettesPanel';
 import InstallControl from './InstallControl';
+import {applyPendingLiveBadge,watchPendingLiveClips} from './liveClipBadge';
 import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
 
@@ -85,7 +86,23 @@ function App() {
   const { language, setLanguage, t } = useLanguage();
   const moduleLabel=(name:string)=>name==='PantheraID'?'PantheraSCAN':
     name==='Informes'?(language==='en'?'Scientific reports':'Informes científicos'):t(name);
-  const [section, setSection] = React.useState('Resumen');
+  const [section, setSection] = React.useState(()=>{
+    try{return new URLSearchParams(window.location.search).get('tab')==='PantheraLIVE'
+      ?'PantheraLIVE':'Resumen';}catch{return 'Resumen';}
+  });
+  const [pendingLiveClips,setPendingLiveClips]=React.useState<number|null>(null);
+  React.useEffect(()=>watchPendingLiveClips(setPendingLiveClips),[]);
+  React.useEffect(()=>{if(pendingLiveClips!==null)void applyPendingLiveBadge(pendingLiveClips);},[pendingLiveClips]);
+  React.useEffect(()=>{
+    const openInbox=(event:MessageEvent)=>{
+      if(event.data?.type!=='PANTHERALIVE_REVIEW_CLIPS')return;
+      setSection('PantheraLIVE');
+      window.setTimeout(()=>document.getElementById('panthera-live-clip-inbox')
+        ?.scrollIntoView({behavior:'smooth',block:'start'}),200);
+    };
+    navigator.serviceWorker?.addEventListener('message',openInbox);
+    return ()=>navigator.serviceWorker?.removeEventListener('message',openInbox);
+  },[]);
   const [showCredits,setShowCredits]=React.useState(false);
   const [apiState, setApiState] = React.useState<ApiState>('checking');
   const [aiAvailable, setAiAvailable] = React.useState(false);
@@ -296,6 +313,10 @@ function App() {
         {sections.map(s => <button type="button" key={s} className={(section===s?'active':'')+(s==='PantheraFIRE'?' nav-pantherafire':'')} aria-current={section===s?'page':undefined}
           onClick={() => setSection(s)}>
           <span className="nav-symbol" aria-hidden="true"><ModuleIcon section={s}/></span><span className="nav-text">{moduleLabel(s)}</span>
+          {s==='PantheraLIVE'&&pendingLiveClips!==null&&pendingLiveClips>0&&
+            <span className="nav-live-count" aria-label={language==='en'
+              ?pendingLiveClips+' pending clips'
+              :pendingLiveClips+' videos pendientes'}>{pendingLiveClips>99?'99+':pendingLiveClips}</span>}
           <span className="nav-arrow" aria-hidden="true">↗</span>
         </button>)}
       </nav>

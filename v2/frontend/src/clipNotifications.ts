@@ -2,8 +2,10 @@
  * in-app clip alerts always work regardless of browser notification support.
  * No remote push notifications are installed or implied here.
  */
-const WORKER_URL='/pantheralive-alert-sw.js';
-const WORKER_SCOPE='/pantheralive-alerts/';
+// Use the installed PantheraLAB PWA's own worker, so Android can associate
+// notification dots with the HOME SCREEN app (not a separate scoped worker).
+const WORKER_URL='/sw.js';
+const WORKER_SCOPE='/';
 
 export async function requestClipAlertsOnCameraConnect():Promise<void>{
   if(!window.isSecureContext||typeof Notification==='undefined')return;
@@ -19,19 +21,21 @@ export async function requestClipAlertsOnCameraConnect():Promise<void>{
   }
 }
 
-export async function notifyClipReady():Promise<void>{
+export async function notifyClipReady(pending=1):Promise<void>{
   if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
   const title='PantheraLIVE';
   const options={
-    body:'Posible animal detectado. Video pendiente de revisión.',
+    body:pending===1?'1 video de posible animal pendiente de revisión.':
+      pending+' videos de posibles animales pendientes de revisión.',
     tag:'pantheralive-clip-ready',
-    icon:'/favicon.ico'
+    icon:'/icons/jaguar-modern-192.png'
   };
   try{
     if('serviceWorker' in navigator){
       const worker=await navigator.serviceWorker.register(WORKER_URL,{scope:WORKER_SCOPE});
-      if(worker.active){
-        await worker.showNotification(title,options);
+      const active=await navigator.serviceWorker.ready;
+      if(worker.active||active.active){
+        await active.showNotification(title,options);
         return;
       }
     }
@@ -40,4 +44,16 @@ export async function notifyClipReady():Promise<void>{
   }catch{
     // The automatic banner inside PantheraLIVE is the reliable fallback.
   }
+}
+
+/** Clear Android's notification dot when no unreviewed local video remains.
+ * Does not create a new notification or request permissions.
+ */
+export async function clearClipReadyNotification():Promise<void>{
+  if(!('serviceWorker' in navigator))return;
+  try{
+    const worker=await navigator.serviceWorker.getRegistration(WORKER_SCOPE);
+    const notifications=await worker?.getNotifications({tag:'pantheralive-clip-ready'});
+    notifications?.forEach(note=>note.close());
+  }catch{/* Closing a notification must never block clip review. */}
 }

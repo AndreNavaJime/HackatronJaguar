@@ -1432,3 +1432,13 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
   font-size:11px;font-weight:650;line-height:1.2;color:#bceae1;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:860px){.active-study-label{max-width:155px;font-size:10px}}
+
+
+/* A single meaningful red unread count for PantheraLIVE camera evidence. */
+.shell nav .nav-live-count{display:inline-flex;align-items:center;justify-content:center;
+  background:#dd3549;color:#fff;font-size:11px;font-weight:750;
+  border-radius:999px;min-width:20px;height:20px;padding:0 5px;
+  font-variant-numeric:tabular-nums;line-height:1;flex-shrink:0;margin-left:auto;
+  box-shadow:0 0 0 2px #0b1421}
+.shell nav button:has(.nav-live-count) .nav-arrow{margin-left:0}
+@media(max-width:860px){.shell nav .nav-live-count{font-size:10px;min-width:17px;height:17px;padding:0 4px}}

@@ -19,6 +19,8 @@ export type AnimalClip={
 const DB_NAME='pantheralab_live_review_clips_v1';
 const STORE='clips';
 export const MAX_CLIPS=20;
+export const LIVE_CLIPS_CHANGED='pantheralive:clips-changed';
+function clipsChanged(){window.dispatchEvent(new Event(LIVE_CLIPS_CHANGED));}
 export const MAX_CLIP_BYTES=25*1024*1024;
 function database():Promise<IDBDatabase>{
   return new Promise((resolve,reject)=>{
@@ -44,6 +46,20 @@ async function transact<T>(mode:IDBTransactionMode,task:(store:IDBObjectStore,re
     task(tx.objectStore(STORE),value=>{result=value;done=true;},reject);
   });
 }
+export function countPendingAnimalClips():Promise<number>{
+  // Iterate only stored status; no video should be read into a React sidebar.
+  return transact('readonly',(store,ok,fail)=>{
+    let pending=0;
+    const cursor=store.openCursor();
+    cursor.onsuccess=()=>{
+      const current=cursor.result;
+      if(!current){ok(pending);return;}
+      if((current.value as AnimalClip).state==='pending')pending++;
+      current.continue();
+    };
+    cursor.onerror=()=>fail(cursor.error);
+  });
+}
 export function listAnimalClips():Promise<AnimalClip[]>{
   return transact('readonly',(store,ok,fail)=>{
     const req=store.getAll();
@@ -56,12 +72,13 @@ export async function addAnimalClip(clip:AnimalClip):Promise<void>{
     throw new Error('Video vacío o demasiado grande (máximo 25 MB).');
   const existing=await listAnimalClips();
   if(existing.length>=MAX_CLIPS)throw new Error('La bandeja local alcanzó 20 videos; conservá o descartá algunos.');
-  return transact('readwrite',(store,ok,fail)=>{
+  await transact('readwrite', (store,ok,fail)=>{
     const req=store.add(clip);req.onsuccess=()=>ok(undefined);req.onerror=()=>fail(req.error);
   });
+  clipsChanged();
 }
-export function setAnimalClipState(id:string,state:'kept'):Promise<void>{
-  return transact('readwrite',(store,ok,fail)=>{
+export async function setAnimalClipState(id:string,state:'kept'):Promise<void>{
+  await transact('readwrite',(store,ok,fail)=>{
     const get=store.get(id);
     get.onsuccess=()=>{
       const value=get.result as AnimalClip|undefined;
@@ -71,11 +88,13 @@ export function setAnimalClipState(id:string,state:'kept'):Promise<void>{
     };
     get.onerror=()=>fail(get.error);
   });
+  clipsChanged();
 }
-export function deleteAnimalClip(id:string):Promise<void>{
-  return transact('readwrite',(store,ok,fail)=>{
+export async function deleteAnimalClip(id:string):Promise<void>{
+  await transact('readwrite',(store,ok,fail)=>{
     const req=store.delete(id);req.onsuccess=()=>ok(undefined);req.onerror=()=>fail(req.error);
   });
+  clipsChanged();
 }
 export function localStudyId():string{
   try{return localStorage.getItem('pantheralab_selected_study_v1')||'';}catch{return '';}

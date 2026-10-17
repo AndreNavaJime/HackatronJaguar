@@ -77,3 +77,21 @@ self.addEventListener('fetch', event => {
     }))
   );
 });
+
+/* Installed PantheraLAB PWA: clicking a possible-animal clip alert opens the
+ * local review inbox. This worker does NOT inspect or record video in background.
+ */
+self.addEventListener('notificationclick', event=>{
+  if(event.notification.tag!=='pantheralive-clip-ready')return;
+  event.notification.close();
+  event.waitUntil((async()=>{
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    const existing=windows.find(client=>new URL(client.url).origin===self.location.origin);
+    if(existing){
+      existing.postMessage({type:'PANTHERALIVE_REVIEW_CLIPS'});
+      await existing.focus();
+    }else{
+      await self.clients.openWindow('/?tab=PantheraLIVE');
+    }
+  })());
+});
