@@ -13,16 +13,12 @@ type Capture={recorder:MediaRecorder;parts:Blob[];discard:boolean;started:number
 type Props={stream:MediaStream|null;video:HTMLVideoElement|null;
   sourceMode:'device'|'remote';cameraId:string};
 const ANIMALS=new Set(['bird','cat','dog','horse','sheep','cow','elephant','bear','zebra','giraffe']);
-const LABELS:Record<string,[string,string]>={
-  dog:['Perro','Dog'],cat:['Gato','Cat'],bird:['Ave','Bird'],horse:['Caballo','Horse'],
-  cow:['Vaca','Cow'],sheep:['Oveja','Sheep'],bear:['Oso','Bear'],
-  elephant:['Elefante','Elephant'],zebra:['Cebra','Zebra'],giraffe:['Jirafa','Giraffe'],
-};
-// Candidates are collected at >= .28 by COCO-SSD. We require multiple
-// independent frames before treating a weak prediction as an animal event.
-const THRESHOLD=.40;
-const STRONG_SCORE=.78;
-const CONFIRM_WITHIN_MS=5000;
+// COCO object classes are not verified species. We group the animal labels
+// into a provisional animal/no-animal trigger for event recording.
+const WEAK_ANIMAL_SCORE=.28;
+const MEDIUM_ANIMAL_SCORE=.38;
+const STRONG_ANIMAL_SCORE=.78;
+const CONFIRM_WITHIN_MS=6000;
 const SILENCE_MS=4500;
 const MAX_DURATION_MS=19000;
 const REARM_MS=6000;
@@ -59,7 +55,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
   const mountedRef=React.useRef(true);
   const loadToken=React.useRef(0);
   const busyRef=React.useRef(false);
-  const animalHistory=React.useRef({label:'',lastSeen:0,hits:0});
+  const animalHistory=React.useRef<{at:number;score:number}[]>([]);
   const adaptiveFrame=React.useRef<AdaptiveLightFrame|null>(null);
   const clipCountRef=React.useRef(0);
   clipCountRef.current=clips.length;
@@ -101,7 +97,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
     let active=true,timer:number|undefined;
     const detector=detectorRef.current;
     readyRef.current=true;lastAnimalRef.current=0;
-    animalHistory.current={label:'',lastSeen:0,hits:0};
+    animalHistory.current=[];
     setFramesInspected(0);setLastObservation('');setLightCondition('normal');setLightBrightness(null);
     const startClip=(prediction:Prediction)=>{
       const mime=recordingMime();
@@ -109,7 +105,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
         'Video recording is not available in this browser.'));
       const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:850_000});
       const cap:Capture={recorder:rec,parts:[],discard:false,started:Date.now(),
-        animalClass:prediction.class,confidence:prediction.score,
+        animalClass:'animal',confidence:prediction.score,
         studyId:localStudyId(),mime};
       captureRef.current=cap;readyRef.current=false;
       rec.ondataavailable=e=>{if(e.data.size>0)cap.parts.push(e.data);};
@@ -172,35 +168,42 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
         const person=results.some(p=>p.class==='person'&&p.score>=.50);
         const candidate=results.filter(p=>ANIMALS.has(p.class))
           .sort((a,b)=>b.score-a.score)[0];
-        const winner=results[0];
         let animal:Prediction|undefined;
+        // Aggregate animal evidence regardless of fluctuating cat/dog labels.
+        // "car", "truck" and all non-animal classes cannot start clips.
+        animalHistory.current=animalHistory.current.filter(x=>
+          now-x.at>=0&&now-x.at<=CONFIRM_WITHIN_MS);
         if(person){
-          animalHistory.current={label:'',lastSeen:0,hits:0};
-          setLastObservation(tx('Persona reconocida; se evita grabar.',
-            'Person detected; video recording is suppressed.'));
+          animalHistory.current=[];
+          setLastObservation(tx('Posible persona: se evita grabar por privacidad.',
+            'Possible person: recording suppressed for privacy.'));
         }else if(candidate){
-          const prev=animalHistory.current;
-          const hits=candidate.class===prev.label&&now-prev.lastSeen<CONFIRM_WITHIN_MS
-            ?prev.hits+1:1;
-          const confirmed=candidate.score>=STRONG_SCORE||
-            (candidate.score>=THRESHOLD&&hits>=2);
-          animalHistory.current={label:candidate.class,lastSeen:now,
-            hits:candidate.score>=THRESHOLD?hits:0};
-          const name=LABELS[candidate.class]?.[language==='en'?1:0]||candidate.class;
-          setLastObservation(name+' · '+Math.round(candidate.score*100)+
-            '% · '+(confirmed?tx('detección confirmada','confirmed detection'):
-              candidate.score<THRESHOLD?tx('evidencia débil; acercá la cámara',
-                'weak evidence; move camera closer'):tx('confirmando en otro fotograma…',
-                'checking another frame…')));
-          if(confirmed)animal=candidate;
+          if(candidate.score>=WEAK_ANIMAL_SCORE){
+            animalHistory.current.push({at:now,score:candidate.score});
+            animalHistory.current=animalHistory.current.slice(-5);
+          }
+          const medium=animalHistory.current.filter(x=>x.score>=MEDIUM_ANIMAL_SCORE).length;
+          const weak=animalHistory.current.filter(x=>x.score>=WEAK_ANIMAL_SCORE).length;
+          const confirmed=candidate.score>=STRONG_ANIMAL_SCORE||medium>=2||weak>=3;
+          if(confirmed){
+            animal={class:'animal',score:Math.max(candidate.score,...animalHistory.current.map(x=>x.score))};
+            setLastObservation(tx('Posible animal · señal suficiente para grabar',
+              'Possible animal · enough evidence to record'));
+          }else{
+            setLastObservation(candidate.score<WEAK_ANIMAL_SCORE
+              ?tx('Señal de animal demasiado débil; mejorá el encuadre',
+                'Animal signal too weak; adjust framing')
+              :tx('Posible animal · verificando varios fotogramas ('+weak+'/3)',
+                'Possible animal · checking several frames ('+weak+'/3)'));
+          }
+          // Avoid cutting clips because the class fluctuates during recording.
+          if(captureRef.current&&candidate.score>=WEAK_ANIMAL_SCORE)
+            lastAnimalRef.current=now;
         }else{
-          animalHistory.current={label:'',lastSeen:0,hits:0};
-          setLastObservation(winner
-            ?tx('Objeto observado, no reconocido como animal: ',
-              'Object seen, not recognized as animal: ')+winner.class+
-              ' · '+Math.round(winner.score*100)+'%'
-            :tx('No reconoce animales todavía. Mejorá la luz y mostrale el cuerpo completo.',
-              'No animals recognized yet. Improve lighting and show the full animal.'));
+          setLastObservation(tx(
+            'Sin evidencia de animal. Probá otro ángulo o iluminación.',
+            'No animal evidence. Try a different angle or lighting.'
+          ));
         }
         if(person){
           if(captureRef.current)finish(true);
@@ -210,8 +213,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
         }else if(animal){
           lastAnimalRef.current=now;
           if(captureRef.current){
-            setStatus(tx('Grabando posible ','Recording possible ')+
-              (LABELS[animal.class]?.[language==='en'?1:0]||animal.class)+'…');
+            setStatus(tx('Grabando posible animal…','Recording possible animal…'));
           }else if(readyRef.current&&now-lastClipRef.current>REST_MS&&clipCountRef.current<MAX_CLIPS){
             startClip(animal);
           }
@@ -319,8 +321,8 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
       <span className="sci-tag">{tx('EN EL DISPOSITIVO','ON DEVICE')}</span>
     </div>
     <p className="sci-muted">{tx(
-      'Al conectar la cámara empieza automáticamente a buscar animales y grabar eventos. Detecta categorías comunes como perro, gato y ave; no identifica jaguares ni sus rosetas.',
-      'Animal detection and event recording start when the camera connects. Recognizes common categories such as dog, cat and bird; not jaguars or rosettes.'
+      'Busca señales de posible animal y graba automáticamente eventos para revisión. No intenta determinar la especie ni la identidad; pueden ocurrir falsas alarmas.',
+      'Looks for possible animal presence and records events for review. It does not determine species or identity; false alarms remain possible.'
     )}</p>
     <div className="local-animal-actions">
       {!running?<button type="button" className="action-button" disabled={!stream?.active||loading}
@@ -351,14 +353,17 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
     {error&&<p role="alert" className="sci-warning">{error}</p>}
     <div className="local-animal-inbox-head"><strong>{tx('Bandeja de videos locales','Local video inbox')}</strong>
       <span>{pending} {tx('pendientes','pending')} · {clips.length}/{MAX_CLIPS}</span></div>
-    {!clips.length?<p className="sci-muted">{tx('Aún no hay videos. Enfocá a Josefina con la cámara local y activá la detección.',
-      'No videos yet. Point the local camera at your pet and start detection.')}</p>:
+    {!clips.length?<p className="sci-muted">{tx(
+      'No hay clips. Conectá la cámara para comenzar la detección y grabación selectiva.',
+      'No clips yet. Connect the camera to begin selective detection and recording.')}</p>:
       <div className="local-animal-inbox">{clips.map(clip=>
         <article key={clip.id} className="local-animal-clip">
           {objects[clip.id]&&<video src={objects[clip.id]} controls playsInline preload="metadata"/>}
           <div className="local-animal-clip-info">
-            <strong>{LABELS[clip.animalClass]?.[language==='en'?1:0]||clip.animalClass}
-              {' · '+Math.round(clip.confidence*100)+'% '+tx('puntuación del detector','detector score')}</strong>
+            <strong>{tx('Posible animal · pendiente de revisión',
+              'Possible animal · awaiting review')}</strong>
+            <small>{tx('Puntuación de detección (no especie): ',
+              'Detection score (not species identification): ')}{Math.round(clip.confidence*100)}%</small>
             <small>{new Date(clip.capturedAt).toLocaleString(language==='en'?'en-US':'es-CR')}</small>
             <small>{clip.studyId?tx('Estudio local: ','Local study: ')+clip.studyId:
               tx('Sin estudio asignado','No study assigned')}</small>
