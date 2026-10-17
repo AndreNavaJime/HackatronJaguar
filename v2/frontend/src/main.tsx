@@ -16,7 +16,7 @@ import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
 
 // Keep the PantheraID section identifier to avoid breaking existing research workflows.
-const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraLIVE', 'PantheraSENSE', 'PantheraSAT', 'PantheraFIRE'];
+const sections = ['Resumen', 'PantheraMONITORING', 'PantheraLIVE', 'PantheraID', 'PantheraSENSE', 'PantheraSAT', 'Informes', 'PantheraFIRE'];
 function ModuleIcon({section}:{section:string}){
   const paths:Record<string,React.ReactNode>={
     Resumen:<><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 12h8M12 8v8"/></>,
@@ -25,6 +25,7 @@ function ModuleIcon({section}:{section:string}){
     PantheraLIVE:<path d="m13 2-9 11h7l-1 9 10-12h-7l0-8Z"/>,
     PantheraSENSE:<><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4.5 4.5 0 1 1-4 0Z"/><path d="M12 9v9"/></>,
     PantheraSAT:<><path d="m8 16-4 4m9-9 2-2M4 14l6 6M14 4l6 6"/><rect x="8.5" y="8.5" width="7" height="7" rx="1" transform="rotate(45 12 12)"/><path d="M3 3c3 0 5 2 5 5M16 16c0 3 2 5 5 5"/></>,
+    Informes:<><path d="M8 3h8l4 4v14H4V3h4M15 3v5h5M8 12h8M8 16h8"/></>,
     PantheraFIRE:<path d="M12 22c4.5 0 7-3 7-7 0-3.3-2-5.8-4-7-.1 3-1.8 4.4-2.5 4.5C13 8 11 5 8 2c.5 4-3 6.8-3 12.5C5 19 7.8 22 12 22Zm0-2c-2 0-3-1.3-3-3 0-1.8 1.4-3 2.5-4 .2 1.5 1.3 2.4 2.5 3.2.7.5 1 1.1 1 1.8 0 1.2-1.1 2-3 2Z"/>
   };
   return <svg className="nav-icon-svg" viewBox="0 0 24 24" width="18" height="18"
@@ -82,7 +83,8 @@ function photoPreviewJpeg(file:File):Promise<string>{
 
 function App() {
   const { language, setLanguage, t } = useLanguage();
-  const moduleLabel=(name:string)=>name==='PantheraID'?'PantheraSCAN':t(name);
+  const moduleLabel=(name:string)=>name==='PantheraID'?'PantheraSCAN':
+    name==='Informes'?(language==='en'?'Scientific reports':'Informes científicos'):t(name);
   const [section, setSection] = React.useState('Resumen');
   const [showCredits,setShowCredits]=React.useState(false);
   const [apiState, setApiState] = React.useState<ApiState>('checking');
@@ -102,10 +104,9 @@ function App() {
   const [imageEvidenceId,setImageEvidenceId]=React.useState('');
   const [evidenceDraft,setEvidenceDraft]=React.useState<VideoEvidenceBatch|null>(null);
   const [videoWorkflow,setVideoWorkflow]=React.useState<VideoWorkflowState>({hasResult:false,selectedCount:0});
-  const [registryTab,setRegistryTab]=React.useState<'projects'|'stations'|'captures'|'individuals'|'reports'>('projects');
+  const [registryTab,setRegistryTab]=React.useState<'projects'|'stations'|'captures'|'individuals'>('projects');
   const [videoNextRequest,setVideoNextRequest]=React.useState(0);
   const [monitorNextRequest,setMonitorNextRequest]=React.useState(0);
-  const [reportRequest,setReportRequest]=React.useState(0);
   const onVideoWorkflow=React.useCallback((next:VideoWorkflowState)=>{
     setVideoWorkflow(prev=>prev.hasResult===next.hasResult&&prev.selectedCount===next.selectedCount?prev:next);
   },[]);
@@ -236,7 +237,7 @@ function App() {
 
   const workflowLabel=(()=>{
     const en=language==='en';
-    if(section==='Resumen')return en?'Next: analyze evidence':'Siguiente: analizar evidencia';
+    if(section==='Resumen')return en?'Next: prepare study':'Siguiente: configurar estudio';
     if(section==='PantheraID'){
       if(selectedImage)return imageResult?
         (en?'Next: record selected photo':'Siguiente: registrar fotografía seleccionada'):
@@ -248,22 +249,22 @@ function App() {
     }
     if(section==='PantheraMONITORING'){
       const labels:{[key:string]:[string,string]}={
-        projects:['Siguiente: configurar estaciones','Next: configure stations'],
-        stations:['Siguiente: registrar capturas','Next: record captures'],
-        captures:['Siguiente: identificar individuos','Next: identify individuals'],
-        individuals:['Siguiente: informe del estudio','Next: study report'],
-        reports:['Siguiente: PantheraLIVE','Next: PantheraLIVE'],
+        projects:['Siguiente: biblioteca de individuos','Next: individual library'],
+        individuals:['Siguiente: configurar estaciones','Next: camera deployments'],
+        stations:['Siguiente: PantheraLIVE','Next: PantheraLIVE'],
+        captures:['Siguiente: contexto ambiental','Next: environmental context'],
       };
       const entry=labels[registryTab]||labels.projects;
       return en?entry[1]:entry[0];
     }
-    if(section==='PantheraLIVE')return en?'Next: environmental sensors':'Siguiente: sensores ambientales';
     if(section==='PantheraSENSE')return en?'Next: explore satellite tools':'Siguiente: explorar satélites';
-    if(section==='PantheraSAT')return en?'Next: review environmental alerts':'Siguiente: revisar alertas ambientales';
-    return en?'Next: consolidated report':'Siguiente: informe integral';
+    if(section==='PantheraLIVE')return en?'Next: analyze photographs and videos':'Siguiente: analizar fotos y videos';
+    if(section==='PantheraSAT')return en?'Next: scientific report':'Siguiente: informe científico';
+    if(section==='Informes')return en?'Next: PantheraFIRE':'Siguiente: PantheraFIRE';
+    return en?'Back to overview':'Volver al resumen';
   })();
   function advanceWorkflow(){
-    if(section==='Resumen'){setSection('PantheraID');return;}
+    if(section==='Resumen'){setSection('PantheraMONITORING');return;}
     if(section==='PantheraID'){
       if(selectedImage){
         if(imageResult){void continueWithPhoto();return;}
@@ -275,9 +276,10 @@ function App() {
       return;
     }
     if(section==='PantheraMONITORING'){setMonitorNextRequest(n=>n+1);return;}
-    if(section==='PantheraLIVE'){setSection('PantheraSENSE');return;}
+    if(section==='PantheraLIVE'){setSection('PantheraID');return;}
     if(section==='PantheraSENSE'){setSection('PantheraSAT');return;}
-    if(section==='PantheraSAT'){setSection('PantheraFIRE');return;}
+    if(section==='PantheraSAT'){setSection('Informes');return;}
+    if(section==='Informes'){setSection('PantheraFIRE');return;}
     setSection('Resumen');
   }
 
@@ -431,7 +433,7 @@ function App() {
       <ScientificWorkspace section={section} onNavigate={setSection}
         pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)}
         monitoringNextRequest={monitorNextRequest} onRegistryTabChange={setRegistryTab}
-        requestReport={reportRequest} />
+        />
       {/* One primary Next control for every module, including completed video and image analyses. */}
       <div className="workflow-global-dock" role="region"
         aria-label={language==='en'?'Research workflow navigation':'Navegación del proceso científico'}>
