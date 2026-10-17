@@ -236,7 +236,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
         {cameraProblem&&<p className="sci-warning" role="alert">{cameraProblem}</p>}
         {mode==='remote'&&<p className="sci-muted">{tx(
           'Se requiere un gateway WHEP compatible, HTTPS y CORS.',
-          'Requires a WHEP-compatible gateway, HTTPS and CORS.')}</p>
+          'Requires a WHEP-compatible gateway, HTTPS and CORS.')}</p>}
         <div className="camera-ai">
           <strong>{tx('Detección automática · MegaDetector / SpeciesNet',
             'Automatic detection · MegaDetector / SpeciesNet')}</strong>
