@@ -186,7 +186,7 @@ export default function AIResultsPanel({onOpenComparison}:{onOpenComparison?:()=
         {tx('Comparar individuos →','Compare individuals →')}
       </button>}
     </div>
-    <details className="ai-review-archive" defaultOpen={reports.length>0}>
+    <details className="ai-review-archive">
       <summary>{tx('Informes de modelos externos · Importar o revisar','External model reports · Import or review')}
         {reports.length>0?' ('+reports.length+')':''}
       </summary>
