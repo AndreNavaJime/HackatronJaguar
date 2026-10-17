@@ -402,7 +402,7 @@ function App() {
         {selectedImage&&aiAvailable&&<DetectionPanel file={selectedImage}
           animalAIEnabled={true}
           enabled={apiState === 'connected' && !uploading} />}
-        <IndividualMatcherPanel photo={selectedImage} enabled={apiState==='connected'} />
+        {selectedImage&&<IndividualMatcherPanel photo={selectedImage} enabled={apiState==='connected'} />}
         {selectedImage&&!aiAvailable&&<details className="method-details method-details-compact scan-photo-technical">
           <summary>{language==='en'?'Optional technical image inspection':'Inspección técnica opcional'}</summary>
           <DetectionPanel file={selectedImage} animalAIEnabled={false}
