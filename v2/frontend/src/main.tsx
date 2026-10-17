@@ -350,20 +350,18 @@ function App() {
             <span aria-hidden="true">↗</span>
           </a>
         </nav>
-        <section id="panthera-photo-details" className="scan-photo-feature" aria-label={language==='en'?'Automatic photo analysis':'Análisis automático de fotografías'}>
+        <section id="panthera-photo-details" className="scan-photo-feature" aria-label={language==='en'?'Photo for individual comparison':'Fotografía para comparación de individuos'}>
           <header className="scan-photo-feature-heading">
             <div>
               <span className="scan-feature-kicker">PANTHERASCAN / {language==='en'?'PHOTOS':'FOTOGRAFÍAS'}</span>
-              <h3>{language==='en'?'Photograph · Individual coat comparison':'Fotografía · Comparación de pelaje'}</h3>
+              <h3>{language==='en'?'Compare individuals by coat pattern':'Comparar individuos por el pelaje'}</h3>
               <p className="scan-photo-intro">{language==='en'
-                ? 'Choose JPG, PNG or WebP, select the animal flank and compare with known-individual photos. No Colab or JSON required.'
-                : 'Elegí JPG, PNG o WebP, marcá el costado del animal y comparalo con fotos de individuos conocidos. Sin Colab ni archivos JSON.'}</p>
+                 ? 'Select a photo, then choose reference photographs to compare.'
+                 : 'Seleccioná una foto y luego las referencias con las que querés compararla.'}</p>
             </div>
             <span className="tag">OpenCV · CPU</span>
           </header>
-          <p className="sci-muted">{language==='en'
-            ?'Select a clear animal flank; matching is available below. Automatic detection requires an enabled AI model.'
-            :'Seleccioná un buen costado del animal; la comparación está disponible abajo. La detección automática requiere un modelo de IA activo.'}</p>
+          
         {frameBatch.length>0&&<div className="frame-review-strip" aria-label={language==='en'?'Selected video frames':'Fotogramas seleccionados'}>
           <div className="frame-review-title">
             <strong>{language==='en'?'Video frames ready for analysis':'Fotogramas preparados para comparar'}</strong>
@@ -382,30 +380,34 @@ function App() {
         </div>}
         <div className="upload-layout">
           <div className="upload-controls">
-            <label htmlFor="panthera-image">{language==='en'?'Select photo (max 12 MB)':'Seleccionar fotografía (máximo 12 MB)'}</label>
+            <label htmlFor="panthera-image">{language==='en'?'Select photo to compare (max 8 MB)':'Seleccionar fotografía para comparar (máximo 8 MB)'}</label>
             <input id="panthera-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} aria-describedby="panthera-photo-auto-hint" />
-            <p id="panthera-photo-auto-hint" className="scan-photo-auto-hint" role="status">
-              {language==='en'
-                ? 'The image is prepared automatically. Select the flank and compare with known individuals.'
-                : 'El archivo se prepara automáticamente. Seleccioná el flanco y compará con individuos conocidos.'}
-            </p>
+            <p id="panthera-photo-auto-hint" className="scan-photo-auto-hint">
+               {language==='en'?'Choose reference images below to search for possible matches.':
+                 'Elegí referencias abajo para buscar posibles coincidencias.'}
+             </p>
             {uploading&&<p className="sci-muted" role="status">{language==='en'?'Preparing photo…':'Preparando fotografía…'}</p>}
             {imageError && <p role="alert" className="upload-error">{imageError}</p>}
-            {imageResult&&<p className="scan-photo-metadata" role="status">
-              ✓ {language==='en'?'Ready for scientific review':'Lista para revisión científica'} · {imageResult.width} × {imageResult.height} px
-            </p>}
+            
           </div>
           <div className="image-frame">
             {previewUrl ? <img src={previewUrl} alt={t('Vista previa de la fotografía seleccionada')} /> : <div className="empty-preview">{t("Aquí aparecerá la fotografía seleccionada")}</div>}
             {selectedImage && <small>{selectedImage.name}</small>}
+            {selectedImage&&<a className="action-button scan-compare-next" href="#panthera-individual-compare">
+              {language==='en'?'Choose references and compare ↓':'Elegir referencias y comparar ↓'}
+            </a>}
           </div>
         </div>
-        {selectedImage && <DetectionPanel file={selectedImage}
-          animalAIEnabled={aiAvailable}
-          enabled={apiState === 'connected' && !uploading} />}
-
         </section>
+        {selectedImage&&aiAvailable&&<DetectionPanel file={selectedImage}
+          animalAIEnabled={true}
+          enabled={apiState === 'connected' && !uploading} />}
         <IndividualMatcherPanel photo={selectedImage} enabled={apiState==='connected'} />
+        {selectedImage&&!aiAvailable&&<details className="method-details method-details-compact scan-photo-technical">
+          <summary>{language==='en'?'Optional technical image inspection':'Inspección técnica opcional'}</summary>
+          <DetectionPanel file={selectedImage} animalAIEnabled={false}
+            enabled={apiState === 'connected' && !uploading} />
+        </details>
         <details className="method-details method-details-compact">
           <summary>{language==='en'?'Advanced experimental comparison':'Comparación experimental avanzada'}</summary>
           <PantheraRosettesPanel />
