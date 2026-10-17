@@ -8,6 +8,7 @@ import {createAnalysisId} from './videoWorkspaceDb';
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 import type {VideoWorkflowState} from './LiteVideoPanel';
 import ScientificWorkspace from './ScientificWorkspace';
+import PantheraRosettesPanel from './PantheraRosettesPanel';
 import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
@@ -336,6 +337,7 @@ function App() {
         </div>
         {aiAvailable && selectedImage && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
         </details>
+        <PantheraRosettesPanel />
         <details className="method-details ai-method-details">
           <summary>{language==='en'?'Automatic detection · MegaDetector V6':'Detección automática · MegaDetector V6'}
             <span className="method-status">{aiAvailable
