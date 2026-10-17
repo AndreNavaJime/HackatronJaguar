@@ -26,5 +26,7 @@ export async function loadLocalAnimalModel():Promise<{
     return coco.load({base:'lite_mobilenet_v2'});
   })().catch(e=>{cached=null;throw e;});
   const model=await cached;
-  return {detect:(video)=>model.detect(video,15,.48),backend:tf.getBackend()};
+  // Return weaker candidates for multi-frame confirmation in PantheraLIVE.
+  // Scores are detection confidences, not probabilities of animal identity.
+  return {detect:(video)=>model.detect(video,15,.28),backend:tf.getBackend()};
 }

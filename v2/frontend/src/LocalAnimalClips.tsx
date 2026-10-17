@@ -3,6 +3,7 @@ import {useLanguage} from './language';
 import {addAnimalClip,deleteAnimalClip,listAnimalClips,localStudyId,setAnimalClipState,
   MAX_CLIPS,type AnimalClip} from './animalClipStore';
 import './LocalAnimalClips.css';
+import {notifyClipReady} from './clipNotifications';
 
 type Prediction={class:string;score:number};
 type Detector={detect:(video:HTMLVideoElement)=>Promise<Prediction[]>;backend:string};
@@ -16,7 +17,11 @@ const LABELS:Record<string,[string,string]>={
   cow:['Vaca','Cow'],sheep:['Oveja','Sheep'],bear:['Oso','Bear'],
   elephant:['Elefante','Elephant'],zebra:['Cebra','Zebra'],giraffe:['Jirafa','Giraffe'],
 };
-const THRESHOLD=.56;
+// Candidates are collected at >= .28 by COCO-SSD. We require multiple
+// independent frames before treating a weak prediction as an animal event.
+const THRESHOLD=.40;
+const STRONG_SCORE=.78;
+const CONFIRM_WITHIN_MS=5000;
 const SILENCE_MS=4500;
 const MAX_DURATION_MS=19000;
 const REARM_MS=6000;
@@ -40,8 +45,8 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
   const [objects,setObjects]=React.useState<Record<string,string>>({});
   const [detectorBackend,setDetectorBackend]=React.useState('');
   const [lastObservation,setLastObservation]=React.useState('');
-  const [notificationPermission,setNotificationPermission]=React.useState(
-    typeof Notification==='undefined'?'unavailable':Notification.permission);
+  const [framesInspected,setFramesInspected]=React.useState(0);
+  const [clipAlert,setClipAlert]=React.useState('');
   const [dismissedStart,setDismissedStart]=React.useState(false);
   const detectorRef=React.useRef<Detector|null>(null);
   const captureRef=React.useRef<Capture|null>(null);
@@ -51,6 +56,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
   const mountedRef=React.useRef(true);
   const loadToken=React.useRef(0);
   const busyRef=React.useRef(false);
+  const animalHistory=React.useRef({label:'',lastSeen:0,hits:0});
   const clipCountRef=React.useRef(0);
   clipCountRef.current=clips.length;
 
@@ -91,6 +97,8 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
     let active=true,timer:number|undefined;
     const detector=detectorRef.current;
     readyRef.current=true;lastAnimalRef.current=0;
+    animalHistory.current={label:'',lastSeen:0,hits:0};
+    setFramesInspected(0);setLastObservation('');
     const startClip=(prediction:Prediction)=>{
       const mime=recordingMime();
       if(!mime)throw new Error(tx('La grabación de video no está disponible en este navegador.',
@@ -116,11 +124,9 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
           if(!mountedRef.current)return;
           setStatus(tx('Nuevo video con posible animal. Revisalo en la bandeja local.',
             'New possible-animal clip. Review it in your local inbox.'));
-          if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
-            try{new Notification('PantheraLIVE', {body:tx(
-              'Posible animal detectado. Video listo para revisión en este dispositivo.',
-              'Possible animal detected. Clip ready for review on this device.')});}catch{/* Browser may not support page notifications. */}
-          }
+          setClipAlert(tx('Nuevo video de posible animal pendiente de revisión.',
+            'New possible-animal video awaiting review.'));
+          void notifyClipReady();
           return refresh();
         }).catch(e=>{
           if(mountedRef.current)setError(tx('No se pudo guardar el video en este dispositivo: ',
@@ -143,14 +149,41 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
       try{
         const results=await detector.detect(video);
         if(!active)return;
+        setFramesInspected(n=>n+1);
         const now=Date.now();
-        const person=results.some(p=>p.class==='person'&&p.score>=.5);
-        const winner=results[0];
-        if(winner)setLastObservation((LABELS[winner.class]?.[language==='en'?1:0]||winner.class)+
-          ' · '+Math.round(winner.score*100)+'% '+tx('puntuación','score'));
-        else setLastObservation(tx('Sin objetos reconocidos','No recognizable objects'));
-        const animal=results.filter(p=>ANIMALS.has(p.class)&&p.score>=THRESHOLD)
+        const person=results.some(p=>p.class==='person'&&p.score>=.50);
+        const candidate=results.filter(p=>ANIMALS.has(p.class))
           .sort((a,b)=>b.score-a.score)[0];
+        const winner=results[0];
+        let animal:Prediction|undefined;
+        if(person){
+          animalHistory.current={label:'',lastSeen:0,hits:0};
+          setLastObservation(tx('Persona reconocida; se evita grabar.',
+            'Person detected; video recording is suppressed.'));
+        }else if(candidate){
+          const prev=animalHistory.current;
+          const hits=candidate.class===prev.label&&now-prev.lastSeen<CONFIRM_WITHIN_MS
+            ?prev.hits+1:1;
+          const confirmed=candidate.score>=STRONG_SCORE||
+            (candidate.score>=THRESHOLD&&hits>=2);
+          animalHistory.current={label:candidate.class,lastSeen:now,
+            hits:candidate.score>=THRESHOLD?hits:0};
+          const name=LABELS[candidate.class]?.[language==='en'?1:0]||candidate.class;
+          setLastObservation(name+' · '+Math.round(candidate.score*100)+
+            '% · '+(confirmed?tx('detección confirmada','confirmed detection'):
+              candidate.score<THRESHOLD?tx('evidencia débil; acercá la cámara',
+                'weak evidence; move camera closer'):tx('confirmando en otro fotograma…',
+                'checking another frame…')));
+          if(confirmed)animal=candidate;
+        }else{
+          animalHistory.current={label:'',lastSeen:0,hits:0};
+          setLastObservation(winner
+            ?tx('Objeto observado, no reconocido como animal: ',
+              'Object seen, not recognized as animal: ')+winner.class+
+              ' · '+Math.round(winner.score*100)+'%'
+            :tx('No reconoce animales todavía. Mejorá la luz y mostrale el cuerpo completo.',
+              'No animals recognized yet. Improve lighting and show the full animal.'));
+        }
         if(person){
           if(captureRef.current)finish(true);
           setStatus(tx('Persona visible: grabación descartada por privacidad.',
@@ -191,7 +224,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
 
   async function activate(){
     if(!stream?.active||!video)return;
-    setError('');setLoading(true);
+    setError('');setClipAlert('');setLoading(true);
     const token=++loadToken.current;
     try{
       if(!window.isSecureContext||!('MediaRecorder' in window)||!recordingMime())
@@ -224,13 +257,6 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
   React.useEffect(()=>{
     if(!stream?.active)setDismissedStart(false);
   },[stream]);
-  async function requestAlerts(){
-    if(typeof Notification==='undefined')return;
-    try{
-      const permission=await Notification.requestPermission();
-      setNotificationPermission(permission);
-    }catch{setNotificationPermission('unavailable');}
-  }
   function exportClipEvent(clip:AnimalClip){
     // No coordinates, URLs or identifiable images are included in metadata exports.
     const payload={contract_version:'panthera-live-clip-v1',event_id:clip.id,
@@ -286,17 +312,18 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
           {tx('Detener detección','Stop detection')}</button>}
       {running&&<span className="local-animal-active">{tx('Buscando animales…','Searching for animals…')}
         {detectorBackend?' · '+detectorBackend:''}</span>}
-      {running&&lastObservation&&<p className="sci-muted" role="status">{tx('Última detección: ',
-        'Latest detection: ')}{lastObservation}</p>}
+      {running&&<div className="local-animal-diagnostics" role="status">
+        <span>{tx('Fotogramas analizados: ','Frames analyzed: ')}{framesInspected}</span>
+        <span>{lastObservation||tx('Esperando primeros resultados del modelo…',
+          'Waiting for initial model output…')}</span>
+      </div>}
     </div>
     <p className="sci-muted">{tx(
       'Graba únicamente después de una posible detección (máximo 19 s por clip). No sube fotos ni videos al servidor; detiene la captura si el detector ve personas. No es vigilancia permanente: mantené la pantalla activa.',
       'Records only after possible animal detection (up to 19 s per clip). No photos or videos are uploaded; recording stops if people are detected. Keep this screen active.'
     )}</p>
-    {typeof Notification!=='undefined'&&notificationPermission==='default'&&
-      <button type="button" className="sci-secondary" onClick={()=>void requestAlerts()}>
-        {tx('Permitir aviso al terminar un clip (app abierta)',
-          'Enable clip-ready alerts (app open)')}</button>}
+    {clipAlert&&<p role="alert" className="sci-notice local-animal-alert">
+      {clipAlert}</p>}
     {status&&<p role="status" className="sci-notice">{status}</p>}
     {error&&<p role="alert" className="sci-warning">{error}</p>}
     <div className="local-animal-inbox-head"><strong>{tx('Bandeja de videos locales','Local video inbox')}</strong>
@@ -329,8 +356,8 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
           </div>
         </article>)}</div>}
     <p className="sci-muted">{tx(
-      'Avisos en pantalla y aviso opcional del navegador, solo mientras la aplicación permanezca abierta. Los videos se guardan en este dispositivo, no en Supabase ni Render. Descargá los importantes; no se agregan automáticamente al estudio.',
-      'In-app alerts and optional browser notifications only while this page is open. Videos stay on this device, not Supabase or Render. Download important clips; they are not automatically added to your study.'
+      'Los avisos de clips aparecen automáticamente en la app; Chrome puede solicitar permiso una sola vez para avisos del sistema al conectar la cámara. La página debe permanecer abierta. Los videos siguen en este dispositivo, no en Render ni Supabase.',
+      'Clip alerts appear automatically inside the app. Chrome may request one-time permission for device alerts on camera connection. Keep this page open. Videos remain on this device, not Render or Supabase.'
     )}</p>
   </section>;
 }
