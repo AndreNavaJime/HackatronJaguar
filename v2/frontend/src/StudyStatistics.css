@@ -1,0 +1,14 @@
+.study-statistics{margin:18px 0 24px}
+.study-statistics h4{font-size:13px;margin:4px 0 12px;color:#edf8f6}
+.study-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.study-stat-grid>div{background:#102b36;border:1px solid #315965;border-radius:12px;padding:15px;min-width:0}
+.study-stat-bars{display:grid;gap:10px}
+.study-stat-line{display:grid;grid-template-columns:minmax(82px,1.1fr) minmax(72px,2fr) 30px;align-items:center;gap:10px;font-size:12px}
+.study-stat-line>span:first-child{color:#c5dce0;overflow-wrap:anywhere}
+.study-stat-line strong{text-align:right;font-variant-numeric:tabular-nums}
+.study-stat-track{height:9px;border-radius:5px;background:#284352;overflow:hidden}
+.study-stat-track>span{display:block;height:100%;border-radius:5px;background:#21b69f;min-width:1px}
+.study-statistics .sci-muted{line-height:1.6}
+.registry-local-catalogue{margin:14px 0}
+.scientific-advanced-tools{margin:18px 0}
+@media(max-width:710px){.study-stat-grid{grid-template-columns:minmax(0,1fr)}}

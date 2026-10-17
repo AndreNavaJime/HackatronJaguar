@@ -71,6 +71,39 @@ def test_report_contains_full_study_and_multiple_animals():
     assert "no-store" in response.headers["cache-control"]
 
 
+def test_study_zip_includes_reproducible_descriptive_statistics():
+    response = client.post("/api/science/studies/report?kind=zip", json=study_data())
+    assert response.status_code == 200, response.text[:200]
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        stats = json.loads(archive.read("statistics.json"))
+        assert stats["capture_events"] == 2
+        assert stats["animal_sightings"] == 3
+        assert stats["verified_individuals"] == 1
+        assert stats["observations_by_species"]["Panthera onca"] == 3
+        assert stats["captures_by_camera"]["CT-07"] == 2
+        assert stats["captures_by_month_utc"]["2026-10"] == 2
+        assert stats["sightings_by_identification_status"]["verified"] == 2
+        assert stats["sightings_by_identification_status"]["tentative"] == 1
+        assert stats["reported_camera_days"] == 14
+        assert round(stats["events_per_100_reported_camera_days"], 2) == 14.29
+        assert stats["environmental_measurements"]["temperature_c"]["count"] == 1
+        assert stats["environmental_measurements"]["temperature_c"]["mean"] == 24
+        assert stats["environmental_measurements"]["humidity_percent"]["mean"] == 86
+        assert "population" in stats["interpretation"]
+        assert "latitude" not in stats and "longitude" not in stats
+
+
+def test_missing_sampling_effort_does_not_generate_fake_camera_rates():
+    data = study_data()
+    data["deployments"][0]["operational_days"] = None
+    response = client.post("/api/science/studies/report?kind=zip", json=data)
+    assert response.status_code == 200, response.text[:200]
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        stats = json.loads(archive.read("statistics.json"))
+        assert stats["reported_camera_days"] is None
+        assert stats["events_per_100_reported_camera_days"] is None
+
+
 def test_study_zip_exports_relations_without_coordinates_by_default():
     response = client.post("/api/science/studies/report?kind=zip", json=study_data())
     assert response.status_code == 200, response.text[:250]

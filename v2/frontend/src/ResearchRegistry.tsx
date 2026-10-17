@@ -2,19 +2,20 @@ import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import CloudLibraryPanel from './CloudLibraryPanel';
+import StudyStatistics from './StudyStatistics';
 import {downloadFile} from './scienceShared';
 import {ResearchData,Study,Deployment,Individual,Encounter,Sighting,uid,projectPackage} from './researchData';
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 
-type Tab='projects'|'stations'|'captures'|'individuals'|'reports';
+type Tab='projects'|'stations'|'captures'|'individuals';
 type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<ResearchData>>;
   pendingEdge?:{camera_id:string;timestamp:string;event_id:string;latitude:number|null;
     longitude:number|null;temperature:number|null;humidity:number|null;image_url:string;
     clip_url:string;hmac_status?:string;source?:string}|null;onClearEdge?:()=>void;
   pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
-  reportRequested?:boolean;onClearReportRequest?:()=>void;
-  nextRequest?:number;onWorkflowTabChange?:(tab:'projects'|'stations'|'captures'|'individuals'|'reports')=>void;
-  onNavigate?:(section:string)=>void};
+  reportsOnly?:boolean;
+  nextRequest?:number;onWorkflowTabChange?:(tab:'projects'|'stations'|'captures'|'individuals')=>void;
+  onNavigate?:(section:string)=>void;onActiveStudyChange?:(studyId:string)=>void};
 function recoverDraft<T>(key:string,idField:string,fallback:()=>T):T{
   try{
     const text=sessionStorage.getItem(key);
@@ -90,20 +91,17 @@ const initialSighting=(encounter_id:string):Sighting=>({
   behavior:'',reviewer:'',notes:''});
 
 export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,pendingEvidence,onClearEvidence,
-  reportRequested,onClearReportRequest,nextRequest=0,onWorkflowTabChange,onNavigate}:Props){
+  reportsOnly=false,nextRequest=0,onWorkflowTabChange,onNavigate,onActiveStudyChange}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [tab,setTab]=React.useState<Tab>(()=>{
     try{const value=sessionStorage.getItem('pantheralab_registry_tab_v1');
-      if(value&&['projects','stations','captures','individuals','reports'].includes(value))return value as Tab;
+      if(value&&['projects','stations','captures','individuals'].includes(value))return value as Tab;
     }catch{/* local state still works */}
     return 'projects';
   });
   React.useEffect(()=>{
     try{sessionStorage.setItem('pantheralab_registry_tab_v1',tab);}catch{/* optional */}
   },[tab]);
-  React.useEffect(()=>{
-    if(reportRequested){setTab('reports');onClearReportRequest?.();}
-  },[reportRequested]);
   React.useEffect(()=>{onWorkflowTabChange?.(tab);},[tab,onWorkflowTabChange]);
   React.useEffect(()=>{
     if(!nextRequest)return;
@@ -122,7 +120,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           'Enter a study title to continue.'));
         focusMissing();return;
       }
-      setNotice('');setTab('stations');
+      setNotice('');setTab('individuals');
     }else if(tab==='stations'){
       if(!stations.length){
         if(stationDraft.camera_id.trim()&&stationDraft.site.trim()){
@@ -132,7 +130,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           'Enter the camera ID and study site, then save the deployment.'));
         focusMissing();return;
       }
-      setNotice('');setTab('captures');
+      setNotice('');onNavigate?.('PantheraLIVE');
     }else if(tab==='captures'){
       if(!encounters.length){
         if(eventDraft.deployment_id&&eventDraft.occurred_at){saveEvent();return;}
@@ -140,9 +138,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           'Select a camera and capture date before continuing.'));
         focusMissing();return;
       }
-      setNotice('');setTab('individuals');
-    }else if(tab==='individuals'){setNotice('');setTab('reports');}
-    else onNavigate?.('PantheraLIVE');
+      setNotice('');onNavigate?.('PantheraSENSE');
+    }else if(tab==='individuals'){setNotice('');setTab('stations');}
     window.requestAnimationFrame(()=>document.querySelector<HTMLElement>('.research-registry .registry-tabs')
       ?.scrollIntoView({behavior:'smooth',block:'start'}));
   },[nextRequest]);
@@ -154,6 +151,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       catch{/* optional */}
   },[selectedStudy]);
   const activeId=data.studies.some(s=>s.study_id===selectedStudy)?selectedStudy:data.studies[0]?.study_id||'';
+  React.useEffect(()=>{onActiveStudyChange?.(activeId);},[activeId,onActiveStudyChange]);
   const study=data.studies.find(s=>s.study_id===activeId);
   const stations=data.deployments.filter(d=>d.study_id===activeId);
   const people=data.individuals.filter(i=>i.study_id===activeId);
@@ -190,6 +188,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   const [captureToReview,setCaptureToReview]=React.useState('');
   const [manageOpen,setManageOpen]=React.useState(false);
   const [pdfBusy,setPdfBusy]=React.useState(false);
+  const [reportIndividualId,setReportIndividualId]=React.useState('');
+  const [reportEncounterId,setReportEncounterId]=React.useState('');
   const [mapDeployment,setMapDeployment]=React.useState('');
   const [includePrecise,setIncludePrecise]=React.useState(false);
   const [filterStatus,setFilterStatus]=React.useState<'all'|'verified'>('all');
@@ -361,8 +361,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       ?prev.studies.map(s=>s.study_id===studyDraft.study_id?studyDraft:s)
       :[...prev.studies,studyDraft]}));
     setSelectedStudy(studyDraft.study_id);setStudyDraft(initialStudy());
-    setTab('stations');saved('Proyecto registrado. Configurá su primera estación.',
-      'Study saved. Configure its first camera deployment.');
+    setTab('individuals');saved('Estudio registrado. Prepará su biblioteca de individuos.',
+      'Study saved. Prepare your individual reference library.');
   }
   function deleteStudy(target:Study){
     const depIds=new Set(data.deployments.filter(d=>d.study_id===target.study_id).map(d=>d.deployment_id));
@@ -437,8 +437,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       ?prev.deployments.map(d=>d.deployment_id===stationDraft.deployment_id?stationDraft:d)
       :[...prev.deployments,stationDraft]}));
     setStationDraft(initialStation(activeId));
-    if(advance){setTab('captures');saved('Estación guardada. Continuá con la captura.',
-      'Deployment saved. Continue with capture events.');}
+    if(advance){onNavigate?.('PantheraLIVE');saved('Estación guardada. Podés conectar cámaras o analizar archivos existentes.',
+      'Deployment saved. Connect cameras or analyze existing media.');}
     else saved('Estación incorporada al estudio.','Camera deployment added to the study.');
   }
   function saveIndividual(){
@@ -616,6 +616,13 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   });
 
   return <div className="sci-screen research-registry">
+    {reportsOnly&&<div className="sci-heading"><div>
+      <span className="sci-kicker">PANTHERALAB / {tx('RESULTADOS','RESULTS')}</span>
+      <h2>{tx('Informes científicos','Scientific reports')}</h2>
+      <p>{tx('Estadísticas descriptivas y archivos del estudio seleccionado.',
+        'Descriptive statistics and outputs for the selected study.')}</p>
+    </div><span className="sci-tag">PDF · ZIP</span></div>}
+    {!reportsOnly&&<>
     <div className="sci-heading"><div><span className="sci-kicker">PANTHERAMONITORING / SCIENTIFIC RECORDS</span>
       <h2>{tx('Centro de investigación de fauna','Wildlife research workspace')}</h2>
       <p>{tx('Organizá estudios, cámaras, capturas e individuos en un registro vinculado y trazable.',
@@ -667,18 +674,26 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
 
     <div className="registry-tabs" role="group" aria-label={tx('Secciones del registro','Registry sections')}>
       {([
-        ['projects',tx('01 · Estudios','01 · Studies')],
-        ['stations',tx('02 · Estaciones','02 · Stations')],
-        ['captures',tx('03 · Capturas','03 · Captures')],
-        ['individuals',tx('04 · Individuos','04 · Individuals')],
-        ['reports',tx('05 · Informes','05 · Reports')],
+        ['projects',tx('01 · Estudio','01 · Study')],
+        ['individuals',tx('02 · Biblioteca','02 · Library')],
+        ['stations',tx('03 · Estaciones','03 · Deployments')],
+        ['captures',tx('04 · Capturas y revisión','04 · Captures and review')],
       ] as [Tab,string][]).map(([key,title])=>
       <button key={key} type="button" className={tab===key?'selected':''}
         onClick={()=>{setTab(key);setNotice('');}}>{title}</button>)}
     </div>
     {notice&&<p className="sci-notice" role="status">{notice}</p>}
-
-    {tab==='projects'&&<section className="sci-panel">
+    </>}
+    {reportsOnly&&<div className="registry-topline">
+      <label className="sci-field"><span>{tx('Estudio para el informe','Study to report')}</span>
+        <select value={activeId} onChange={e=>setSelectedStudy(e.target.value)}>
+          {!data.studies.length&&<option value="">{tx('Sin estudios','No studies')}</option>}
+          {data.studies.map(p=><option key={p.study_id} value={p.study_id}>{p.title}</option>)}
+        </select>
+      </label>
+      {study&&<span className="sci-tag">{study.study_id}</span>}
+    </div>}
+    {!reportsOnly&&tab==='projects'&&<section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Proyecto de investigación','Research study')}</h3>
         <button type="button" className="sci-secondary" onClick={()=>setStudyDraft(initialStudy())}>
           + {tx('Nuevo estudio','New study')}</button></div>
@@ -723,7 +738,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         </div>)}</div>}
     </section>}
 
-    {tab==='stations'&&<section className="sci-panel">
+    {!reportsOnly&&tab==='stations'&&<section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Estaciones y despliegues','Camera deployments')}</h3>
         <button className="sci-secondary" type="button" onClick={()=>setStationDraft(initialStation(activeId))}>
           + {tx('Nueva estación','New deployment')}</button></div>
@@ -782,12 +797,14 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       </>}
     </section>}
 
-    {tab==='individuals'&&<section className="sci-panel">
-      <div className="sci-panel-head"><h3>{tx('Catálogo de individuos','Individual catalogue')}</h3>
-        <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft(initialIndividual(activeId))}>
-          + {tx('Nueva ficha','New profile')}</button></div>
+    {!reportsOnly&&tab==='individuals'&&<section className="sci-panel">
+      <div className="sci-panel-head"><h3>{tx('Biblioteca de individuos','Individual reference library')}</h3></div>
       <CloudLibraryPanel />
-      {!study?<p className="sci-warning">{tx('Primero creá un estudio.','Create a study first.')}</p>:<>
+       <details className="method-details registry-local-catalogue">
+         <summary>{tx('Fichas locales (sin sincronización)','Local profiles (not synchronized)')}</summary>
+          <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft(initialIndividual(activeId))}>
+            + {tx('Nueva ficha local','New local profile')}</button>
+       {!study?<p className="sci-warning">{tx('Primero creá un estudio.','Create a study first.')}</p>:<>
         <p className="sci-muted">{tx('Un individuo puede asociarse con múltiples capturas. La identidad solo se marca verificada después de revisión humana.',
           'An individual can be linked to many captures. Mark identity verified only after human evidence review.')}</p>
         <div className="sci-fields">
@@ -833,18 +850,17 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
             <div className="sci-actions">
               <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft({...ind})}>
                 {tx('Editar ficha','Edit profile')}</button>
-              <button type="button" className="sci-secondary" disabled={pdfBusy}
-                onClick={()=>void report('pdf',ind.individual_id)}>
-                {tx('Informe individual · PDF ↓','Individual report · PDF ↓')}</button>
+
               <button type="button" className="registry-delete-button" onClick={()=>deleteIndividual(ind)}>
                 {tx('Eliminar individuo','Delete individual')}</button>
             </div>
           </article>;
         })}</div>
       </>}
-    </section>}
+       </details>
+     </section>}
 
-    {tab==='captures'&&<>
+     {!reportsOnly&&tab==='captures'&&<>
       <section className="sci-panel">
         <div className="sci-panel-head"><h3>{tx('Evento de captura','Capture event')}</h3>
           <button type="button" className="sci-secondary" onClick={()=>{
@@ -958,8 +974,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
                 <td>{sightings.filter(s=>s.encounter_id===e.encounter_id).length}</td>
                 <td><button type="button" className="sci-inline" onClick={()=>chooseEvent(e)}>
                     {tx('Abrir / editar','Open / edit')}</button>
-                  <button type="button" className="sci-inline" disabled={pdfBusy}
-                    onClick={()=>void report('pdf','',e.encounter_id)}>{tx('Informe PDF ↓','PDF report ↓')}</button>
+
                   <button type="button" className="sci-inline sci-danger" onClick={()=>removeEncounter(e)}>
                     {tx('Eliminar','Delete')}</button></td></tr>)}</tbody></table></div>}
         </>}
@@ -1003,7 +1018,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <div className="sci-actions"><button type="button" className="action-button" onClick={saveSighting}>
           {tx('Guardar observación de animal','Save animal sighting')}</button>
           <button type="button" className="workflow-next-button" disabled={!activeSightings.length}
-            onClick={()=>setTab('reports')}>{tx('Siguiente: informe del estudio →','Next: study report →')}</button>
+            onClick={()=>onNavigate?.('PantheraSENSE')}>{tx('Siguiente: contexto ambiental →','Next: environmental context →')}</button>
           <button type="button" className="sci-secondary"
             onClick={()=>onNavigate?.('PantheraID')}>{tx('Analizar otro video ↗','Analyze another video ↗')}</button>
           <button type="button" className="sci-secondary"
@@ -1025,7 +1040,9 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       </section>}
     </>}
 
-    {tab==='reports'&&<section className="sci-panel">
+    {reportsOnly&&study&&<StudyStatistics deployments={stations}
+      encounters={encounters} individuals={people} sightings={sightings}/>}
+    {reportsOnly&&<section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Informe integral de investigación','Consolidated study report')}</h3>
         <span className="sci-tag">PDF + DATASET</span></div>
       {!study?<p className="sci-warning">{tx('Creá un proyecto antes de generar informes.',
@@ -1045,14 +1062,43 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <p className="sci-muted">{tx('Por defecto se ocultan las coordenadas. El servidor genera el informe sin guardar los registros. El PDF y ZIP incluyen las miniaturas cargadas; las fotos y videos originales permanecen fuera del paquete y se citan mediante URL.',
           'Coordinates are hidden by default. Reports are generated without server-side storage. PDF and ZIP include uploaded thumbnails; original photos and videos remain outside the package and are referenced by URL.')}</p>
         <div className="sci-actions">
-          <button type="button" className="sci-secondary" onClick={()=>setTab('captures')}>
-            {tx('← Anterior: revisar capturas','← Back: review captures')}</button>
+          <button type="button" className="sci-secondary" onClick={()=>onNavigate?.('PantheraMONITORING')}>
+             {tx('← Revisar registros del estudio','← Review study records')}</button>
           <button type="button" className="action-button workflow-next-button" disabled={pdfBusy} onClick={()=>void report('pdf')}>
             {pdfBusy?tx('Generando informe…','Generating report…'):
               tx('Descargar informe científico · PDF ↓','Download scientific report · PDF ↓')}</button>
           <button type="button" className="sci-secondary" disabled={pdfBusy} onClick={()=>void report('zip')}>
             {tx('Paquete de investigación · ZIP ↓','Research dataset · ZIP ↓')}</button>
         </div>
+        <details className="method-details method-details-compact registry-scoped-reports">
+          <summary>{tx('Informes de individuo o captura (opcional)',
+            'Individual or capture reports (optional)')}</summary>
+          <div className="sci-fields">
+            <label className="sci-field"><span>{tx('Individuo','Individual')}</span>
+              <select value={people.some(p=>p.individual_id===reportIndividualId)?reportIndividualId:''}
+                onChange={e=>setReportIndividualId(e.target.value)}>
+                <option value="">{tx('Elegir individuo','Select individual')}</option>
+                {people.map(p=><option value={p.individual_id} key={p.individual_id}>{p.individual_id}</option>)}
+              </select>
+            </label>
+            <label className="sci-field"><span>{tx('Evento de captura','Capture event')}</span>
+              <select value={encounters.some(e=>e.encounter_id===reportEncounterId)?reportEncounterId:''}
+                onChange={e=>setReportEncounterId(e.target.value)}>
+                <option value="">{tx('Elegir captura','Select capture')}</option>
+                {encounters.map(e=><option key={e.encounter_id} value={e.encounter_id}>
+                  {e.occurred_at.slice(0,16)} · {e.encounter_id}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="sci-actions">
+            <button type="button" className="sci-secondary" disabled={pdfBusy||!people.some(p=>p.individual_id===reportIndividualId)}
+              onClick={()=>void report('pdf',reportIndividualId)}>
+              {tx('Descargar ficha individual · PDF','Download individual report · PDF')}</button>
+            <button type="button" className="sci-secondary" disabled={pdfBusy||!encounters.some(e=>e.encounter_id===reportEncounterId)}
+              onClick={()=>void report('pdf','',reportEncounterId)}>
+              {tx('Descargar captura · PDF','Download capture report · PDF')}</button>
+          </div>
+        </details>
         <h3 className="registry-subtitle">{tx('Explorar observaciones','Explore observations')}</h3>
         <div className="sci-fields">
           {textField(tx('Desde','From'),startDate,setStartDate,'','date')}
@@ -1076,7 +1122,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       </>}
     </section>}
 
-    <section className="sci-panel">
+    {!reportsOnly&&<section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Respaldo y recuperación','Backup and recovery')}</h3>
         <span className="sci-tag">{tx('SOLO EN ESTE DISPOSITIVO','ON THIS DEVICE ONLY')}</span></div>
       <p className="sci-muted">{tx('Guardá una copia de todos los estudios en JSON para recuperarlos o moverlos a otro dispositivo. Este respaldo privado incluye coordenadas exactas y referencias de evidencia.',
@@ -1092,6 +1138,6 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         <input className="registry-hidden" ref={fileRef} type="file" accept=".json,application/json"
           onChange={e=>{const f=e.target.files?.[0];if(f)void restoreBackup(f);e.target.value='';}}/>
       </div>
-    </section>
-  </div>;
+    </section>}
+   </div>;
 }
