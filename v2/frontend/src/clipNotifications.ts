@@ -42,3 +42,15 @@ export async function notifyClipReady(pending=1):Promise<void>{
     // The automatic banner inside PantheraLIVE is the reliable fallback.
   }
 }
+
+/** Clear Android's notification dot when no unreviewed local video remains.
+ * Does not create a new notification or request permissions.
+ */
+export async function clearClipReadyNotification():Promise<void>{
+  if(!('serviceWorker' in navigator))return;
+  try{
+    const worker=await navigator.serviceWorker.getRegistration(WORKER_SCOPE);
+    const notifications=await worker?.getNotifications({tag:'pantheralive-clip-ready'});
+    notifications?.forEach(note=>note.close());
+  }catch{/* Closing a notification must never block clip review. */}
+}
