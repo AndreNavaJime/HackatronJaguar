@@ -188,6 +188,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
   const [captureToReview,setCaptureToReview]=React.useState('');
   const [manageOpen,setManageOpen]=React.useState(false);
   const [pdfBusy,setPdfBusy]=React.useState(false);
+  const [reportIndividualId,setReportIndividualId]=React.useState('');
+  const [reportEncounterId,setReportEncounterId]=React.useState('');
   const [mapDeployment,setMapDeployment]=React.useState('');
   const [includePrecise,setIncludePrecise]=React.useState(false);
   const [filterStatus,setFilterStatus]=React.useState<'all'|'verified'>('all');
@@ -796,12 +798,12 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
     </section>}
 
     {!reportsOnly&&tab==='individuals'&&<section className="sci-panel">
-      <div className="sci-panel-head"><h3>{tx('Biblioteca de individuos','Individual reference library')}</h3>
-        <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft(initialIndividual(activeId))}>
-          + {tx('Nueva ficha','New profile')}</button></div>
+      <div className="sci-panel-head"><h3>{tx('Biblioteca de individuos','Individual reference library')}</h3></div>
       <CloudLibraryPanel />
        <details className="method-details registry-local-catalogue">
          <summary>{tx('Fichas locales (sin sincronización)','Local profiles (not synchronized)')}</summary>
+          <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft(initialIndividual(activeId))}>
+            + {tx('Nueva ficha local','New local profile')}</button>
        {!study?<p className="sci-warning">{tx('Primero creá un estudio.','Create a study first.')}</p>:<>
         <p className="sci-muted">{tx('Un individuo puede asociarse con múltiples capturas. La identidad solo se marca verificada después de revisión humana.',
           'An individual can be linked to many captures. Mark identity verified only after human evidence review.')}</p>
@@ -848,9 +850,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
             <div className="sci-actions">
               <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft({...ind})}>
                 {tx('Editar ficha','Edit profile')}</button>
-              <button type="button" className="sci-secondary" disabled={pdfBusy}
-                onClick={()=>void report('pdf',ind.individual_id)}>
-                {tx('Informe individual · PDF ↓','Individual report · PDF ↓')}</button>
+
               <button type="button" className="registry-delete-button" onClick={()=>deleteIndividual(ind)}>
                 {tx('Eliminar individuo','Delete individual')}</button>
             </div>
@@ -974,8 +974,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
                 <td>{sightings.filter(s=>s.encounter_id===e.encounter_id).length}</td>
                 <td><button type="button" className="sci-inline" onClick={()=>chooseEvent(e)}>
                     {tx('Abrir / editar','Open / edit')}</button>
-                  <button type="button" className="sci-inline" disabled={pdfBusy}
-                    onClick={()=>void report('pdf','',e.encounter_id)}>{tx('Informe PDF ↓','PDF report ↓')}</button>
+
                   <button type="button" className="sci-inline sci-danger" onClick={()=>removeEncounter(e)}>
                     {tx('Eliminar','Delete')}</button></td></tr>)}</tbody></table></div>}
         </>}
@@ -1071,6 +1070,35 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           <button type="button" className="sci-secondary" disabled={pdfBusy} onClick={()=>void report('zip')}>
             {tx('Paquete de investigación · ZIP ↓','Research dataset · ZIP ↓')}</button>
         </div>
+        <details className="method-details method-details-compact registry-scoped-reports">
+          <summary>{tx('Informes de individuo o captura (opcional)',
+            'Individual or capture reports (optional)')}</summary>
+          <div className="sci-fields">
+            <label className="sci-field"><span>{tx('Individuo','Individual')}</span>
+              <select value={people.some(p=>p.individual_id===reportIndividualId)?reportIndividualId:''}
+                onChange={e=>setReportIndividualId(e.target.value)}>
+                <option value="">{tx('Elegir individuo','Select individual')}</option>
+                {people.map(p=><option value={p.individual_id} key={p.individual_id}>{p.individual_id}</option>)}
+              </select>
+            </label>
+            <label className="sci-field"><span>{tx('Evento de captura','Capture event')}</span>
+              <select value={encounters.some(e=>e.encounter_id===reportEncounterId)?reportEncounterId:''}
+                onChange={e=>setReportEncounterId(e.target.value)}>
+                <option value="">{tx('Elegir captura','Select capture')}</option>
+                {encounters.map(e=><option key={e.encounter_id} value={e.encounter_id}>
+                  {e.occurred_at.slice(0,16)} · {e.encounter_id}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="sci-actions">
+            <button type="button" className="sci-secondary" disabled={pdfBusy||!people.some(p=>p.individual_id===reportIndividualId)}
+              onClick={()=>void report('pdf',reportIndividualId)}>
+              {tx('Descargar ficha individual · PDF','Download individual report · PDF')}</button>
+            <button type="button" className="sci-secondary" disabled={pdfBusy||!encounters.some(e=>e.encounter_id===reportEncounterId)}
+              onClick={()=>void report('pdf','',reportEncounterId)}>
+              {tx('Descargar captura · PDF','Download capture report · PDF')}</button>
+          </div>
+        </details>
         <h3 className="registry-subtitle">{tx('Explorar observaciones','Explore observations')}</h3>
         <div className="sci-fields">
           {textField(tx('Desde','From'),startDate,setStartDate,'','date')}
