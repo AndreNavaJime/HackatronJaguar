@@ -98,9 +98,9 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
 
     {notice&&<p className="sci-notice" role="status">{notice}</p>}
 
-    <section className="sci-panel live-events">
+    {events.length>0&&<section className="sci-panel live-events">
       <div className="sci-panel-head">
-        <h3>{tx('Eventos por revisar','Events for review')}</h3>
+        <h3>{tx('Eventos EDGE / cámaras remotas','EDGE / remote camera events')}</h3>
         <span className="sci-tag">{pendingCount} {tx('pendientes','pending')}</span>
       </div>
       {discardedCount>0&&<label className="live-show-discarded">
@@ -180,7 +180,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
       <p className="sci-muted live-event-note">{tx(
         'Los eventos virtuales son ficticios; los de IA requieren validación. No se guardan clips ni se acusa a personas automáticamente.',
         'Virtual events are fictional; AI events need validation. No clips are stored or people automatically accused.')}</p>
-    </section>
+    </section>}
 
       <details className="sci-panel edge-advanced"><summary>{tx('Integración técnica · JSON / nodos','Technical integration · JSON / nodes')}</summary>
       <section>
