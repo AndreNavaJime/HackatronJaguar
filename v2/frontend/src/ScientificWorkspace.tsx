@@ -4,7 +4,6 @@ import EdgeWorkspace from './EdgeWorkspace';
 import SensePanel from './SensePanel';
 import FireWorkspace from './FireWorkspace';
 import ResearchWorkspace from './ResearchWorkspace';
-import ScientificRecordsPanel from './ScientificRecordsPanel';
 import AIResultsPanel from './AIResultsPanel';
 import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,loadSession,saveSession} from './scienceShared';
@@ -16,11 +15,11 @@ import type {VideoEvidenceBatch} from './videoWorkspaceDb';
 type Props={section:string;onNavigate:(section:string)=>void;
   pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
   monitoringNextRequest?:number;
-  onRegistryTabChange?:(tab:'projects'|'stations'|'captures'|'individuals'|'reports')=>void;
-  requestReport?:number;};
+  onRegistryTabChange?:(tab:'projects'|'stations'|'captures'|'individuals')=>void;
+};
 
 export default function ScientificWorkspace({section,onNavigate,pendingEvidence,onClearEvidence,
-  monitoringNextRequest=0,onRegistryTabChange,requestReport=0}:Props){
+  monitoringNextRequest=0,onRegistryTabChange}:Props){
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
   const [research,setResearch]=React.useState<ResearchData>(loadResearch);
   const [persistError,setPersistError]=React.useState(false);
@@ -31,7 +30,6 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
   });
   const [current,setCurrent]=React.useState<Observation>(()=>newObservation());
   const [incoming,setIncoming]=React.useState<EdgeEvent|null>(null);
-  const [openReport,setOpenReport]=React.useState(false);
   const [cameraFireEvents,setCameraFireEvents]=React.useState<CameraFireCandidate[]>(()=>{
     const stored=loadSession<unknown>('pantheralab_camera_fire_events_v1',[]);
     return Array.isArray(stored)?stored.filter((v):v is CameraFireCandidate=>
@@ -39,9 +37,6 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       (v.source==='virtual_fire_simulation'||v.source==='pyroengine_browser_camera')&&
       (v.signal==='smoke'||v.signal==='flame'||v.signal==='fire')).slice(0,30):[];
   });
-  React.useEffect(()=>{
-    if(requestReport){setOpenReport(true);onNavigate('PantheraMONITORING');}
-  },[requestReport]);
   const records=React.useMemo(()=>flattenObservations(research),[research]);
 
   React.useEffect(()=>{
@@ -82,25 +77,20 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     research.individuals.some(i=>i.individual_id===s.individual_id&&i.status==='verified'))
     .map(s=>s.individual_id)).size;
   return <>
-    <div style={{display:section==='PantheraMONITORING'?'block':'none'}}>
+    <div style={{display:section==='PantheraMONITORING'||section==='Informes'?'block':'none'}}>
       {persistError&&<p className="sci-warning" role="alert">{tx(
         'No fue posible guardar cambios en este navegador. Exportá un respaldo privado antes de salir.',
         'Could not save changes in this browser. Export a private backup before leaving.')}</p>}
-      <AIResultsPanel onOpenComparison={()=>{
-          onNavigate('PantheraID');
-          requestAnimationFrame(()=>window.setTimeout(()=>
-            (document.getElementById('panthera-individual-compare')||
-             document.getElementById('panthera-photo-details'))?.scrollIntoView({behavior:'smooth',block:'start'}),120));
-        }} />
       <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
         onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
-        onClearEvidence={onClearEvidence} reportRequested={openReport}
-        onClearReportRequest={()=>setOpenReport(false)}
-        nextRequest={monitoringNextRequest} onWorkflowTabChange={onRegistryTabChange}
-        onNavigate={onNavigate}/>
-    </div>
-    <div style={{display:section==='PantheraMONITORING'?'block':'none'}}>
-      <ScientificRecordsPanel records={records} onOpenReports={()=>setOpenReport(true)}/>
+        onClearEvidence={onClearEvidence} reportsOnly={section==='Informes'}
+        nextRequest={section==='PantheraMONITORING'?monitoringNextRequest:0}
+        onWorkflowTabChange={onRegistryTabChange} onNavigate={onNavigate}/>
+      {section==='Informes'&&<details className="method-details method-details-compact scientific-advanced-tools">
+        <summary>{tx('Laboratorio avanzado · informes de modelos externos',
+          'Advanced laboratory · external model reports')}</summary>
+        <AIResultsPanel />
+      </details>}
     </div>
     <div style={{display:section==='PantheraLIVE'?'block':'none'}}>
       <EdgeWorkspace events={events} onEvent={onEvent} current={current}
@@ -126,41 +116,28 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       <div><span>{tx('Sitios anotados','Annotated study sites')}</span><strong>{sites.size}</strong></div>
     </div>
     <div className="sci-launch-grid">
-      <article className="sci-launch sci-launch-a">
-        <span className="sci-module-number">01 / MULTIMEDIA</span>
-        <h3>PantheraSCAN</h3>
-        <p>{tx('Exploración de videos, selección de fotogramas y preparación de evidencia. La IA avanzada requiere un servidor habilitado.',
-          'Video screening, frame selection and evidence preparation. Advanced AI requires an enabled backend.')}</p>
-        <small>{tx('Análisis de secuencias · OpenCV','Sequence analysis · OpenCV')}</small>
-        <button type="button" onClick={()=>onNavigate('PantheraID')}>{tx('Abrir exploración ↗','Open screening ↗')}</button>
-      </article>
-      <article className="sci-launch sci-launch-b">
-        <span className="sci-module-number">02 / SCIENTIFIC RECORDS</span>
-        <h3>PantheraMONITORING</h3>
-        <p>{tx('Estudios, estaciones, catálogo de jaguares, encuentros y reportes científicos integrales.',
-          'Studies, deployments, jaguar catalogue, encounters and consolidated reports.')}</p>
-        <small>{tx('Catálogo de individuos · PDF / ZIP','Individual catalogue · PDF / ZIP')}</small>
-        <button type="button" onClick={()=>onNavigate('PantheraMONITORING')}>
-          {tx('Abrir monitoreo ↗','Open monitoring ↗')}</button>
-      </article>
-      <article className="sci-launch sci-launch-c">
-        <span className="sci-module-number">03 / FIELD EVENTS</span>
-        <h3>PantheraLIVE</h3>
-        <p>{tx('Cámara virtual automática, conexión de webcam autorizada, eventos JSON y comparación ilustrativa de redes.',
-          'Automatic virtual camera, opt-in device preview, JSON event intake and illustrative network models.')}</p>
-        <small>{tx('Eventos de campo · HTTP / JSON','Field events · HTTP / JSON')}</small>
-        <button type="button" onClick={()=>onNavigate('PantheraLIVE')}>
-          {tx('Abrir Live ↗','Open Live ↗')}</button>
-      </article>
-      <article className="sci-launch sci-launch-d">
-        <span className="sci-module-number">04 / EARTH OBSERVATION</span>
-        <h3>PantheraSAT</h3>
-        <p>{tx('Búsquedas reales en el catálogo Copernicus Sentinel-1/2, vegetación y Starlink.',
-          'Real Copernicus Sentinel-1/2 catalogue queries, vegetation and Starlink.')}</p>
-        <small>{tx('Catálogo de adquisiciones · Sentinel-1/2','Acquisition catalogue · Sentinel-1/2')}</small>
-        <button type="button" onClick={()=>onNavigate('PantheraSAT')}>
-          {tx('Abrir satélites ↗','Open satellites ↗')}</button>
-      </article>
+      {([
+        ['01','PantheraMONITORING',tx('Creá el estudio, cargá su biblioteca de individuos y prepará las estaciones.',
+          'Create a study, prepare the individual reference library and register stations.')],
+        ['02','PantheraLIVE',tx('Cámaras conectadas y eventos preliminares de campo.',
+          'Connected cameras and preliminary field events.')],
+        ['03','PantheraID',tx('Fotos y videos: comparar patrones y revisar evidencia.',
+          'Photographs and video: compare patterns and review evidence.')],
+        ['04','PantheraSENSE',tx('Sensores ambientales; simulaciones indicadas como tales.',
+          'Environmental sensors, with simulations clearly identified.')],
+        ['05','PantheraSAT',tx('Consultas satelitales y contexto territorial disponible.',
+          'Satellite catalogues and available territorial context.')],
+        ['06','Informes',tx('Informe científico PDF y tablas de datos del estudio.',
+          'Scientific PDF report and study data tables.')],
+      ] as [string,string,string][]).map(([number,module,description],index)=>
+        <article className={'sci-launch sci-launch-'+['a','b','c','d'][index%4]} key={module}>
+          <span className="sci-module-number">{number} / {tx('FLUJO CIENTÍFICO','SCIENTIFIC WORKFLOW')}</span>
+          <h3>{module==='PantheraID'?'PantheraSCAN':module==='Informes'?
+            tx('Informes científicos','Scientific reports'):module}</h3>
+          <p>{description}</p>
+          <button type="button" onClick={()=>onNavigate(module)}>
+            {tx('Abrir módulo ↗','Open module ↗')}</button>
+        </article>)}
     </div>
     <section className="sci-panel">
       <h3>{tx('Arquitectura de PantheraLAB','PantheraLAB architecture')}</h3>
