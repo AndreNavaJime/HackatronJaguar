@@ -1,0 +1,37 @@
+name: Generate PantheraSCAN frontend lockfile
+
+on:
+  push:
+    branches: [pantherasense-integration]
+    paths:
+      - '.github/workflows/pantherascan-lockfile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pantherasense-integration
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate deterministic frontend lockfile
+        working-directory: v2/frontend
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit generated lockfile once
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f v2/frontend/package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Lockfile already up to date'
+          else
+            git commit -m "build: lock PantheraSCAN frontend dependencies for Render static"
+            git push origin HEAD:pantherasense-integration
+          fi
