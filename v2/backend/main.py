@@ -21,6 +21,7 @@ from scientific_api import router as scientific_router, edge_router
 from study_reports import router as study_report_router
 from sense_api import router as sense_router
 from satellite_vegetation import router as vegetation_router
+from fire_public_events import router as fire_public_events_router
 
 logger = logging.getLogger('pantheraid.api')
 
@@ -35,6 +36,7 @@ app.include_router(edge_router)
 app.include_router(study_report_router)
 app.include_router(sense_router)
 app.include_router(vegetation_router)
+app.include_router(fire_public_events_router)
 # Same-origin Vite proxy serves /api calls in Codespaces; restrict external CORS.
 # Optional explicit HTTPS origins for a static frontend hosted separately on Render.
 # Never use wildcard CORS for research APIs or expose unpublished files via CORS.

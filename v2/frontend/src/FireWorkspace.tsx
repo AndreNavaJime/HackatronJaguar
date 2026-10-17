@@ -2,6 +2,8 @@ import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import FireCameraPanel from './FireCameraPanel';
+import FirePublicEvents from './FirePublicEvents';
+import FireVisionPanel from './FireVisionPanel';
 import type {CameraFireCandidate} from './cameraEvents';
 import {loadSession,saveSession} from './scienceShared';
 
@@ -80,13 +82,23 @@ export default function FireWorkspace({cameraEvents,onFireEvent}:{
       <div>
         <span className="fire-kicker">PANTHERAFIRE / ENVIRONMENTAL ALERTS</span>
         <h2>PantheraFIRE · {tx('Alertas ambientales','Environmental alerts')}</h2>
-        <p>{tx('Cámara de incendios, señales ambientales y revisión de indicios.',
-          'Wildfire camera, environmental sensors and candidate review.')}</p>
+        <p>{tx('Eventos externos reportados, laboratorio visual y señales de sensores virtuales: fuentes separadas con revisión humana.',
+          'Externally reported events, visual screening, and virtual sensor signals: separate sources requiring human review.')}</p>
       </div>
-      <span className="fire-pill">{tx('ENTORNO DE SIMULACIÓN','SIMULATION ENVIRONMENT')}</span>
+      <span className="fire-pill">{tx('NASA EONET · CÁMARAS EXPERIMENTALES','NASA EONET · EXPERIMENTAL CAMERAS')}</span>
     </div>
 
+    <FirePublicEvents />
     <FireCameraPanel onEvent={onFireEvent}/>
+    <details className="fire-detail fire-vision-disclosure">
+      <summary>{tx('Laboratorio visual · examinar un video de humo o llamas',
+        'Visual laboratory · screen a smoke or flame video')}</summary>
+      <p className="sci-muted">{tx(
+        'Podés usar videos de prueba autorizados sin encender fuego ni subirlos al servidor. Análisis exploratorio por reglas, NO IA de incendios validada.',
+        'Use authorized test videos without lighting a fire or uploading files. Exploratory rule-based screening, NOT validated wildfire AI.'
+      )}</p>
+      <FireVisionPanel />
+    </details>
 
     <section className="fire-card camera-fire-inbox" style={{marginBottom:15}}>
       <div className="sci-panel-head">
