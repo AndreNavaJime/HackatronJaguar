@@ -1,0 +1,67 @@
+name: PantheraSCAN live individual matcher smoke
+
+on:
+  push:
+    branches: [pantherasense-integration]
+    paths: ['.github/workflows/pantherascan-live-individual-match.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-matcher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install lightweight image generator
+        run: python -m pip install Pillow
+      - name: Verify actual Render API matches a patterned flank
+        env:
+          API_URL: https://pantherasense-backend-test.onrender.com
+        run: |
+          python - <<'PY'
+          import io,json,os,random,uuid,urllib.request
+          from PIL import Image,ImageDraw
+
+          image=Image.new("RGB",(320,240),"#d7b682")
+          ink=ImageDraw.Draw(image)
+          r=random.Random(4)
+          for _ in range(140):
+              x=r.randrange(12,308)
+              y=r.randrange(12,228)
+              radius=r.randrange(2,7)
+              ink.ellipse((x-radius,y-radius,x+radius,y+radius),outline="#2d231a",width=2)
+          buffer=io.BytesIO()
+          image.save(buffer,format="PNG")
+          picture=buffer.getvalue()
+          api=os.environ['API_URL'].rstrip('/')
+          with urllib.request.urlopen(api+'/api/capabilities',timeout=100) as response:
+              caps=json.load(response)
+          assert caps['individual_comparison']=='opencv_sift_experimental_available',caps
+
+          boundary='pantherascan-'+uuid.uuid4().hex
+          parts=[]
+          def field(name,value):
+              parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n').encode())
+          def image_part(name,filename,data):
+              parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"; filename="{filename}"\r\nContent-Type: image/png\r\n\r\n').encode()+data+b'\r\n')
+          image_part('query','test-flank.png',picture)
+          image_part('references','known-flank.png',picture)
+          field('labels',json.dumps(['JAG-TEST']))
+          field('flanks',json.dumps(['left']))
+          field('query_flank','left')
+          body=b''.join(parts)+(f'--{boundary}--\r\n').encode()
+          req=urllib.request.Request(api+'/api/individuals/compare',data=body,
+              headers={'Content-Type':'multipart/form-data; boundary='+boundary},
+              method='POST')
+          with urllib.request.urlopen(req,timeout=160) as response:
+              result=json.load(response)
+          assert result['identity_verified'] is False
+          assert result['hotspotter_installed'] is False
+          assert result['candidates'][0]['label']=='JAG-TEST'
+          assert result['candidates'][0]['status']=='candidate_for_review'
+          assert result['candidates'][0]['coherent_matches']>=7
+          assert result['candidates'][0]['evidence_image'].startswith('data:image/jpeg;base64,')
+          print('OK: live Render SIFT matcher returned ranked geometric correspondence and unverified identity.')
+          PY
