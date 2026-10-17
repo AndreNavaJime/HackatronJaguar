@@ -309,10 +309,10 @@ function App() {
           onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
           onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
         <details id="panthera-photo-details" className="method-details scan-photo-details">
-          <summary>{language==='en'?'Optional: upload a photograph and check the file':'Opcional: cargar fotografía y validar el archivo'}</summary>
+          <summary>{language==='en'?'Photograph: automatic AI analysis and file check':'Fotografía: análisis automático y validación del archivo'}</summary>
           <p className="sci-muted">{language==='en'
-            ?'This checks the file only; it does not detect animals or identify species.'
-            :'Esta función solo revisa el archivo: no detecta animales ni identifica especies.'}</p>
+            ?'When an AI model is active, selecting a photo starts detection and exploratory fur-pattern analysis automatically. File validation is optional.'
+            :'Si el modelo IA está activo, seleccionar una foto inicia automáticamente la detección y el análisis exploratorio del pelaje. Validar el archivo es opcional.'}</p>
         <div className="upload-layout">
           <div className="upload-controls">
             <label htmlFor="panthera-image">{t("Seleccionar fotografía (JPEG, PNG o WebP; máximo 12 MB)")}</label>
@@ -335,7 +335,13 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-        {aiAvailable && selectedImage && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
+        {selectedImage && <DetectionPanel file={selectedImage}
+          enabled={apiState === 'connected' && aiAvailable && !uploading} />}
+        {selectedImage && !aiAvailable && <p className="sci-warning" role="status">
+          {language==='en'
+            ? 'Automatic image analysis cannot start: MegaDetector is not enabled on the connected server. The image has not been classified.'
+            : 'El análisis automático de fotos no puede comenzar: MegaDetector no está habilitado en el servidor. No se ha clasificado la imagen.'}
+        </p>}
         </details>
         <PantheraRosettesPanel />
         <details className="method-details ai-method-details">
