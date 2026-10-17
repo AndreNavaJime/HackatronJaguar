@@ -161,7 +161,7 @@ export default function DetectionPanel({ file, enabled, animalAIEnabled }: { fil
       'This optional experiment marks dark shapes, including plants and ground. It is not AI rosette detection.')}</p>
       {!result&&<button type="button" className="sci-secondary" disabled={processing||!enabled}
         onClick={()=>void detect()}>{tx('Ejecutar exploración técnica','Run technical exploration')}</button>}
-      {result.rosette_patterns?.samples.map((sample,index)=><figure key={index}>
+      {result?.rosette_patterns?.samples.map((sample,index)=><figure key={index}>
         <img src={sample.annotated_crop} alt={tx('Contornos exploratorios, no rosetas verificadas','Exploratory contours, not verified rosettes')} loading="lazy"/>
         <figcaption>{sample.texture_regions_xyxy.length} {tx('regiones visuales sin validar','unvalidated visual regions')}</figcaption>
       </figure>)}
