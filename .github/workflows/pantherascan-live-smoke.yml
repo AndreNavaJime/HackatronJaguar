@@ -1,0 +1,68 @@
+name: PantheraSCAN live photo smoke
+
+on:
+  push:
+    branches: [pantherasense-integration]
+    paths:
+      - ".github/workflows/pantherascan-live-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-photo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify live Render image API with generated PNG
+        env:
+          PANTHERA_TEST_BACKEND: https://pantherasense-backend-test.onrender.com
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import struct
+          import urllib.request
+          import zlib
+
+          base = os.environ["PANTHERA_TEST_BACKEND"].rstrip("/")
+          def request(path, data=None, content_type=None):
+              headers = {"User-Agent": "PantheraSCAN-Live-Smoke/1.0"}
+              if content_type:
+                  headers["Content-Type"] = content_type
+              req = urllib.request.Request(base + path, data=data, headers=headers)
+              with urllib.request.urlopen(req, timeout=100) as response:
+                  assert response.status == 200, (path, response.status)
+                  return json.loads(response.read().decode())
+
+          def png_chunk(name, content):
+              return struct.pack(">I", len(content)) + name + content + struct.pack(
+                  ">I", zlib.crc32(name + content) & 0xffffffff)
+
+          width, height = 128, 96
+          rows = bytearray()
+          for y in range(height):
+              rows.append(0)
+              for x in range(width):
+                  dx, dy = x - 62, y - 48
+                  d = ((dx / 28.0) ** 2 + (dy / 21.0) ** 2) ** 0.5
+                  color = (36, 26, 15) if 0.66 < d < 1.0 else (207, 174, 122)
+                  rows.extend(color)
+          png = (b"\x89PNG\r\n\x1a\n" +
+                 png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) +
+                 png_chunk(b"IDAT", zlib.compress(bytes(rows))) +
+                 png_chunk(b"IEND", b""))
+
+          health = request("/api/health")
+          assert health["status"] == "ok", health
+          caps = request("/api/capabilities")
+          assert caps["image_auto_analysis"] == "lightweight_texture_available", caps
+          analysis = request("/api/images/analyze", png, "image/png")
+          assert analysis["animal_detection_performed"] is False, analysis
+          assert analysis["rosette_patterns"]["status"] == "exploratory_full_image", analysis
+          assert analysis["rosette_patterns"]["identity_verified"] is False, analysis
+          assert len(analysis["rosette_patterns"]["samples"]) == 1, analysis
+          assert analysis["annotated_image"].startswith("data:image/jpeg;base64,"), analysis
+          print("OK: live backend health, capabilities and real PNG texture response verified.")
+          PY
