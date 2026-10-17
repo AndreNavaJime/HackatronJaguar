@@ -341,7 +341,7 @@ function App() {
         <nav className="scan-media-shortcuts" aria-label={language==='en'?'Choose media type':'Elegir tipo de archivo'}>
           <a href="#panthera-photo-details" className="scan-media-shortcut">
             <span aria-hidden="true">📷</span>
-            <span><strong>{language==='en'?'Photographs':'Fotografías'}</strong><small>{language==='en'?'Automatic texture analysis':'Análisis automático de texturas'}</small></span>
+            <span><strong>{language==='en'?'Photographs':'Fotografías'}</strong><small>{language==='en'?'Individual pattern comparison':'Comparación de patrones individuales'}</small></span>
             <span aria-hidden="true">↗</span>
           </a>
           <a href="#panthera-video-section" className="scan-media-shortcut">
@@ -354,10 +354,10 @@ function App() {
           <header className="scan-photo-feature-heading">
             <div>
               <span className="scan-feature-kicker">PANTHERASCAN / {language==='en'?'PHOTOS':'FOTOGRAFÍAS'}</span>
-              <h3>{language==='en'?'Upload a photo and explore its patterns':'Subir fotografía y analizar patrones'}</h3>
+              <h3>{language==='en'?'Photograph · Individual coat comparison':'Fotografía · Comparación de pelaje'}</h3>
               <p className="scan-photo-intro">{language==='en'
-                ? 'Choose JPG, PNG or WebP. The image is processed automatically on the connected Render server, without Colab or manual import.'
-                : 'Elegí JPG, PNG o WebP. La imagen se analiza automáticamente en Render, sin abrir Colab ni importar resultados.'}</p>
+                ? 'Choose JPG, PNG or WebP, select the animal flank and compare with known-individual photos. No Colab or JSON required.'
+                : 'Elegí JPG, PNG o WebP, marcá el costado del animal y comparalo con fotos de individuos conocidos. Sin Colab ni archivos JSON.'}</p>
             </div>
             <span className="tag">OpenCV · CPU</span>
           </header>
