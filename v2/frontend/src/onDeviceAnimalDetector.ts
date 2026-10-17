@@ -12,7 +12,7 @@ export const COCO_ANIMALS=new Set(['bird','cat','dog','horse','sheep','cow','ele
 export const MODEL_TITLE='COCO-SSD Lite · demostración local';
 let cached:Promise<coco.ObjectDetection>|null=null;
 export async function loadLocalAnimalModel():Promise<{
-  detect:(video:HTMLVideoElement)=>Promise<AnimalPrediction[]>;
+  detect:(source:HTMLVideoElement|HTMLCanvasElement)=>Promise<AnimalPrediction[]>;
   backend:string;
 }>{
   if(!cached)cached=(async()=>{
@@ -28,5 +28,5 @@ export async function loadLocalAnimalModel():Promise<{
   const model=await cached;
   // Return weaker candidates for multi-frame confirmation in PantheraLIVE.
   // Scores are detection confidences, not probabilities of animal identity.
-  return {detect:(video)=>model.detect(video,15,.28),backend:tf.getBackend()};
+  return {detect:(source)=>model.detect(source,15,.28),backend:tf.getBackend()};
 }
