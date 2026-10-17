@@ -397,6 +397,7 @@ function App() {
           </div>
         </div>
         {selectedImage && <DetectionPanel file={selectedImage}
+          animalAIEnabled={aiAvailable}
           enabled={apiState === 'connected' && !uploading} />}
 
         </section>
