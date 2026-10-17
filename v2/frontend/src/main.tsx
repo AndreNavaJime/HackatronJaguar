@@ -309,10 +309,10 @@ function App() {
           onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
           onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
         <details id="panthera-photo-details" className="method-details scan-photo-details">
-          <summary>{language==='en'?'Optional: upload a photograph and check the file':'Opcional: cargar fotografía y validar el archivo'}</summary>
+          <summary>{language==='en'?'Photograph: automatic AI analysis and file check':'Fotografía: análisis automático y validación del archivo'}</summary>
           <p className="sci-muted">{language==='en'
-            ?'This checks the file only; it does not detect animals or identify species.'
-            :'Esta función solo revisa el archivo: no detecta animales ni identifica especies.'}</p>
+            ?'Selecting a photo automatically explores its texture on Render. Wildlife detection additionally requires an enabled AI model; file validation is optional.'
+            :'Al seleccionar una foto se explora automáticamente su textura en Render. Con un modelo IA habilitado también se detecta fauna; la validación del archivo es opcional.'}</p>
         <div className="upload-layout">
           <div className="upload-controls">
             <label htmlFor="panthera-image">{t("Seleccionar fotografía (JPEG, PNG o WebP; máximo 12 MB)")}</label>
@@ -335,7 +335,13 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-        {aiAvailable && selectedImage && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
+        {selectedImage && <DetectionPanel file={selectedImage}
+          enabled={apiState === 'connected' && !uploading} />}
+        {selectedImage && !aiAvailable && <p className="sci-muted" role="status">
+          {language==='en'
+            ? 'Render runs lightweight texture exploration only; animal/species detection requires a separately enabled AI model.'
+            : 'Render ejecuta únicamente una exploración ligera de texturas; la detección de animales o especies requiere activar un modelo de IA por separado.'}
+        </p>}
         </details>
         <PantheraRosettesPanel />
         <details className="method-details ai-method-details">

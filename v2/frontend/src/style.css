@@ -1313,3 +1313,11 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
   .scan-module-links a,.scan-module-links button{width:100%;text-align:center}
   .scan-photo-details{padding:12px}
 }
+
+
+/* Experimental automatic photo analysis: visual proposals, not identity claims. */
+.rosette-automatic-preview{margin:18px 0;padding:18px;border:1px solid #536848;border-radius:12px}
+.rosette-automatic-preview h4{margin:0 0 8px}
+.rosette-automatic-preview figure{display:inline-flex;vertical-align:top;flex-direction:column;gap:8px;margin:12px 14px 8px 0;max-width:min(100%,370px)}
+.rosette-automatic-preview figure img{width:100%;max-height:370px;object-fit:contain;border-radius:9px}
+.rosette-automatic-preview figcaption{font-size:12px;color:#bad6c6;line-height:1.4}

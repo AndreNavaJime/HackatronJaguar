@@ -3,6 +3,8 @@ import hashlib
 import io
 import logging
 from importlib.util import find_spec
+import os
+import time
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
@@ -10,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from detection import DetectorUnavailable, detect_image
+from rosette_patterns import analyze_patterns
 from live_ai import (capabilities as live_capabilities, wildlife_frame, fire_frame,
                      LiveModelUnavailable)
 from video_api import router as video_router
@@ -50,6 +53,9 @@ def capabilities():
     return {
         'modules': ['PantheraID', 'PantheraMONITORING', 'PantheraEDGE'],
         'image_intake': 'available',
+        'image_auto_analysis': 'lightweight_texture_available',
+        'heavy_photo_ai': 'enabled' if (os.getenv('PANTHERA_ENABLE_HEAVY_IMAGE_AI') == '1' and find_spec('PytorchWildlife')) else 'disabled',
+        'rosette_texture': 'exploratory_contours_not_reidentification',
         'animal_detection': 'optional_dependencies_installed' if find_spec('PytorchWildlife') else 'requires_pytorchwildlife',
         'individual_identification': 'not_validated',
         'video_analysis': 'lite_available' if find_spec('cv2') else 'requires_opencv',
@@ -138,3 +144,55 @@ async def detect(request: Request, threshold: float = Query(0.25, ge=0.1, le=0.9
     except Exception as error:
         logger.exception('Falló la inferencia de MegaDetector')
         raise HTTPException(status_code=500, detail=f'Falló la inferencia de MegaDetector ({type(error).__name__}). Revisá la terminal de Python.') from error
+
+
+def _analyze_photo(image: Image.Image, threshold: float):
+    """Lightweight default; real MegaDetector only with explicit operator opt-in.
+
+    512 MB free Render instances cannot be assumed to fit PyTorch and weights.
+    The fallback is image texture exploration, NOT animal/species detection.
+    """
+    started = time.perf_counter()
+    heavy_enabled = (os.getenv('PANTHERA_ENABLE_HEAVY_IMAGE_AI') == '1'
+                     and find_spec('PytorchWildlife') is not None)
+    if heavy_enabled:
+        try:
+            result = detect_image(image, threshold)
+            result['rosette_patterns'] = analyze_patterns(image, result.get('detections', []))
+            result['animal_detection_performed'] = True
+            return result
+        except DetectorUnavailable as error:
+            logger.warning('MegaDetector unavailable; image texture only: %s', error)
+
+    patterns = analyze_patterns(image, [], allow_full_image=True)
+    # The preview is an actual CPU-processed image, not a fake detection.
+    preview = patterns['samples'][0]['annotated_crop'] if patterns['samples'] else ''
+    return {
+        'model': 'Contornos de textura exploratorios (sin detector de animales)',
+        'device': 'cpu', 'threshold': threshold,
+        'inference_seconds': round(time.perf_counter() - started, 3),
+        'counts': {'animal': 0, 'person': 0, 'vehicle': 0},
+        'detections': [], 'annotated_image': preview,
+        'animal_detection_performed': False,
+        'rosette_patterns': patterns,
+        'note': (
+            'Solo se exploraron regiones anulares de la fotografía. '
+            'No se ejecutó IA para detectar animales o determinar especie. '
+            'No se confirma ninguna roseta ni identidad.'
+        ),
+    }
+
+@app.post('/api/images/analyze')
+async def analyze_photo(request: Request, threshold: float = Query(0.25, ge=0.1, le=0.9)):
+    _, image, _, _ = await _read_image(request)
+    try:
+        return await run_in_threadpool(_analyze_photo, image, threshold)
+    except DetectorUnavailable as error:
+        logger.warning('Modelo IA no disponible para fotografías: %s', error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except Exception as error:
+        logger.exception('Falló el análisis automático de fotografía')
+        raise HTTPException(
+            status_code=500,
+            detail='No se completó el análisis. Revisá la disponibilidad de IA en el servidor.'
+        ) from error
