@@ -2,6 +2,7 @@ import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import FlankCropPicker,{cropSelectedFile,type ImageRegion} from './FlankCropPicker';
+import CloudReferencePicker from './CloudReferencePicker';
 import './IndividualMatcherPanel.css';
 
 type Flank='left'|'right'|'unknown';
@@ -162,6 +163,16 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
     {photo&&<FlankCropPicker file={photo} value={queryCrop} language={language}
       title={tx('Seleccioná el costado de la foto de consulta','Select the query photo flank')}
       onChange={crop=>{invalidate();setQueryCrop(crop);}}/>}
+    <CloudReferencePicker onChoose={selected=>{
+      invalidate();
+      setRefs(existing=>{
+        const start=existing.reduce((max,x)=>Math.max(max,x.id),0);
+        const newItems=selected.slice(0,Math.max(0,6-existing.length)).map((item,index)=>({
+          id:start+index+1,file:item.file,label:item.label,flank:item.flank,crop:null,
+        }));
+        return [...existing,...newItems];
+      });
+    }}/>
     <div className="individual-match-upload">
       <label htmlFor="panthera-match-references">{tx('Agregar referencias del catálogo (máximo 6 imágenes)','Add reference photos (maximum 6 images)')}</label>
       <input id="panthera-match-references" type="file" accept="image/jpeg,image/png,image/webp" multiple
