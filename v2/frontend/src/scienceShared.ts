@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 export type Observation = {
   observation_id:string; observation_name:string; camera_id:string; study_site:string;
   observer:string; event_datetime_utc:string; camera_latitude:number|null; camera_longitude:number|null;
@@ -72,7 +73,7 @@ export function toGeoJSON(records:Observation[]){
   }))};
 }
 export async function apiJson<T>(url:string,method='GET',body?:unknown):Promise<T>{
-  const response=await fetch(url,{method,cache:'no-store',
+  const response=await apiFetch(url,{method,cache:'no-store',
     headers:body===undefined?undefined:{'Content-Type':'application/json'},
     body:body===undefined?undefined:JSON.stringify(body)});
   let parsed:unknown;
