@@ -68,3 +68,13 @@
   .ai-review-toolbar>*{max-width:100%}
   .ai-review-record{padding:13px}
 }
+
+
+.ai-review-direct{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  gap:15px;background:linear-gradient(110deg,#103e40,#102b3b);
+  border:1px solid #25a59e;border-radius:12px;padding:16px;margin:0 0 20px}
+.ai-review-direct>div{flex:1 1 320px}
+.ai-review-direct strong{color:#c5fff2;font-size:15px}
+.ai-review-direct p{line-height:1.55;color:#bfdae0;font-size:12px;margin:8px 0 0}
+.ai-review-direct button{background:#137969}
+@media(max-width:650px){.ai-review-direct button{width:100%}}
