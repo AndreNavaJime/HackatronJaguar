@@ -78,3 +78,23 @@
 .ai-review-direct p{line-height:1.55;color:#bfdae0;font-size:12px;margin:8px 0 0}
 .ai-review-direct button{background:#137969}
 @media(max-width:650px){.ai-review-direct button{width:100%}}
+
+
+/* Compact model laboratory: advanced imports are optional, not the main research flow. */
+.ai-review.ai-review{margin:14px 0 22px}
+.ai-review-compact-head{align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ai-review-compact-head h3{font-size:clamp(19px,2vw,23px);margin:7px 0 6px}
+.ai-review-compact-head p{font-size:12px;line-height:1.55;margin:0 0 8px;max-width:600px}
+.ai-review-compact-head .action-button{flex:0 0 auto;text-align:center;text-decoration:none}
+.ai-review-archive{margin:12px 0 0;border:1px solid #2c625f;border-radius:10px;background:#0c2630;overflow:hidden}
+.ai-review-archive>summary{cursor:pointer;padding:13px 15px;color:#c6e7e1;font-size:13px;font-weight:650;list-style-position:inside}
+.ai-review-archive>summary:hover,.ai-review-archive>summary:focus-visible{background:#123943}
+.ai-review-archive-content{padding:4px 15px 18px;border-top:1px solid #285252}
+.ai-review-archive-content>p.sci-muted:first-child{font-size:12px;line-height:1.55;max-width:750px}
+.ai-review-research-notebook{margin:12px 0}
+.ai-review-research-notebook .ai-review-colab{margin:8px 0}
+.ai-review-no-reports{font-size:12px;padding:8px 0 0;margin-bottom:0}
+@media(max-width:680px){
+  .ai-review-compact-head .action-button{width:100%}
+  .ai-review-archive-content{padding:4px 11px 14px}
+}

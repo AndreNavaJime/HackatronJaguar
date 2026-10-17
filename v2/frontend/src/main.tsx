@@ -407,7 +407,7 @@ function App() {
         </section>
         <IndividualMatcherPanel photo={selectedImage} enabled={apiState==='connected'} />
         <details className="method-details method-details-compact">
-          <summary>{language==='en'?'Previous Colab integration (optional)':'Importación antigua de Colab (opcional)'}</summary>
+          <summary>{language==='en'?'Advanced experimental comparison':'Comparación experimental avanzada'}</summary>
           <PantheraRosettesPanel />
         </details>
         <div id="panthera-video-section" className="scan-video-feature">
@@ -420,23 +420,6 @@ function App() {
           onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
           onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
         </div>
-        <div className="scan-module-links">
-          <a href="https://colab.research.google.com/github/AndreNavaJime/HackatronJaguar/blob/pantherasense-integration/notebooks/PantheraLAB_IA_Real_Colab.ipynb"
-            target="_blank" rel="noopener noreferrer">{language==='en'?'Try experimental AI in Colab ↗':'Probar IA experimental en Colab ↗'}</a>
-          <button type="button" onClick={()=>setSection('PantheraMONITORING')}>
-            {language==='en'?'Review Colab results in MONITORING →':'Revisar resultados de Colab en MONITORING →'}
-          </button>
-        </div>
-        <details className="method-details ai-method-details">
-          <summary>{language==='en'?'Automatic detection · MegaDetector V6':'Detección automática · MegaDetector V6'}
-            <span className="method-status">{aiAvailable
-              ? (language==='en'?'Available for testing':'Disponible para pruebas')
-              : (language==='en'?'Not enabled':'No habilitado')}</span>
-          </summary>
-          <p>{aiAvailable
-            ? (language==='en'?'The model dependencies are present. Its inference capacity must still be validated in this environment.':'Las dependencias del modelo están presentes. Su capacidad de inferencia aún requiere verificación en este entorno.')
-            : (language==='en'?'Automated detection requires additional model dependencies and processing resources. The sequence analysis above remains available using OpenCV.':'La detección automática requiere dependencias y capacidad de procesamiento adicionales. El análisis de secuencias anterior está disponible con OpenCV.')}</p>
-        </details>
         {aiAvailable && <VideoPanel enabled={apiState === 'connected'} />}
         <details className="method-details method-details-compact">
           <summary>{language==='en'?'Evidence management and data retention':'Gestión de evidencia y conservación de datos'}</summary>
