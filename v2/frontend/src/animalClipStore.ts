@@ -11,6 +11,10 @@ export type AnimalClip={
   state:'pending'|'kept';
   mimeType:string;
   video:Blob;
+  /** Video source and measurements are recorded locally for EDGE / 5G comparisons. */
+  sourceMode?:'device'|'remote';
+  cameraId?:string;
+  durationMs?:number;
 };
 const DB_NAME='pantheralab_live_review_clips_v1';
 const STORE='clips';
