@@ -439,6 +439,62 @@ def pdf_document(p):
     return buff.getvalue()
 
 
+
+def descriptive_statistics(p):
+    """Complete descriptive study aggregates for reproducible ZIP exports.
+
+    Captures are events, sightings are annotations, and neither is an
+    independent-animal detection or a population estimate.
+    """
+    deployments = {d["deployment_id"]: d for d in p["deployments"]}
+    people = {i["individual_id"]: i for i in p["individuals"]}
+    events = p["encounters"]
+    sightings = p["sightings"]
+    effort = [d.get("operational_days") for d in p["deployments"]]
+    effort_valid = bool(effort) and all(
+        isinstance(v, (int, float)) and not isinstance(v, bool)
+        and math.isfinite(v) and v >= 0 for v in effort)
+    camera_days = sum(effort) if effort_valid else None
+    months = Counter(
+        str(e.get("occurred_at") or "")[:7] for e in events
+        if len(str(e.get("occurred_at") or "")) >= 7 and
+        str(e.get("occurred_at") or "")[:7].replace("-", "").isdigit())
+    environmental = {}
+    for field, bounds in (("temperature_c", (-80, 85)),
+                          ("humidity_percent", (0, 100))):
+        values = [float(e[field]) for e in events if
+                  isinstance(e.get(field), (int, float)) and
+                  not isinstance(e[field], bool) and
+                  math.isfinite(e[field]) and bounds[0] <= e[field] <= bounds[1]]
+        environmental[field] = ({"count": len(values), "min": min(values),
+                                 "mean": sum(values)/len(values), "max": max(values)}
+                                if values else {"count": 0, "min": None, "mean": None, "max": None})
+    verified = {s["individual_id"] for s in sightings
+                if s.get("identification_status") == "verified"
+                and s.get("individual_id") in people
+                and people[s["individual_id"]].get("status") == "verified"}
+    return {
+        "scope": p["study"]["study_id"],
+        "interpretation": "Descriptive record counts, not independent detections or population estimates.",
+        "data_sources": "Only records linked to this local study; no automatic SENSE, SAT or Supabase sync.",
+        "deployments": len(p["deployments"]),
+        "capture_events": len(events),
+        "animal_sightings": len(sightings),
+        "verified_individuals": len(verified),
+        "observations_by_species": dict(Counter(str(x.get("species") or "unknown").strip() for x in sightings)),
+        "captures_by_camera": dict(Counter(
+            str(deployments[x["deployment_id"]].get("camera_id") or x["deployment_id"])
+            for x in events)),
+        "captures_by_month_utc": dict(sorted(months.items())),
+        "sightings_by_identification_status": dict(Counter(
+            str(x.get("identification_status") or "unidentified") for x in sightings)),
+        "reported_camera_days": camera_days,
+        "events_per_100_reported_camera_days":
+            100*len(events)/camera_days if camera_days is not None and camera_days>0 else None,
+        "environmental_measurements": environmental,
+    }
+
+
 def build_output(p, kind):
     private = p.get("redact_coordinates", True)
     data = flatten(p, private)
@@ -479,6 +535,8 @@ def build_output(p, kind):
         "PantheraLAB_informe_integral.pdf": pdf,
         "manifest.json": json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8"),
         "study.json": json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8"),
+        "statistics.json": json.dumps(descriptive_statistics(data), ensure_ascii=False,
+                                      indent=2, allow_nan=False).encode("utf-8"),
         "deployments.csv": csv_bytes(stations),
         "individuals.csv": csv_bytes(data["individuals"]),
         "encounters.csv": csv_bytes(data["encounters"]),
