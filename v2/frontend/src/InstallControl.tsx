@@ -67,8 +67,8 @@ export default function InstallControl() {
       <span aria-hidden="true">↧</span> {t('Instalar app')}
     </button>
     {instructions && <div className="install-help" id="install-help" role="region"
-      aria-label="Instrucciones para instalar PantheraID">
-      <strong>{t('Agregar PantheraID al celular')}</strong>
+      aria-label="Instrucciones para instalar PantheraLAB">
+      <strong>{t('Agregar PantheraLAB al celular')}</strong>
       {ios
         ? <p>{t('Para iPhone, abrí Safari, tocá Compartir y seleccioná Agregar a pantalla de inicio.')}</p>
         : <p>{t('En Chrome para Android, abrí el menú ⋮ y elegí Instalar aplicación o Agregar a pantalla de inicio.')}</p>}
