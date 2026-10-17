@@ -1321,3 +1321,60 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
 .rosette-automatic-preview figure{display:inline-flex;vertical-align:top;flex-direction:column;gap:8px;margin:12px 14px 8px 0;max-width:min(100%,370px)}
 .rosette-automatic-preview figure img{width:100%;max-height:370px;object-fit:contain;border-radius:9px}
 .rosette-automatic-preview figcaption{font-size:12px;color:#bad6c6;line-height:1.4}
+
+
+/* PantheraSCAN media entry points. Photos are always visible above the video workflow. */
+.scan-media-shortcuts{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+  margin:18px 0 20px;
+}
+.scan-media-shortcut{
+  display:flex;gap:12px;align-items:center;min-width:0;
+  padding:15px 17px;border:1px solid #2a6975;border-radius:13px;
+  background:linear-gradient(110deg,#10313e,#102638);
+  color:#e8faf7;text-decoration:none;transition:border-color .2s,background .2s;
+}
+.scan-media-shortcut:hover,.scan-media-shortcut:focus-visible{
+  background:#184355;border-color:#00d5c5;outline-offset:3px;
+}
+.scan-media-shortcut>span:nth-child(2){display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.scan-media-shortcut strong{font-size:14px;color:#fff}
+.scan-media-shortcut small{font-size:11px;color:#b9d1d4;line-height:1.45}
+.scan-media-shortcut>span:first-child{font-size:21px}
+.scan-photo-feature{
+  scroll-margin-top:16px;
+  padding:22px 23px 18px;border:1px solid #218e87;
+  border-radius:17px;background:linear-gradient(135deg,#102d35 0%,#102337 65%,#0f1e31 100%);
+  box-shadow:0 12px 30px rgba(0,0,0,.11);
+}
+.scan-photo-feature-heading{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.scan-feature-kicker{
+  display:block;color:#00e1c2;font-size:11px;font-weight:800;letter-spacing:.11em;margin-bottom:9px;
+}
+.scan-photo-feature-heading h3{font-size:clamp(18px,2.25vw,24px);line-height:1.3;margin:0 0 11px;color:#f4fbfb}
+.scan-photo-intro{max-width:760px;margin:0;color:#c2d5dc;font-size:13px;line-height:1.65}
+.scan-photo-feature .upload-layout{margin:20px 0}
+.scan-photo-feature .upload-controls{gap:11px}
+.scan-photo-feature .upload-controls input[type=file]{
+  width:100%;max-width:560px;cursor:pointer;border:1px dashed #14b7a7;
+  background:#0e2534;color:#f0fbff;
+}
+.scan-photo-feature .upload-controls input[type=file]:focus-visible{outline:2px solid #00e1c2;outline-offset:3px}
+.scan-photo-auto-hint{
+  color:#a3e8d9!important;margin:1px 0 8px!important;
+  font-size:12px;line-height:1.55;
+}
+.scan-photo-feature .image-frame{background:#0a1e2d;min-height:190px}
+.scan-photo-feature .detector-panel{margin:18px 0 0}
+.scan-video-feature{scroll-margin-top:16px;margin:32px 0 0}
+.scan-video-feature-heading{margin:0 0 12px}
+.scan-video-feature-heading h3{margin:0 0 7px;font-size:20px;color:#f0fafb}
+.scan-video-feature-heading p{margin:0;color:#a7c3cf;font-size:13px}
+@media(max-width:680px){
+  .scan-media-shortcuts{grid-template-columns:1fr;gap:9px}
+  .scan-media-shortcut{padding:12px 14px}
+  .scan-photo-feature{padding:16px 14px}
+  .scan-photo-feature .upload-layout{margin:16px 0;gap:14px}
+}
