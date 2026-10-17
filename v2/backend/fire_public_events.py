@@ -26,6 +26,12 @@ REGIONS = {
     "world": None,
     "costa_rica": "-86.1,11.3,-82.3,8.0",
     "central_america": "-93.0,18.0,-77.0,6.0",
+    "africa": "-18.0,38.0,52.0,-35.0",
+    "asia": "25.0,82.0,180.0,-12.0",
+    "europe": "-12.0,72.0,45.0,34.0",
+    "north_america": "-170.0,84.0,-50.0,7.0",
+    "south_america": "-82.0,13.0,-34.0,-56.0",
+    "oceania": "110.0,0.0,180.0,-50.0",
 }
 LOCK = Lock()
 CACHE: dict[tuple[str, int], tuple[float, dict]] = {}
@@ -117,7 +123,7 @@ def _project_events(response: dict, region: str, days: int) -> dict:
 
 @router.get("/nasa-events")
 def nasa_wildfire_events(
-    region: Literal["world", "costa_rica", "central_america"] = "central_america",
+    region: Literal["world", "costa_rica", "central_america", "africa", "asia", "europe", "north_america", "south_america", "oceania"] = "central_america",
     days: int = Query(30, ge=7, le=90),
 ):
     key = (region, days)
