@@ -3,6 +3,7 @@
  * Different Android launchers may choose a dot, count, or no icon badge.
  */
 import {countPendingAnimalClips,LIVE_CLIPS_CHANGED} from './animalClipStore';
+import {clearClipReadyNotification} from './clipNotifications';
 
 type BadgeNavigator=Navigator&{
   setAppBadge?:(count?:number)=>Promise<void>;
@@ -59,6 +60,7 @@ export async function applyPendingLiveBadge(count:number):Promise<void>{
     const link=document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if(link)link.href=DEFAULT_FAVICON;
     lastFaviconUrl=null;
+    void clearClipReadyNotification();
   }else{
     await iconDot(pending).catch(()=>{});
   }
