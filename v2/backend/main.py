@@ -13,6 +13,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from detection import DetectorUnavailable, detect_image
 from rosette_patterns import analyze_patterns
+from individual_match import router as individual_router
 from live_ai import (capabilities as live_capabilities, wildlife_frame, fire_frame,
                      LiveModelUnavailable)
 from video_api import router as video_router
@@ -28,6 +29,7 @@ Image.MAX_IMAGE_PIXELS = 40_000_000
 
 app = FastAPI(title='PantheraID API', version='0.4.0')
 app.include_router(video_router)
+app.include_router(individual_router)
 app.include_router(scientific_router)
 app.include_router(edge_router)
 app.include_router(study_report_router)
@@ -54,6 +56,7 @@ def capabilities():
         'modules': ['PantheraID', 'PantheraMONITORING', 'PantheraEDGE'],
         'image_intake': 'available',
         'image_auto_analysis': 'lightweight_texture_available',
+        'individual_comparison': 'opencv_sift_experimental_available',
         'heavy_photo_ai': 'enabled' if (os.getenv('PANTHERA_ENABLE_HEAVY_IMAGE_AI') == '1' and find_spec('PytorchWildlife')) else 'disabled',
         'rosette_texture': 'exploratory_contours_not_reidentification',
         'animal_detection': 'optional_dependencies_installed' if find_spec('PytorchWildlife') else 'requires_pytorchwildlife',
