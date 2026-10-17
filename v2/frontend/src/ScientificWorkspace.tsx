@@ -16,12 +16,16 @@ type Props={section:string;onNavigate:(section:string)=>void;
   pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
   monitoringNextRequest?:number;
   onRegistryTabChange?:(tab:'projects'|'stations'|'captures'|'individuals')=>void;
+  onActiveStudyInfo?:(title:string)=>void;
 };
 
 export default function ScientificWorkspace({section,onNavigate,pendingEvidence,onClearEvidence,
-  monitoringNextRequest=0,onRegistryTabChange}:Props){
+  monitoringNextRequest=0,onRegistryTabChange,onActiveStudyInfo}:Props){
   const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
   const [research,setResearch]=React.useState<ResearchData>(loadResearch);
+  const [activeStudyId,setActiveStudyId]=React.useState(()=>{
+    try{return localStorage.getItem('pantheralab_selected_study_v1')||'';}catch{return '';}
+  });
   const [persistError,setPersistError]=React.useState(false);
   const [researchReady,setResearchReady]=React.useState(false);
   const [events,setEvents]=React.useState<EdgeEvent[]>(()=>{
@@ -37,7 +41,20 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       (v.source==='virtual_fire_simulation'||v.source==='pyroengine_browser_camera')&&
       (v.signal==='smoke'||v.signal==='flame'||v.signal==='fire')).slice(0,30):[];
   });
-  const records=React.useMemo(()=>flattenObservations(research),[research]);
+  const activeStudy=research.studies.find(p=>p.study_id===activeStudyId)||research.studies[0];
+  React.useEffect(()=>{onActiveStudyInfo?.(activeStudy?.title||'');},
+    [activeStudy?.title,onActiveStudyInfo]);
+  const studyRecords=React.useMemo(()=>{
+    const id=activeStudy?.study_id;
+    if(!id)return {...research,studies:[],deployments:[],individuals:[],encounters:[],sightings:[]};
+    const encounters=research.encounters.filter(e=>e.study_id===id);
+    const eventIds=new Set(encounters.map(e=>e.encounter_id));
+    return {...research,studies:research.studies.filter(p=>p.study_id===id),
+      deployments:research.deployments.filter(d=>d.study_id===id),
+      individuals:research.individuals.filter(p=>p.study_id===id),
+      encounters,sightings:research.sightings.filter(s=>eventIds.has(s.encounter_id))};
+  },[research,activeStudy?.study_id]);
+  const records=React.useMemo(()=>flattenObservations(studyRecords),[studyRecords]);
 
   React.useEffect(()=>{
     let cancelled=false;
@@ -72,9 +89,9 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
         'Restoring local scientific records…')}</p>
     </div>;
   }
-  const sites=new Set(research.deployments.map(d=>d.site.trim()).filter(Boolean));
-  const validated=new Set(research.sightings.filter(s=>s.identification_status==='verified'&&
-    research.individuals.some(i=>i.individual_id===s.individual_id&&i.status==='verified'))
+  const sites=new Set(studyRecords.deployments.map(d=>d.site.trim()).filter(Boolean));
+  const validated=new Set(studyRecords.sightings.filter(s=>s.identification_status==='verified'&&
+    studyRecords.individuals.some(i=>i.individual_id===s.individual_id&&i.status==='verified'))
     .map(s=>s.individual_id)).size;
   return <>
     <div style={{display:section==='PantheraMONITORING'||section==='Informes'?'block':'none'}}>
@@ -85,7 +102,8 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
         onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
         onClearEvidence={onClearEvidence} reportsOnly={section==='Informes'}
         nextRequest={section==='PantheraMONITORING'?monitoringNextRequest:0}
-        onWorkflowTabChange={onRegistryTabChange} onNavigate={onNavigate}/>
+        onWorkflowTabChange={onRegistryTabChange} onActiveStudyChange={setActiveStudyId}
+        onNavigate={onNavigate}/>
       {section==='Informes'&&<details className="method-details method-details-compact scientific-advanced-tools">
         <summary>{tx('Laboratorio avanzado · informes de modelos externos',
           'Advanced laboratory · external model reports')}</summary>
@@ -108,10 +126,12 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       <p>{tx('De la cámara trampa a la evidencia: captura, filtrado, contexto ambiental y revisión.',
         'From camera traps to evidence: capture, filtering, environmental context and review.')}</p>
     </div><span className="sci-tag">{tx('PANEL DE INVESTIGACIÓN','RESEARCH WORKSPACE')}</span></div>
+    {activeStudy&&<p className="sci-muted">{tx('Estudio local activo: ','Active local study: ')}
+      <strong>{activeStudy.title}</strong></p>}
     <div className="sci-stats">
       <div><span>{tx('Observaciones de animales','Animal sightings')}</span>
-        <strong>{research.sightings.length}</strong></div>
-      <div><span>{tx('Eventos de captura','Capture events')}</span><strong>{research.encounters.length}</strong></div>
+        <strong>{studyRecords.sightings.length}</strong></div>
+      <div><span>{tx('Eventos de captura','Capture events')}</span><strong>{studyRecords.encounters.length}</strong></div>
       <div><span>{tx('Individuos validados','Verified individuals')}</span><strong>{validated}</strong></div>
       <div><span>{tx('Sitios anotados','Annotated study sites')}</span><strong>{sites.size}</strong></div>
     </div>
