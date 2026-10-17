@@ -294,8 +294,8 @@ function App() {
         <div className="panel-heading">
           <div><h2>PantheraSCAN · {language==='en'?'Wildlife evidence screening':'Exploración de evidencia de fauna'}</h2>
             <p>{language==='en'
-              ?'Review camera-trap videos, screen frames and prepare evidence for researchers. Animal detection requires an AI-enabled server.'
-              :'Revisá videos de cámaras trampa, seleccioná fotogramas y prepará evidencia. La detección automática requiere un servidor con IA activa.'}</p></div>
+              ?'Select a photo for automatic lightweight pattern exploration, or analyze a camera-trap video. Wildlife recognition requires a separately enabled AI model.'
+              :'Seleccioná una fotografía para explorar patrones automáticamente o analizá videos de cámaras trampa. Reconocer animales con IA requiere habilitar un modelo adicional.'}</p></div>
           <span className="tag">{language==='en'?'VIDEO + PHOTO':'VIDEO + FOTO'}</span>
         </div>
         <nav className="scan-media-shortcuts" aria-label={language==='en'?'Choose media type':'Elegir tipo de archivo'}>
