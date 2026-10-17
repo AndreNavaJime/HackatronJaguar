@@ -1,0 +1,44 @@
+name: Verify public PantheraSCAN UI and API
+on:
+  push:
+    branches: [test/pantherascan-render-public-check-20261017]
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public UI, compiled matcher, API capabilities and allowed CORS
+        run: |
+          python - <<'PY'
+          import json,re,time,urllib.request
+          frontend='https://pantherascan-ciencia.onrender.com'
+          backend='https://pantherasense-backend-test.onrender.com'
+          def request(url,method='GET',headers=None):
+              with urllib.request.urlopen(urllib.request.Request(url,method=method,headers=headers or {
+                'User-Agent':'PantheraSCAN-Web-Health/1.0'
+              }),timeout=80) as response:
+                  return response.status,dict(response.headers),response.read().decode('utf-8','replace')
+
+          code,headers,html=request(frontend)
+          assert code==200 and '<html' in html.lower(),(code,html[:300])
+          match=re.search(r'src="([^"]*assets/index-[^"]+\.js)"',html)
+          assert match,html[:700]
+          asset=match.group(1)
+          code,headers,js=request(frontend+asset if asset.startswith('/') else frontend+'/'+asset)
+          assert code==200,code
+          assert 'IndividualMatcherPanel' in js or 'SIFT' in js or 'Comparar fotografías ahora' in js,js[:200]
+          code,headers,body=request(backend+'/api/capabilities')
+          assert code==200,code
+          caps=json.loads(body)
+          assert caps.get('individual_comparison')=='opencv_sift_experimental_available',caps
+          code,headers,body=request(
+              backend+'/api/individuals/compare','OPTIONS',{
+                'Origin':frontend,
+                'Access-Control-Request-Method':'POST',
+                'Access-Control-Request-Headers':'content-type'
+              })
+          assert code==200 and headers.get('Access-Control-Allow-Origin')==frontend,(code,headers,body[:200])
+          print('OK: Public PantheraSCAN HTML, matcher JS, backend capabilities and CORS validated')
+          PY
