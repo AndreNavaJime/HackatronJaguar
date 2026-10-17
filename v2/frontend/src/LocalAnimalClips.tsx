@@ -132,7 +132,13 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
         'Possible animal detected: recording temporary clip…'));
     };
     async function scan(){
-      if(!active||busyRef.current||!video||video.readyState<2||!stream?.active)return;
+      if(!active)return;
+      // WebRTC/phone preview often has no decoded frame immediately after play().
+      // Always reschedule rather than silently stopping the detection loop.
+      if(busyRef.current||!video||video.readyState<2||!stream?.active){
+        timer=window.setTimeout(()=>void scan(),600);
+        return;
+      }
       busyRef.current=true;
       try{
         const results=await detector.detect(video);
