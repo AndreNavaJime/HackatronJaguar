@@ -19,13 +19,14 @@ export async function requestClipAlertsOnCameraConnect():Promise<void>{
   }
 }
 
-export async function notifyClipReady():Promise<void>{
+export async function notifyClipReady(pending=1):Promise<void>{
   if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
   const title='PantheraLIVE';
   const options={
-    body:'Posible animal detectado. Video pendiente de revisión.',
+    body:pending===1?'1 video de posible animal pendiente de revisión.':
+      pending+' videos de posibles animales pendientes de revisión.',
     tag:'pantheralive-clip-ready',
-    icon:'/favicon.ico'
+    icon:'/icons/jaguar-modern-192.png'
   };
   try{
     if('serviceWorker' in navigator){
