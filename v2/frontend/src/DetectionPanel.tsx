@@ -117,7 +117,7 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
         <div className="preview-controls">
           <button type="button" className={annotated ? 'active' : ''} onClick={() => setAnnotated(true)}>{t("Con recuadros")}</button>
           <button type="button" className={!annotated ? 'active' : ''} onClick={() => setAnnotated(false)}>{t("Original")}</button>
-          <a className="download-link" href={result.annotated_image} download="pantheraid_detecciones.jpg">{t("Descargar anotada ↓")}</a>
+          <a className="download-link" href={result.annotated_image} download="pantherascan_detecciones.jpg">{t("Descargar anotada ↓")}</a>
         </div>
       </div>
       {result.detections.length ? <div className="detection-list">
