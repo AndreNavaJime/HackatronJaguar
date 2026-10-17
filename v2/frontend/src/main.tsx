@@ -238,10 +238,12 @@ function App() {
     const en=language==='en';
     if(section==='Resumen')return en?'Next: analyze evidence':'Siguiente: analizar evidencia';
     if(section==='PantheraID'){
+      if(selectedImage)return imageResult?
+        (en?'Next: record selected photo':'Siguiente: registrar fotografía seleccionada'):
+        (en?'Next: prepare photo':'Siguiente: preparar fotografía');
       if(videoWorkflow.hasResult&&videoWorkflow.selectedCount>0)
         return en?'Next: record capture':'Siguiente: registrar captura';
       if(videoWorkflow.hasResult)return en?'Next: review frames':'Siguiente: revisar fotogramas';
-      if(imageResult)return en?'Next: record observation':'Siguiente: registrar observación';
       return en?'Next: upload evidence':'Siguiente: cargar evidencia';
     }
     if(section==='PantheraMONITORING'){
@@ -263,11 +265,13 @@ function App() {
   function advanceWorkflow(){
     if(section==='Resumen'){setSection('PantheraID');return;}
     if(section==='PantheraID'){
+      if(selectedImage){
+        if(imageResult){void continueWithPhoto();return;}
+        document.getElementById('panthera-image')?.scrollIntoView({behavior:'smooth',block:'center'});
+        return;
+      }
       if(videoWorkflow.hasResult){setVideoNextRequest(n=>n+1);return;}
-      if(imageResult){void continueWithPhoto();return;}
-      if(selectedImage)document.getElementById('panthera-photo-details')?.setAttribute('open','');
-      document.getElementById(selectedImage?'panthera-image':'lite-video')
-        ?.scrollIntoView({behavior:'smooth',block:'center'});
+      document.getElementById('lite-video')?.scrollIntoView({behavior:'smooth',block:'center'});
       return;
     }
     if(section==='PantheraMONITORING'){setMonitorNextRequest(n=>n+1);return;}
