@@ -334,7 +334,7 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-
+        {aiAvailable && selectedImage && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
         </details>
         <details className="method-details ai-method-details">
           <summary>{language==='en'?'Automatic detection · MegaDetector V6':'Detección automática · MegaDetector V6'}
@@ -347,7 +347,6 @@ function App() {
             : (language==='en'?'Automated detection requires additional model dependencies and processing resources. The sequence analysis above remains available using OpenCV.':'La detección automática requiere dependencias y capacidad de procesamiento adicionales. El análisis de secuencias anterior está disponible con OpenCV.')}</p>
         </details>
         {aiAvailable && <VideoPanel enabled={apiState === 'connected'} />}
-        {aiAvailable && selectedImage && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
         <details className="method-details method-details-compact">
           <summary>{language==='en'?'Evidence management and data retention':'Gestión de evidencia y conservación de datos'}</summary>
           <p>{language==='en'?'Image inspection does not perform species recognition or save images to Supabase. Video analysis uses temporary files that expire on the processing server. Biological identification requires independent scientific review.':'La inspección de fotografías no reconoce especies ni guarda imágenes en Supabase. El análisis de video utiliza archivos temporales que caducan en el servidor de procesamiento. La identificación biológica exige revisión científica independiente.'}</p>
