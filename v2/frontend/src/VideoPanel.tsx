@@ -1,3 +1,4 @@
+import {apiFetch,apiUrl} from './apiClient';
 import React from 'react';
 import { useLanguage } from './language';
 
@@ -184,7 +185,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
     let active = true;
     async function poll() {
       try {
-        const response = await fetch('/api/videos/jobs/' + jobId, { cache: 'no-store' });
+        const response = await apiFetch('/api/videos/jobs/' + jobId, { cache: 'no-store' });
         const data = await fetchJson(response) as JobSnapshot;
         if (!active) return;
         setJob(data);
@@ -244,7 +245,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
       });
       // Each network request is <= 5 MiB; large single POSTs may be rejected
       // by Codespaces or development proxies before reaching Python.
-      const start = await fetchJson(await fetch('/api/videos/uploads?' + params.toString(), {
+      const start = await fetchJson(await apiFetch('/api/videos/uploads?' + params.toString(), {
         method: 'POST',
         headers: {
           'X-Video-Name': encodeURIComponent(file.name),
@@ -257,7 +258,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
       let offset = 0;
       while (offset < file.size) {
         const next = Math.min(offset + chunkSize, file.size);
-        const reply = await fetchJson(await fetch(
+        const reply = await fetchJson(await apiFetch(
           '/api/videos/uploads/' + uploadId + '/chunks?offset=' + offset,
           { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' },
             body: file.slice(offset, next) }
@@ -268,7 +269,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
         offset = next;
         setUploadedBytes(offset);
       }
-      const completed = await fetchJson(await fetch(
+      const completed = await fetchJson(await apiFetch(
         '/api/videos/uploads/' + uploadId + '/complete', { method: 'POST' }
       )) as { job_id?: string };
       if (!completed.job_id) throw new Error(t('Python no confirmó el inicio del análisis.'));
@@ -277,14 +278,14 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
     } catch (cause) {
       if (uploadId) {
         // Best-effort cleanup; never hide the original upload error.
-        try { await fetch('/api/videos/uploads/' + uploadId, { method: 'DELETE' }); } catch { /* ignored */ }
+        try { await apiFetch('/api/videos/uploads/' + uploadId, { method: 'DELETE' }); } catch { /* ignored */ }
       }
       setStatus('failed');
       setError(cause instanceof Error ? cause.message : t('No se pudo enviar el video.'));
     }
   }
 
-  const downloadBase = jobId ? '/api/videos/jobs/' + jobId + '/download?kind=' : '';
+  const downloadBase = jobId ? apiUrl('/api/videos/jobs/' + jobId + '/download?kind=') : '';
 
   return <section className="video-panel" aria-label={t('Análisis de video')}>
     <div className="panel-heading">

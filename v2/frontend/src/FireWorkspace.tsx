@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import FireCameraPanel from './FireCameraPanel';
@@ -45,7 +46,7 @@ export default function FireWorkspace({cameraEvents,onFireEvent}:{
   },[cameraDecisions]);
   const refresh=React.useCallback(async (signal?:AbortSignal)=>{
     try {
-      const response=await fetch('/api/sense/latest',{cache:'no-store',signal});
+      const response=await apiFetch('/api/sense/latest',{cache:'no-store',signal});
       if(!response.ok)throw new Error('HTTP '+response.status);
       const payload=await response.json() as Telemetry;
       if(payload.simulation!==true||!Array.isArray(payload.history)){

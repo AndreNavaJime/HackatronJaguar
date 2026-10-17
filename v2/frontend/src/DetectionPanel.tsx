@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import { useLanguage } from './language';
 
@@ -67,7 +68,7 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
     setResult(null);
     setError('');
     try {
-      const response = await fetch('/api/images/analyze?threshold=' + threshold.toFixed(2), {
+      const response = await apiFetch('/api/images/analyze?threshold=' + threshold.toFixed(2), {
         method: 'POST',
         headers: { 'Content-Type': photo.type || 'application/octet-stream' },
         body: photo,

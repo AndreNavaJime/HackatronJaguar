@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import {downloadFile,loadSession,saveSession} from './scienceShared';
@@ -74,7 +75,7 @@ export default function PantheraRosettesPanel(){
     try{
       // This locally served example contains only anonymized metadata,
       // NOT photographs or a scientifically verified jaguar identification.
-      const response=await fetch('/examples/pantherascan-rosetas-colab-prueba-01.json');
+      const response=await apiFetch('/examples/pantherascan-rosetas-colab-prueba-01.json');
       if(!response.ok)throw new Error(tx(
         'No se pudo cargar el ejemplo hasta que la nueva versión esté publicada.',
         'The example could not load until the updated version is published.'));

@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import {Observation,EdgeEvent,newObservation,numberOrNull,downloadFile,toCsv,toGeoJSON} from './scienceShared';
@@ -54,7 +55,7 @@ export default function MonitoringWorkspace({records,current,setCurrent,onSave,o
   async function generatePdf(){
     setPdfBusy(true);setNotice('');
     try{
-      const response=await fetch('/api/science/reports/observation',{
+      const response=await apiFetch('/api/science/reports/observation',{
         method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(current),
       });
       if(!response.ok){let text='HTTP '+response.status;

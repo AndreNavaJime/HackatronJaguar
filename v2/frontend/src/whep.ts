@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 /** Receive a video stream from a WHEP-compatible WebRTC gateway (e.g. go2rtc).
  * Browser-side signaling only. No RTSP, credentials or uploads are proxied.
  */
@@ -38,7 +39,7 @@ export async function connectWhep(endpoint:string):Promise<{
         peer.addEventListener('icegatheringstatechange',check);
       });
     }
-    const response=await fetch(url.toString(),{
+    const response=await apiFetch(url.toString(),{
       method:'POST',mode:'cors',credentials:'omit',
       headers:{'Content-Type':'application/sdp','Accept':'application/sdp'},
       body:peer.localDescription?.sdp||offer.sdp

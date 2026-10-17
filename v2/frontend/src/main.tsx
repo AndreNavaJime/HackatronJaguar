@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
@@ -109,7 +110,7 @@ function App() {
     setApiState('checking');
     setApiMessage('Verificando disponibilidad del servicio…');
     try {
-      const response = await fetch('/api/health', { cache: 'no-store' });
+      const response = await apiFetch('/api/health', { cache: 'no-store' });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const data: unknown = await response.json();
       if (typeof data !== 'object' || data === null || !('status' in data) || data.status !== 'ok') {
@@ -118,7 +119,7 @@ function App() {
       setApiState('connected');
       setApiMessage('Servicio de análisis operativo');
       try {
-        const caps=await fetch('/api/capabilities',{cache:'no-store'});
+        const caps=await apiFetch('/api/capabilities',{cache:'no-store'});
         const data:unknown=await caps.json();
         setAiAvailable(caps.ok && typeof data==='object' && data!==null
           && 'animal_detection' in data && data.animal_detection==='optional_dependencies_installed');
@@ -162,7 +163,7 @@ function App() {
     setImageError('');
     setImageResult(null);
     try {
-      const response = await fetch('/api/images/inspect', {
+      const response = await apiFetch('/api/images/inspect', {
         method: 'POST',
         headers: { 'Content-Type': selectedImage.type || 'application/octet-stream' },
         body: selectedImage,

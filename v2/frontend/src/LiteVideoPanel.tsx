@@ -1,3 +1,4 @@
+import {apiFetch,apiUrl} from './apiClient';
 import React from 'react';
 import { useLanguage } from './language';
 import {VideoResult,VideoSession,VideoEvidenceBatch,saveVideoSession,getVideoSession,
@@ -134,7 +135,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
     let active=true;
     const poll=async()=>{
       try{
-        const response=await fetch('/api/videos/jobs/'+encodeURIComponent(jobId),{cache:'no-store'});
+        const response=await apiFetch('/api/videos/jobs/'+encodeURIComponent(jobId),{cache:'no-store'});
         if(response.status===404||response.status===410){
           if(active){setError(tx('El proceso del servidor expiró. Podés iniciar un nuevo análisis.',
             'The server job expired. You can start a new analysis.'));setState('failed');}
@@ -167,7 +168,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
         mode:'lite',motion_threshold:motionThreshold.toFixed(3),sample_seconds:seconds.toFixed(1),
         max_samples:String(samples),
       });
-      const started=await readResponse(await fetch('/api/videos/uploads?'+params.toString(),{
+      const started=await readResponse(await apiFetch('/api/videos/uploads?'+params.toString(),{
         method:'POST',headers:{'X-Video-Name':encodeURIComponent(file.name),'X-Video-Size':String(file.size)},
       })) as {upload_id:string;chunk_max_bytes:number};
       if(!started.upload_id)throw new Error('El servidor no creó la sesión. / No upload session.');
@@ -175,21 +176,21 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
       const chunkSize=Math.min(CHUNK,started.chunk_max_bytes||CHUNK);
       for(let offset=0;offset<file.size;offset+=chunkSize){
         const end=Math.min(offset+chunkSize,file.size);
-        const done=await readResponse(await fetch(
+        const done=await readResponse(await apiFetch(
           '/api/videos/uploads/'+encodeURIComponent(uploadId)+'/chunks?offset='+offset,
           {method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:file.slice(offset,end)},
         )) as {received_bytes:number};
         if(done.received_bytes!==end)throw new Error('Carga incompleta. / Incomplete upload.');
         setUploaded(end);
       }
-      const begun=await readResponse(await fetch(
+      const begun=await readResponse(await apiFetch(
         '/api/videos/uploads/'+encodeURIComponent(uploadId)+'/complete',{method:'POST'},
       )) as {job_id:string};
       if(!begun.job_id)throw new Error('El servidor no inició el análisis. / Analysis did not start.');
       setJobId(begun.job_id);setState('processing');
     }catch(cause){
       setError(cause instanceof Error?cause.message:String(cause));setState('failed');
-      if(uploadId)try{await fetch('/api/videos/uploads/'+encodeURIComponent(uploadId),{method:'DELETE'});}catch{/* best effort */}
+      if(uploadId)try{await apiFetch('/api/videos/uploads/'+encodeURIComponent(uploadId),{method:'DELETE'});}catch{/* best effort */}
     }
   }
   const reset=(next:File|null)=>{
@@ -197,7 +198,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
     setAnalysisId('');setCreatedAt('');setPersistedFilename('');setSelectedSamples([]);
   };
   const pct=(value:number)=>(value*100).toFixed(1)+'%';
-  const base=jobId?'/api/videos/jobs/'+encodeURIComponent(jobId)+'/download?kind=':'';
+  const base=jobId?apiUrl('/api/videos/jobs/'+encodeURIComponent(jobId)+'/download?kind='):'';
   const hasServerDownloads=!!jobId&&(!createdAt||
     !Number.isFinite(Date.parse(createdAt))||Date.now()-Date.parse(createdAt)<50*60*1000);
 
