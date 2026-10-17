@@ -2,6 +2,7 @@ import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import CloudLibraryPanel from './CloudLibraryPanel';
+import StudyStatistics from './StudyStatistics';
 import {downloadFile} from './scienceShared';
 import {ResearchData,Study,Deployment,Individual,Encounter,Sighting,uid,projectPackage} from './researchData';
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
@@ -1039,6 +1040,8 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       </section>}
     </>}
 
+    {reportsOnly&&study&&<StudyStatistics deployments={stations}
+      encounters={encounters} individuals={people} sightings={sightings}/>}
     {reportsOnly&&<section className="sci-panel">
       <div className="sci-panel-head"><h3>{tx('Informe integral de investigación','Consolidated study report')}</h3>
         <span className="sci-tag">PDF + DATASET</span></div>
