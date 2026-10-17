@@ -8,3 +8,6 @@ reportlab>=4.2,<5
 
 # Lectura por ventanas de bandas Sentinel-2 COG y WorldCover 2021.
 rasterio>=1.4,<2
+
+# Lightweight multipart uploads for exploratory individual photo matching.
+python-multipart>=0.0.20,<1

@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 import DetectionPanel from './DetectionPanel';
+import IndividualMatcherPanel from './IndividualMatcherPanel';
 import VideoPanel from './VideoPanel';
 import LiteVideoPanel from './LiteVideoPanel';
 import {createAnalysisId} from './videoWorkspaceDb';
@@ -359,6 +360,7 @@ function App() {
             : 'Render ejecuta únicamente una exploración ligera de texturas; la detección de animales o especies requiere activar un modelo de IA por separado.'}
         </p>}
         </section>
+        <IndividualMatcherPanel photo={selectedImage} enabled={apiState==='connected'} />
         <PantheraRosettesPanel />
         <div id="panthera-video-section" className="scan-video-feature">
           <header className="scan-video-feature-heading">
