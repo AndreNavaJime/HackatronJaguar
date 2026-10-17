@@ -33,7 +33,7 @@ type DetectionResult = {
   note: string;
 };
 
-export default function DetectionPanel({ file, enabled }: { file: File | null; enabled: boolean }) {
+export default function DetectionPanel({ file, enabled, animalAIEnabled }: { file: File | null; enabled: boolean; animalAIEnabled: boolean }) {
   const { t,language } = useLanguage();
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [result, setResult] = React.useState<DetectionResult | null>(null);
@@ -49,9 +49,9 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
     setError('');
     setAnnotated(true);
     // Analyze a photo automatically as soon as it is selected and Python is connected.
-    if (file && enabled) void detect(file);
+    if (file && enabled && animalAIEnabled) void detect(file);
     return () => activeRequest.current?.abort();
-  }, [file, enabled]);
+  }, [file, enabled, animalAIEnabled]);
 
   async function detect(photo: File | null = file) {
     if (!photo || !enabled) return;
@@ -155,10 +155,12 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
         {tx('Comparar patrones de individuos ↓','Compare individual patterns ↓')}
       </a>
     </div>}
-    {result&&!result.animal_detection_performed&&<details className="method-details method-details-compact photo-experimental-details">
+    {!animalAIEnabled&&<details className="method-details method-details-compact photo-experimental-details">
       <summary>{tx('Exploración técnica de contornos (opcional)','Technical contour exploration (optional)')}</summary>
-      <p>{tx('Son formas oscuras en toda la imagen, incluidas plantas y suelo. No son rosetas identificadas por IA.',
-      'These are dark shapes in the entire photograph, including vegetation and ground. They are not AI-identified rosettes.')}</p>
+      <p>{tx('Esta prueba opcional marca formas oscuras, incluso plantas y suelo. No detecta rosetas por IA.',
+      'This optional experiment marks dark shapes, including plants and ground. It is not AI rosette detection.')}</p>
+      {!result&&<button type="button" className="sci-secondary" disabled={processing||!enabled}
+        onClick={()=>void detect()}>{tx('Ejecutar exploración técnica','Run technical exploration')}</button>}
       {result.rosette_patterns?.samples.map((sample,index)=><figure key={index}>
         <img src={sample.annotated_crop} alt={tx('Contornos exploratorios, no rosetas verificadas','Exploratory contours, not verified rosettes')} loading="lazy"/>
         <figcaption>{sample.texture_regions_xyxy.length} {tx('regiones visuales sin validar','unvalidated visual regions')}</figcaption>
