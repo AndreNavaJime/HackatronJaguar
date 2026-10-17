@@ -39,6 +39,6 @@ jobs:
                 'Access-Control-Request-Method':'POST',
                 'Access-Control-Request-Headers':'content-type'
               })
-          assert code==200 and headers.get('Access-Control-Allow-Origin')==frontend,(code,headers,body[:200])
+          assert code==200 and {k.lower():v for k,v in headers.items()}.get('access-control-allow-origin')==frontend,(code,headers,body[:200])
           print('OK: Public PantheraSCAN HTML, matcher JS, backend capabilities and CORS validated')
           PY
