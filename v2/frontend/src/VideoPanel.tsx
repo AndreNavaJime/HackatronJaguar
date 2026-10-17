@@ -395,7 +395,7 @@ export default function VideoPanel({ enabled }: { enabled: boolean }) {
             <span>{t(frame.retained ? 'RETENER · animal detectado' : 'DESCARTAR · sin detección animal')}</span>
             <small>{t('Animales')}: {frame.counts.animal} · {t('Personas')}: {frame.counts.person} · {t('Vehículos')}: {frame.counts.vehicle}</small>
             <small>{t("Confianza animal máxima:")} {percentage(frame.max_animal_confidence)}</small>
-            <Download href={frame.image} filename={'pantheraid_muestra_' + String(frame.sample).padStart(3, '0') + '.jpg'}>{t("Descargar fotograma ↓")}</Download>
+            <Download href={frame.image} filename={'pantherascan_muestra_' + String(frame.sample).padStart(3, '0') + '.jpg'}>{t("Descargar fotograma ↓")}</Download>
           </div>
         </article>)}
       </div>
