@@ -298,25 +298,41 @@ function App() {
               :'Revisá videos de cámaras trampa, seleccioná fotogramas y prepará evidencia. La detección automática requiere un servidor con IA activa.'}</p></div>
           <span className="tag">{language==='en'?'VIDEO + PHOTO':'VIDEO + FOTO'}</span>
         </div>
-        <div className="scan-module-links">
-          <a href="https://colab.research.google.com/github/AndreNavaJime/HackatronJaguar/blob/pantherasense-integration/notebooks/PantheraLAB_IA_Real_Colab.ipynb"
-            target="_blank" rel="noopener noreferrer">{language==='en'?'Try experimental AI in Colab ↗':'Probar IA experimental en Colab ↗'}</a>
-          <button type="button" onClick={()=>setSection('PantheraMONITORING')}>
-            {language==='en'?'Review Colab results in MONITORING →':'Revisar resultados de Colab en MONITORING →'}
-          </button>
-        </div>
-        <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable}
-          onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
-          onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
-        <details id="panthera-photo-details" className="method-details scan-photo-details">
-          <summary>{language==='en'?'Photograph: automatic AI analysis and file check':'Fotografía: análisis automático y validación del archivo'}</summary>
+        <nav className="scan-media-shortcuts" aria-label={language==='en'?'Choose media type':'Elegir tipo de archivo'}>
+          <a href="#panthera-photo-details" className="scan-media-shortcut">
+            <span aria-hidden="true">📷</span>
+            <span><strong>{language==='en'?'Photographs':'Fotografías'}</strong><small>{language==='en'?'Automatic texture analysis':'Análisis automático de texturas'}</small></span>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a href="#panthera-video-section" className="scan-media-shortcut">
+            <span aria-hidden="true">🎞️</span>
+            <span><strong>{language==='en'?'Videos':'Videos'}</strong><small>{language==='en'?'Sequence and frame analysis':'Análisis de secuencias y fotogramas'}</small></span>
+            <span aria-hidden="true">↗</span>
+          </a>
+        </nav>
+        <section id="panthera-photo-details" className="scan-photo-feature" aria-label={language==='en'?'Automatic photo analysis':'Análisis automático de fotografías'}>
+          <header className="scan-photo-feature-heading">
+            <div>
+              <span className="scan-feature-kicker">PANTHERASCAN / {language==='en'?'PHOTOS':'FOTOGRAFÍAS'}</span>
+              <h3>{language==='en'?'Upload a photo and explore its patterns':'Subir fotografía y analizar patrones'}</h3>
+              <p className="scan-photo-intro">{language==='en'
+                ? 'Choose JPG, PNG or WebP. The image is processed automatically on the connected Render server, without Colab or manual import.'
+                : 'Elegí JPG, PNG o WebP. La imagen se analiza automáticamente en Render, sin abrir Colab ni importar resultados.'}</p>
+            </div>
+            <span className="tag">OpenCV · CPU</span>
+          </header>
           <p className="sci-muted">{language==='en'
             ?'Selecting a photo automatically explores its texture on Render. Wildlife detection additionally requires an enabled AI model; file validation is optional.'
             :'Al seleccionar una foto se explora automáticamente su textura en Render. Con un modelo IA habilitado también se detecta fauna; la validación del archivo es opcional.'}</p>
         <div className="upload-layout">
           <div className="upload-controls">
-            <label htmlFor="panthera-image">{t("Seleccionar fotografía (JPEG, PNG o WebP; máximo 12 MB)")}</label>
-            <input id="panthera-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
+            <label htmlFor="panthera-image">{language==='en'?'Select photo (max 12 MB)':'Seleccionar fotografía (máximo 12 MB)'}</label>
+            <input id="panthera-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} aria-describedby="panthera-photo-auto-hint" />
+            <p id="panthera-photo-auto-hint" className="scan-photo-auto-hint" role="status">
+              {language==='en'
+                ? 'Automatic: select an image to start. The “Validate file” button is optional.'
+                : 'Automático: al elegir la foto empieza el análisis. El botón “Validar archivo” es opcional.'}
+            </p>
             <button className="action-button" disabled={!selectedImage || uploading || apiState !== 'connected'} onClick={() => void inspectImage()}>
               {uploading?(language==='en'?'Validating…':'Validando…'):(language==='en'?'Validate photo file (no AI)':'Validar archivo de foto (sin IA)')}
             </button>
@@ -342,8 +358,24 @@ function App() {
             ? 'Render runs lightweight texture exploration only; animal/species detection requires a separately enabled AI model.'
             : 'Render ejecuta únicamente una exploración ligera de texturas; la detección de animales o especies requiere activar un modelo de IA por separado.'}
         </p>}
-        </details>
+        </section>
         <PantheraRosettesPanel />
+        <div id="panthera-video-section" className="scan-video-feature">
+          <header className="scan-video-feature-heading">
+            <h3>{language==='en'?'Videos · sequence analysis':'Videos · análisis de secuencias'}</h3>
+            <p>{language==='en'?'Camera-trap video sampling and visual change analysis':'Muestreo de videos de cámaras trampa y análisis de cambios visuales'}</p>
+          </header>
+        <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable}
+          onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
+          onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
+        </div>
+        <div className="scan-module-links">
+          <a href="https://colab.research.google.com/github/AndreNavaJime/HackatronJaguar/blob/pantherasense-integration/notebooks/PantheraLAB_IA_Real_Colab.ipynb"
+            target="_blank" rel="noopener noreferrer">{language==='en'?'Try experimental AI in Colab ↗':'Probar IA experimental en Colab ↗'}</a>
+          <button type="button" onClick={()=>setSection('PantheraMONITORING')}>
+            {language==='en'?'Review Colab results in MONITORING →':'Revisar resultados de Colab en MONITORING →'}
+          </button>
+        </div>
         <details className="method-details ai-method-details">
           <summary>{language==='en'?'Automatic detection · MegaDetector V6':'Detección automática · MegaDetector V6'}
             <span className="method-status">{aiAvailable
