@@ -68,7 +68,7 @@ def _rosette_like_regions(crop: Image.Image) -> list[list[int]]:
     return boxes
 
 
-def analyze_patterns(image: Image.Image, detections: list[dict]) -> dict:
+def analyze_patterns(image: Image.Image, detections: list[dict], allow_full_image: bool = False) -> dict:
     """Return small visual references for animal boxes only; no identity claim."""
     if any(item.get("class_name") == "person" for item in detections):
         return {
@@ -81,6 +81,10 @@ def analyze_patterns(image: Image.Image, detections: list[dict]) -> dict:
         key=lambda d: float(d.get("confidence", 0)), reverse=True,
     )[:MAX_ANIMALS]
     samples = []
+    # Render free plan cannot safely run PyTorch models in 512 MB; this
+    # fallback explores generic image texture without guessing an animal ID.
+    if not animals and allow_full_image:
+        animals = [{"bbox_xyxy": [0, 0, image.width, image.height]}]
     for animal in animals:
         box = animal.get("bbox_xyxy", [])
         if not isinstance(box, list) or len(box) != 4:
@@ -106,7 +110,8 @@ def analyze_patterns(image: Image.Image, detections: list[dict]) -> dict:
             "annotated_crop": _data_url(preview),
         })
     return {
-        "status": "exploratory" if samples else "no_animal_region",
+        "status": ("exploratory_full_image" if samples and allow_full_image and not detections
+                   else "exploratory" if samples else "no_animal_region"),
         "method": "contrast_contours_v1",
         "samples": samples,
         "identity_verified": False,
