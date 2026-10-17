@@ -126,7 +126,7 @@ function App() {
         const caps=await apiFetch('/api/capabilities',{cache:'no-store'});
         const data:unknown=await caps.json();
         setAiAvailable(caps.ok && typeof data==='object' && data!==null
-          && 'animal_detection' in data && data.animal_detection==='optional_dependencies_installed');
+          && 'heavy_photo_ai' in data && data.heavy_photo_ai==='enabled');
         setLiteAvailable(caps.ok && typeof data==='object' && data!==null
           && 'video_lightweight' in data && data.video_lightweight==='available');
       } catch { setAiAvailable(false); setLiteAvailable(false); }
@@ -218,10 +218,14 @@ function App() {
     try{
       const jpg=await photoPreviewJpeg(selectedImage);
       const draft:VideoEvidenceBatch={
-        sourceType:'image',sourceSha256:imageResult.sha256,
-        analysisId:imageEvidenceId||createAnalysisId(),jobId:'',fileName:selectedImage.name,
+        sourceType:activeFrame===null?'image':'video',
+        sourceSha256:activeFrame===null?imageResult.sha256:undefined,
+        analysisId:imageEvidenceId||createAnalysisId(),jobId:'',
+        fileName:activeFrame===null?selectedImage.name:frameSource,
         sampleSeconds:0,motionThreshold:0,totalSamples:1,durationSeconds:0,
-        frames:[{sample:1,timeSeconds:0,motionScore:0,frameDataUrl:jpg}],
+        frames:[{sample:activeFrame??1,
+          timeSeconds:frameBatch.find(f=>f.sample===activeFrame)?.time_seconds??0,
+          motionScore:0,frameDataUrl:jpg}],
       };
       setEvidenceDraft(draft);
       setSection('PantheraMONITORING');
