@@ -176,6 +176,7 @@ def pdf_document(p):
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, TableStyle, Image as ReportImage
+    from reportlab.graphics.shapes import Drawing, Rect
 
     lang = p.get("language", "es")
     english = lang == "en"
@@ -246,6 +247,86 @@ def pdf_document(p):
         story.append(para(tr("Esfuerzo de muestreo: no completo. No se ha estimado densidad poblacional.",
                              "Sampling effort: incomplete. No population density estimate was made."),
                           styles["PantheraSmall"]))
+    # Study-linked descriptive statistics. Never infer animal population or density
+    # from repeated records, unverified identities, or camera-event totals.
+    species_counts = Counter(str(s.get("species") or tr("Sin especie anotada", "Unidentified species")).strip()
+                             for s in p["sightings"])
+    camera_counts = Counter(str(deps[e["deployment_id"]].get("camera_id") or
+                                e["deployment_id"]) for e in p["encounters"])
+    review_counts = Counter(str(s.get("identification_status") or "unidentified")
+                            for s in p["sightings"])
+    month_counts = Counter(str(e.get("occurred_at") or "")[:7] for e in p["encounters"]
+                           if len(str(e.get("occurred_at") or "")) >= 7 and
+                           str(e.get("occurred_at") or "")[:7].replace("-", "").isdigit())
+    def describe_bars(title, counts, chronological=False):
+        story.append(Paragraph(title, styles["Heading3"]))
+        if not counts:
+            story.append(para(tr("Sin registros para este indicador.",
+                                 "No records for this indicator."), styles["PantheraSmall"]))
+            return
+        data = sorted(counts.items()) if chronological else sorted(counts.items(),
+                                                     key=lambda row: (-row[1], row[0]))
+        # Avoid oversized reports; include the complete underlying tables in ZIP.
+        displayed = data[-12:] if chronological else data[:8]
+        max_count = max(value for _label, value in displayed) or 1
+        for label, value in displayed:
+            label_text = para(str(label), styles["PantheraMicro"], 65)
+            drawing = Drawing(190, 12)
+            drawing.add(Rect(0, 2, 190, 8, fillColor=colors.HexColor("#e7f0f0"),
+                             strokeColor=None))
+            drawing.add(Rect(0, 2, max(2, 190*value/max_count), 8,
+                             fillColor=colors.HexColor("#087b79"), strokeColor=None))
+            row = LongTable([[label_text, drawing, str(value)]],
+                            colWidths=[4.3*cm, 7.1*cm, 1.2*cm], hAlign="LEFT")
+            row.setStyle(TableStyle([("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                                     ("LEFTPADDING", (0,0), (-1,-1), 2),
+                                     ("RIGHTPADDING", (0,0), (-1,-1), 2),
+                                     ("TOPPADDING", (0,0), (-1,-1), 1),
+                                     ("BOTTOMPADDING", (0,0), (-1,-1), 1)]))
+            story.append(row)
+        if len(data) > len(displayed):
+            story.append(para(tr("Se muestran los principales resultados; las tablas completas están en el ZIP.",
+                                 "Top results shown; complete tables are in the ZIP."),
+                              styles["PantheraMicro"]))
+        story.append(Spacer(1, .16*cm))
+    story.append(Paragraph(tr("Resultados estadísticos descriptivos",
+                              "Descriptive statistical results"), styles["Heading2"]))
+    story.append(para(tr("Los gráficos muestran conteos de registros del estudio, no estimaciones de abundancia.",
+                          "Charts show study-record counts, not abundance estimates."),
+                      styles["PantheraSmall"]))
+    describe_bars(tr("Observaciones anotadas por especie", "Annotated sightings by species"),
+                  species_counts)
+    describe_bars(tr("Eventos de captura por cámara", "Capture events by camera"), camera_counts)
+    describe_bars(tr("Eventos de captura por mes (UTC)", "Capture events by month (UTC)"),
+                  month_counts, chronological=True)
+    describe_bars(tr("Estados de identificación", "Identification review status"),
+                  review_counts)
+    if effort and all(isinstance(v, (int, float)) and math.isfinite(v) and v >= 0
+                      for v in effort) and sum(effort) > 0:
+        index = 100 * len(p["encounters"]) / sum(effort)
+        story.append(para(
+            tr("Índice descriptivo (eventos / 100 días-cámara declarados)",
+               "Descriptive index (events / 100 reported camera-days)") +
+            ": %.2f" % index, styles["PantheraSmall"]))
+    for field, title, unit, low, high in (
+        ("temperature_c", tr("Temperatura registrada", "Recorded temperature"), "°C", -80, 85),
+        ("humidity_percent", tr("Humedad registrada", "Recorded humidity"), "%", 0, 100),
+    ):
+        values = [float(e[field]) for e in p["encounters"]
+                  if isinstance(e.get(field), (int, float)) and not isinstance(e[field], bool)
+                  and math.isfinite(e[field]) and low <= e[field] <= high]
+        if values:
+            story.append(para("%s: n=%d; %s=%.2f %s; %s=%.2f %s; %s=%.2f %s" % (
+                title, len(values), tr("mín.", "min"), min(values), unit,
+                tr("media", "mean"), sum(values)/len(values), unit,
+                tr("máx.", "max"), max(values), unit), styles["PantheraSmall"]))
+    story.append(para(tr(
+        "Alcance: solo observaciones, estaciones y variables vinculadas a este estudio. "
+        "Las simulaciones de PantheraSENSE, las consultas temporales de PantheraSAT y "
+        "las bibliotecas de Supabase no se incluyen automáticamente.",
+        "Scope: only observations, camera deployments and variables linked to this study. "
+        "PantheraSENSE simulations, temporary PantheraSAT queries and Supabase libraries "
+        "are not automatically included."), styles["PantheraSmall"], 1250))
     story.append(Paragraph(tr("Estaciones y despliegues", "Camera deployments"), styles["Heading2"]))
     for d in p["deployments"]:
         statement = "%s / %s · %s · %s → %s · %s" % (d.get("camera_id", ""),
