@@ -37,6 +37,8 @@ def fake_result(with_person=False):
 
 
 def test_photo_auto_returns_integrated_pattern_preview(monkeypatch):
+    monkeypatch.setenv("PANTHERA_ENABLE_HEAVY_IMAGE_AI", "1")
+    monkeypatch.setattr(main, "find_spec", lambda name: True)
     monkeypatch.setattr(main, "detect_image", lambda image, threshold: fake_result())
     response = TestClient(main.app).post("/api/images/analyze", content=photo_bytes())
     assert response.status_code == 200, response.text
@@ -51,6 +53,8 @@ def test_photo_auto_returns_integrated_pattern_preview(monkeypatch):
 
 
 def test_photo_auto_skips_pattern_review_when_person_present(monkeypatch):
+    monkeypatch.setenv("PANTHERA_ENABLE_HEAVY_IMAGE_AI", "1")
+    monkeypatch.setattr(main, "find_spec", lambda name: True)
     monkeypatch.setattr(main, "detect_image", lambda image, threshold: fake_result(True))
     result = TestClient(main.app).post("/api/images/analyze", content=photo_bytes()).json()
     assert result["rosette_patterns"]["status"] == "skipped_people_present"
@@ -61,3 +65,19 @@ def test_photo_auto_invalid_file_and_threshold():
     client = TestClient(main.app)
     assert client.post("/api/images/analyze", content=b"bad").status_code == 422
     assert client.post("/api/images/analyze?threshold=9", content=photo_bytes()).status_code == 422
+
+
+def test_lightweight_fallback_without_ai_on_free_render(monkeypatch):
+    monkeypatch.delenv("PANTHERA_ENABLE_HEAVY_IMAGE_AI", raising=False)
+    def model_must_not_run(*args, **kwargs):
+        raise AssertionError("Heavy AI must not be invoked on free Render")
+    monkeypatch.setattr(main, "detect_image", model_must_not_run)
+    response = TestClient(main.app).post("/api/images/analyze", content=photo_bytes())
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["animal_detection_performed"] is False
+    assert data["detections"] == []
+    assert data["rosette_patterns"]["status"] == "exploratory_full_image"
+    assert data["rosette_patterns"]["identity_verified"] is False
+    assert data["rosette_patterns"]["samples"][0]["annotated_crop"].startswith("data:image/jpeg;base64,")
+    assert "No se ejecutó IA" in data["note"]
