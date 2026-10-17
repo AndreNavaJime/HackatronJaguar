@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import {downloadFile} from './scienceShared';
@@ -257,7 +258,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         for(const frame of pendingEvidence.frames){
           if(!frame.frameDataUrl.startsWith('data:image/jpeg;base64,')||
              frame.frameDataUrl.length>2500000)throw new Error('Invalid frame image format');
-          const imageBlob=await (await fetch(frame.frameDataUrl)).blob();
+          const imageBlob=await (await apiFetch(frame.frameDataUrl)).blob();
           const thumb=await makeEvidencePreview(new File([imageBlob],
             'frame_'+frame.sample+'.jpg',{type:'image/jpeg'}));
           prepared.push({sample:frame.sample,time_seconds:frame.timeSeconds,
@@ -553,7 +554,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       const query=new URLSearchParams({kind});
       if(individualId)query.set('individual_id',individualId);
       if(encounterId)query.set('encounter_id',encounterId);
-      const response=await fetch('/api/science/studies/report?'+query.toString(),{
+      const response=await apiFetch('/api/science/studies/report?'+query.toString(),{
         method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
       if(!response.ok){let detail='HTTP '+response.status;
         try{const v=await response.json();if(v.detail)detail=String(v.detail);}catch{/* content */}throw new Error(detail);}
