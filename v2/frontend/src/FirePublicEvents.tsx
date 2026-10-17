@@ -3,7 +3,7 @@ import {apiFetch} from './apiClient';
 import {useLanguage} from './language';
 import './FirePublicEvents.css';
 
-type Region='world'|'central_america'|'costa_rica';
+type Region='world'|'africa'|'asia'|'europe'|'north_america'|'central_america'|'south_america'|'oceania'|'costa_rica';
 type NasaFireEvent={
   id:string;
   title:string;
@@ -24,6 +24,12 @@ type FireEventsResponse={
 };
 const NAMES:Record<Region,[string,string]>={
   world:['Mundo','World'],
+  africa:['África','Africa'],
+  asia:['Asia','Asia'],
+  europe:['Europa','Europe'],
+  north_america:['América del Norte','North America'],
+  south_america:['América del Sur','South America'],
+  oceania:['Oceanía','Oceania'],
   central_america:['Centroamérica','Central America'],
   costa_rica:['Costa Rica','Costa Rica'],
 };
@@ -74,8 +80,8 @@ export default function FirePublicEvents(){
       <span className="fire-pill">{tx('DATOS EXTERNOS REALES','REAL EXTERNAL REPORTS')}</span>
     </div>
     <p>{tx(
-      'Consultá reportes de incendios del catálogo público NASA EONET. Son eventos publicados por fuentes externas, no detecciones de una cámara PantheraFIRE ni píxeles térmicos de NASA FIRMS.',
-      'Browse public wildfire event reports catalogued by NASA EONET. These are externally reported events, not PantheraFIRE camera detections or NASA FIRMS thermal hotspots.'
+      'Consultá reportes de incendios del catálogo público NASA EONET por continente o región. Las regiones utilizan áreas geográficas aproximadas, no fronteras políticas. Son eventos publicados por fuentes externas, no detecciones de una cámara PantheraFIRE ni píxeles térmicos de NASA FIRMS.',
+      'Browse public wildfire event reports catalogued by NASA EONET by continent or region. Geographic areas are approximate, not political boundaries. These are externally reported events, not PantheraFIRE camera detections or NASA FIRMS thermal hotspots.'
     )}</p>
     <div className="nasa-fire-controls">
       <label className="sci-field"><span>{tx('Región del catálogo','Catalogue region')}</span>
