@@ -46,7 +46,6 @@ export default function LocalAnimalClips({stream,video}:Props){
   const mountedRef=React.useRef(true);
   const loadToken=React.useRef(0);
   const busyRef=React.useRef(false);
-  const studyId=localStudyId();
 
   const refresh=React.useCallback(async()=>{
     const all=await listAnimalClips();
