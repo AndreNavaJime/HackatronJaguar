@@ -123,11 +123,11 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
     <div className="sci-launch-grid">
       <article className="sci-launch sci-launch-a">
         <span className="sci-module-number">01 / MULTIMEDIA</span>
-        <h3>PantheraID</h3>
-        <p>{tx('Carga de fotografías y videos, preselección de fotogramas con OpenCV y exportación de evidencia.',
-          'Photo/video uploads, OpenCV frame screening and evidence exports.')}</p>
+        <h3>PantheraSCAN</h3>
+        <p>{tx('Exploración de videos, selección de fotogramas y preparación de evidencia. La IA avanzada requiere un servidor habilitado.',
+          'Video screening, frame selection and evidence preparation. Advanced AI requires an enabled backend.')}</p>
         <small>{tx('Análisis de secuencias · OpenCV','Sequence analysis · OpenCV')}</small>
-        <button type="button" onClick={()=>onNavigate('PantheraID')}>{tx('Abrir identificación ↗','Open identification ↗')}</button>
+        <button type="button" onClick={()=>onNavigate('PantheraID')}>{tx('Abrir exploración ↗','Open screening ↗')}</button>
       </article>
       <article className="sci-launch sci-launch-b">
         <span className="sci-module-number">02 / SCIENTIFIC RECORDS</span>
