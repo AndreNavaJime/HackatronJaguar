@@ -33,10 +33,9 @@ type DetectionResult = {
   note: string;
 };
 
-const labels: Record<string, string> = { animal: 'Animal', person: 'Persona', vehicle: 'Vehículo' };
-
 export default function DetectionPanel({ file, enabled }: { file: File | null; enabled: boolean }) {
-  const { t } = useLanguage();
+  const { t,language } = useLanguage();
+  const tx=(es:string,en:string)=>language==='en'?en:es;
   const [result, setResult] = React.useState<DetectionResult | null>(null);
   const [threshold, setThreshold] = React.useState(0.25);
   const [processing, setProcessing] = React.useState(false);
@@ -118,60 +117,54 @@ export default function DetectionPanel({ file, enabled }: { file: File | null; e
     }
   }
 
-  return <section className="detector-panel">
-    <h3>{t('Fotografía · análisis automático de pelaje')}</h3>
-    <p>{t("Al seleccionar una fotografía comienza automáticamente el análisis en el servidor, si el modelo está disponible.")}</p>
-    <p>{t('Con MegaDetector activado detecta fauna; en el plan gratuito explora únicamente patrones de textura. Ninguna opción identifica especies ni individuos.')}</p>
-    <div className="detector-actions">
-      <label htmlFor="confidence-threshold">{t("Umbral de confianza:")} {Math.round(threshold * 100)}%</label>
-      <input id="confidence-threshold" type="range" min="0.1" max="0.9" step="0.05"
-        value={threshold} onChange={event => setThreshold(Number(event.target.value))} />
-      <button className="action-button detection-button" type="button" disabled={!file || processing || !enabled} onClick={() => void detect()}>
-        {t(processing ? 'Analizando fotografía…' : result ? 'Repetir análisis con este umbral' : 'Explorar fotografía automáticamente')}
-      </button>
-      <small>{t('El escaneo ligero funciona en Render sin PyTorch; MegaDetector requiere un servidor con recursos adicionales.')}
-        </small>
+  return <section className="detector-panel panthera-photo-report">
+    <div className="photo-report-head">
+      <h3>{tx('Análisis de fotografía','Photograph analysis')}</h3>
+      <span className={result?.animal_detection_performed?'photo-report-ai-on':'photo-report-ai-off'}>
+        {result?.animal_detection_performed?'IA · MegaDetector':tx('IA de detección no activa','Wildlife AI inactive')}
+      </span>
     </div>
-    {error && <p className="upload-error" role="alert">{error}</p>}
-    {result && <div className="detection-results" aria-live="polite">
-      <h3>{t("Resultados científicos preliminares")}</h3>
-      <p className="scientific-note">{result.animal_detection_performed ? t('Detección animal IA ejecutada.') : t('Exploración ligera de textura: no se ejecutó un detector de animales. Los conteos siguientes no son observaciones.')}</p>
+    {processing&&<p className="sci-muted" role="status">{tx('Procesando fotografía…','Processing photograph…')}</p>}
+    {error&&<p className="upload-error" role="alert">{error}</p>}
+    {result?.animal_detection_performed? <div className="photo-report-ai-result">
       <div className="detection-metrics">
-        <div><span>{t("Animales")}</span><strong>{result.animal_detection_performed ? result.counts.animal : '—'}</strong></div>
-        <div><span>{t("Personas")}</span><strong>{result.animal_detection_performed ? result.counts.person : '—'}</strong></div>
-        <div><span>{t("Vehículos")}</span><strong>{result.animal_detection_performed ? result.counts.vehicle : '—'}</strong></div>
-        <div><span>{t("Inferencia")}</span><strong>{result.inference_seconds.toFixed(2)} s</strong></div>
+        <div><span>{tx('Animales','Animals')}</span><strong>{result.counts.animal}</strong></div>
+        <div><span>{tx('Personas','People')}</span><strong>{result.counts.person}</strong></div>
+        <div><span>{tx('Vehículos','Vehicles')}</span><strong>{result.counts.vehicle}</strong></div>
       </div>
-      <p className="details-caption">{result.model} · {result.device.toUpperCase()} · {t('Umbral')} {Math.round(result.threshold * 100)}%</p>
+      <p className="sci-muted">{tx('Detección genérica de animales; no confirma especie ni individuo.','Generic animal detection; does not establish species or individual.')}</p>
       <div className="annotated-viewer">
-        {annotated
-          ? <img src={result.annotated_image} alt={t("Fotografía con recuadros y confianza de las detecciones")} />
-          : file && <OriginalPreview file={file} />}
+        {annotated?<img src={result.annotated_image} alt={tx('Fotografía con detecciones de fauna','Photograph with wildlife detection boxes')} />:file&&<OriginalPreview file={file}/>}
         <div className="preview-controls">
-          <button type="button" className={annotated ? 'active' : ''} onClick={() => setAnnotated(true)}>{t("Con recuadros")}</button>
-          <button type="button" className={!annotated ? 'active' : ''} onClick={() => setAnnotated(false)}>{t("Original")}</button>
-          <a className="download-link" href={result.annotated_image} download="pantherascan_detecciones.jpg">{t("Descargar anotada ↓")}</a>
+          <button type="button" onClick={()=>setAnnotated(true)} className={annotated?'active':''}>{tx('Detecciones','Detections')}</button>
+          <button type="button" onClick={()=>setAnnotated(false)} className={!annotated?'active':''}>{tx('Original','Original')}</button>
         </div>
       </div>
-      {result.detections.length ? <div className="detection-list">
-        {result.detections.map((det, index) => <div key={index}>
-          <strong>{t(labels[det.class_name] ?? det.class_name)} {index + 1}</strong>
-          <span>{t("Confianza")} {(det.confidence * 100).toFixed(1)}%</span>
-          <small>{t("Recuadro:")} {det.bbox_xyxy.join(', ')}</small>
-        </div>)}
-      </div> : <p>{t(result.animal_detection_performed ? 'No hubo detecciones por encima del umbral; esto no demuestra ausencia de fauna.' : 'No se ejecutó un detector de animales. La exploración de textura no permite afirmar presencia o ausencia de fauna.')}</p>}
-      {result.rosette_patterns && <div className="rosette-automatic-preview">
-        <h4>{t('Patrones de pelaje · exploración automática')}</h4>
-        <p>{t('Zonas anulares candidatas dentro de los animales detectados. No es una identificación por rosetas.')}</p>
-        {result.rosette_patterns.samples.map((sample, index) => <figure key={index}>
-          <img src={sample.annotated_crop} alt={t('Recorte de animal con regiones de textura candidatas')} loading="lazy" />
-          <figcaption>{t(result.animal_detection_performed ? 'Animal' : 'Fotografía')} {index + 1} · {sample.texture_regions_xyxy.length} {t('regiones candidatas (no rosetas confirmadas)')}</figcaption>
-        </figure>)}
-        {!result.rosette_patterns.samples.length && <p>{t('No se obtuvieron recortes de pelaje analizables.')}</p>}
-        <p className="scientific-note">{result.rosette_patterns.note}</p>
-      </div>}
-      <p className="scientific-note">{result.note} {t('La confianza del modelo no equivale a una exactitud científica validada.')}</p>
+      <details className="method-details method-details-compact">
+        <summary>{tx('Parámetros de IA','AI parameters')}</summary>
+        <label htmlFor="confidence-threshold">{tx('Umbral del detector','Detector threshold')} {Math.round(threshold*100)}%</label>
+        <input id="confidence-threshold" type="range" min="0.1" max="0.9" step="0.05"
+          value={threshold} onChange={event=>setThreshold(Number(event.target.value))} />
+        <button type="button" onClick={()=>void detect()} disabled={!enabled||processing}>{tx('Repetir detección','Run detection again')}</button>
+        <p>{result.model} · {result.inference_seconds.toFixed(2)} s</p>
+      </details>
+    </div>:<div className="photo-report-next">
+      <p>{tx('La fotografía está lista para comparar su pelaje con individuos conocidos. La detección automática de jaguares aún requiere un modelo de IA habilitado.',
+      'Your photograph is ready for comparison with known individuals. Automatic jaguar detection still requires an enabled AI model.')}</p>
+      <a className="action-button" href="#panthera-individual-compare">
+        {tx('Comparar patrones de individuos ↓','Compare individual patterns ↓')}
+      </a>
     </div>}
+    {result&&!result.animal_detection_performed&&<details className="method-details method-details-compact photo-experimental-details">
+      <summary>{tx('Exploración técnica de contornos (opcional)','Technical contour exploration (optional)')}</summary>
+      <p>{tx('Son formas oscuras en toda la imagen, incluidas plantas y suelo. No son rosetas identificadas por IA.',
+      'These are dark shapes in the entire photograph, including vegetation and ground. They are not AI-identified rosettes.')}</p>
+      {result.rosette_patterns?.samples.map((sample,index)=><figure key={index}>
+        <img src={sample.annotated_crop} alt={tx('Contornos exploratorios, no rosetas verificadas','Exploratory contours, not verified rosettes')} loading="lazy"/>
+        <figcaption>{sample.texture_regions_xyxy.length} {tx('regiones visuales sin validar','unvalidated visual regions')}</figcaption>
+      </figure>)}
+    </details>}
+    {!result&&!processing&&!error&&!enabled&&<p className="sci-muted">{tx('Esperando conexión con Render…','Waiting for Render connection…')}</p>}
   </section>;
 }
 
