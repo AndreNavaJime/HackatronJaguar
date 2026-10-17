@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type Language = 'es' | 'en';
+export type Language = 'en' | 'zh' | 'es';
 
 const translations: Record<string, string> = {
   "Resumen": "Overview",
@@ -226,20 +226,20 @@ const translations: Record<string, string> = {
   "El análisis de videos y las consultas satelitales requieren conexión a Internet, incluso con la aplicación instalada.": "Video analysis and satellite queries require an Internet connection, even after installation."
 };
 
-type I18n = { language: Language; setLanguage: (next: Language) => void; t: (spanish: string) => string };
+const chinese: Record<string,string> = { 'Resumen':'概览', 'Investigación':'科研', 'SISTEMA CIENTÍFICO':'科研系统', 'OBSERVAR · ANALIZAR · CONSERVAR':'观察 · 分析 · 保护', 'Inteligencia para la vida silvestre':'野生动物智能监测', 'Estado del servicio':'服务状态', 'Actualizar estado':'刷新状态', 'PantheraID':'PantheraSCAN', 'Informes':'科研报告', 'Conexión con backend':'后端连接', 'Fotografías':'照片', 'Videos':'视频' };\n\ntype I18n = { language: Language; setLanguage: (next: Language) => void; t: (spanish: string) => string };
 const Context = React.createContext<I18n>({ language: 'es', setLanguage: () => undefined, t: (s) => s });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = React.useState<Language>(() => {
-    try { return window.localStorage.getItem('pantheraid.language') === 'en' ? 'en' : 'es'; }
+    try { return (['en','zh','es'] as const).find(value=>window.localStorage.getItem('pantheraid.language')===value) ?? 'es'; }
     catch { return 'es'; }
   });
   React.useEffect(() => {
-    document.documentElement.lang = language;
+    document.documentElement.lang = language === 'zh' ? 'zh-CN' : language;
     try { window.localStorage.setItem('pantheraid.language', language); }
     catch { /* storage can be unavailable */ }
   }, [language]);
-  const t = React.useCallback((spanish: string) => language === 'en' ? (translations[spanish] ?? spanish) : spanish, [language]);
+  const t = React.useCallback((spanish: string) => language === 'zh' ? (chinese[spanish] ?? translations[spanish] ?? spanish) : language === 'en' ? (translations[spanish] ?? spanish) : spanish, [language]);
   return <Context.Provider value={{ language, setLanguage, t }}>{children}</Context.Provider>;
 }
 
