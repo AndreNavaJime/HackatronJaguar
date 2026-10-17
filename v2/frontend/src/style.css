@@ -1424,3 +1424,11 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
 .scan-photo-technical{margin:14px 0 24px}
 .scan-photo-technical>.detector-panel{margin:12px 0 0}
 @media(max-width:620px){.scan-compare-next{width:100%}}
+
+
+/* The currently selected local study remains visible across scientific tools. */
+.active-study-label{display:inline-flex;align-items:center;max-width:240px;min-width:0;
+  margin-right:auto;padding:6px 10px;border-radius:8px;border:1px solid #2f655f;
+  font-size:11px;font-weight:650;line-height:1.2;color:#bceae1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:860px){.active-study-label{max-width:155px;font-size:10px}}
