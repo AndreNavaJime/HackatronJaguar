@@ -90,9 +90,9 @@ function App() {
     try{return new URLSearchParams(window.location.search).get('tab')==='PantheraLIVE'
       ?'PantheraLIVE':'Resumen';}catch{return 'Resumen';}
   });
-  const [pendingLiveClips,setPendingLiveClips]=React.useState(0);
+  const [pendingLiveClips,setPendingLiveClips]=React.useState<number|null>(null);
   React.useEffect(()=>watchPendingLiveClips(setPendingLiveClips),[]);
-  React.useEffect(()=>{void applyPendingLiveBadge(pendingLiveClips);},[pendingLiveClips]);
+  React.useEffect(()=>{if(pendingLiveClips!==null)void applyPendingLiveBadge(pendingLiveClips);},[pendingLiveClips]);
   React.useEffect(()=>{
     const openInbox=(event:MessageEvent)=>{
       if(event.data?.type!=='PANTHERALIVE_REVIEW_CLIPS')return;
@@ -313,7 +313,7 @@ function App() {
         {sections.map(s => <button type="button" key={s} className={(section===s?'active':'')+(s==='PantheraFIRE'?' nav-pantherafire':'')} aria-current={section===s?'page':undefined}
           onClick={() => setSection(s)}>
           <span className="nav-symbol" aria-hidden="true"><ModuleIcon section={s}/></span><span className="nav-text">{moduleLabel(s)}</span>
-          {s==='PantheraLIVE'&&pendingLiveClips>0&&
+          {s==='PantheraLIVE'&&pendingLiveClips!==null&&pendingLiveClips>0&&
             <span className="nav-live-count" aria-label={language==='en'
               ?pendingLiveClips+' pending clips'
               :pendingLiveClips+' videos pendientes'}>{pendingLiveClips>99?'99+':pendingLiveClips}</span>}
