@@ -86,7 +86,11 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       {persistError&&<p className="sci-warning" role="alert">{tx(
         'No fue posible guardar cambios en este navegador. Exportá un respaldo privado antes de salir.',
         'Could not save changes in this browser. Export a private backup before leaving.')}</p>}
-      <AIResultsPanel />
+      <AIResultsPanel onOpenComparison={()=>{
+          onNavigate('PantheraID');
+          requestAnimationFrame(()=>window.setTimeout(()=>
+            document.getElementById('panthera-individual-compare')?.scrollIntoView({behavior:'smooth',block:'start'}),120));
+        }} />
       <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
         onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}
         onClearEvidence={onClearEvidence} reportRequested={openReport}
