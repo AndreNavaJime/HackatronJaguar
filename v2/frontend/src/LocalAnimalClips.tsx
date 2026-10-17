@@ -4,9 +4,10 @@ import {addAnimalClip,deleteAnimalClip,listAnimalClips,localStudyId,setAnimalCli
   MAX_CLIPS,type AnimalClip} from './animalClipStore';
 import './LocalAnimalClips.css';
 import {notifyClipReady} from './clipNotifications';
+import {AdaptiveLightFrame,type LightCondition} from './adaptiveLightFrame';
 
 type Prediction={class:string;score:number};
-type Detector={detect:(video:HTMLVideoElement)=>Promise<Prediction[]>;backend:string};
+type Detector={detect:(frame:HTMLVideoElement|HTMLCanvasElement)=>Promise<Prediction[]>;backend:string};
 type Capture={recorder:MediaRecorder;parts:Blob[];discard:boolean;started:number;
   animalClass:string;confidence:number;studyId:string;mime:string};
 type Props={stream:MediaStream|null;video:HTMLVideoElement|null;
@@ -45,6 +46,8 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
   const [objects,setObjects]=React.useState<Record<string,string>>({});
   const [detectorBackend,setDetectorBackend]=React.useState('');
   const [lastObservation,setLastObservation]=React.useState('');
+  const [lightCondition,setLightCondition]=React.useState<LightCondition>('normal');
+  const [lightBrightness,setLightBrightness]=React.useState<number|null>(null);
   const [framesInspected,setFramesInspected]=React.useState(0);
   const [clipAlert,setClipAlert]=React.useState('');
   const [dismissedStart,setDismissedStart]=React.useState(false);
@@ -57,6 +60,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
   const loadToken=React.useRef(0);
   const busyRef=React.useRef(false);
   const animalHistory=React.useRef({label:'',lastSeen:0,hits:0});
+  const adaptiveFrame=React.useRef<AdaptiveLightFrame|null>(null);
   const clipCountRef=React.useRef(0);
   clipCountRef.current=clips.length;
 
@@ -98,7 +102,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
     const detector=detectorRef.current;
     readyRef.current=true;lastAnimalRef.current=0;
     animalHistory.current={label:'',lastSeen:0,hits:0};
-    setFramesInspected(0);setLastObservation('');
+    setFramesInspected(0);setLastObservation('');setLightCondition('normal');setLightBrightness(null);
     const startClip=(prediction:Prediction)=>{
       const mime=recordingMime();
       if(!mime)throw new Error(tx('La grabación de video no está disponible en este navegador.',
@@ -147,7 +151,21 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
       }
       busyRef.current=true;
       try{
-        const results=await detector.detect(video);
+        if(!adaptiveFrame.current)adaptiveFrame.current=new AdaptiveLightFrame();
+        const frame=adaptiveFrame.current.prepare(video);
+        setLightCondition(frame.condition);
+        setLightBrightness(frame.brightness>=0?Math.round(frame.brightness):null);
+        if(frame.condition==='too_dark'){
+          setLastObservation(tx(
+            'Imagen casi negra: no hay luz suficiente para detectar animales con fiabilidad. Se necesita iluminación o cámara infrarroja.',
+            'Nearly black image: not enough light to detect animals reliably. Use lighting or an infrared camera.'
+          ));
+          if(captureRef.current&&Date.now()-lastAnimalRef.current>SILENCE_MS){
+            lastClipRef.current=Date.now();finish();
+          }
+          return;
+        }
+        const results=await detector.detect(frame.source);
         if(!active)return;
         setFramesInspected(n=>n+1);
         const now=Date.now();
@@ -316,11 +334,16 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
         <span>{tx('Fotogramas analizados: ','Frames analyzed: ')}{framesInspected}</span>
         <span>{lastObservation||tx('Esperando primeros resultados del modelo…',
           'Waiting for initial model output…')}</span>
+        {lightBrightness!==null&&<span>{tx('Brillo del fotograma','Frame brightness')}: {lightBrightness}/255 · {
+          lightCondition==='too_dark'?tx('Luz insuficiente','Insufficient light'):
+          lightCondition==='dim'?tx('Mejora automática para detección','Automatic detection enhancement'):
+          tx('Iluminación normal','Normal lighting')
+        }</span>}
       </div>}
     </div>
     <p className="sci-muted">{tx(
-      'Graba únicamente después de una posible detección (máximo 19 s por clip). No sube fotos ni videos al servidor; detiene la captura si el detector ve personas. No es vigilancia permanente: mantené la pantalla activa.',
-      'Records only after possible animal detection (up to 19 s per clip). No photos or videos are uploaded; recording stops if people are detected. Keep this screen active.'
+      'El modo de baja luz mejora únicamente la imagen temporal que analiza la IA; el video guardado permanece original. No es visión nocturna: en oscuridad total se necesita una cámara infrarroja. No se envían imágenes al servidor.',
+      'Low-light mode only adjusts a temporary frame for AI analysis; saved videos remain original. This is not night vision: full darkness requires an infrared camera. Images are not sent to the server.'
     )}</p>
     {clipAlert&&<p role="alert" className="sci-notice local-animal-alert">
       {clipAlert}</p>}

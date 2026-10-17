@@ -34,6 +34,8 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   const [whepUrl,setWhepUrl]=React.useState('');
   const [webcamRunning,setWebcamRunning]=React.useState(false);
   const [cameraProblem,setCameraProblem]=React.useState('');
+  const [torchSupported,setTorchSupported]=React.useState(false);
+  const [torchEnabled,setTorchEnabled]=React.useState(false);
   const [capability,setCapability]=React.useState<Capability>('checking');
   const [permission,setPermission]=React.useState(false);
   const [analyzeEnabled,setAnalyzeEnabled]=React.useState(false);
@@ -57,6 +59,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
     streamRef.current=null;
     if(videoRef.current)videoRef.current.srcObject=null;
     setWebcamRunning(false);setAnalyzeEnabled(false);setAnalysisStatus('');
+    setTorchSupported(false);setTorchEnabled(false);
     setPermission(false);setRecognition(null);setSpecies([]);
   },[]);
   React.useEffect(()=>{
@@ -110,6 +113,12 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
         return;
       }
       streamRef.current=stream;
+      try{
+        const caps=stream.getVideoTracks()[0]?.getCapabilities() as
+          (MediaTrackCapabilities&{torch?:boolean|boolean[]})|undefined;
+        setTorchSupported(caps?.torch===true||
+          (Array.isArray(caps?.torch)&&caps.torch.includes(true)));
+      }catch{setTorchSupported(false);}
       setWebcamRunning(true);
       if(videoRef.current){
         videoRef.current.srcObject=stream;
@@ -119,6 +128,23 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
         track.addEventListener('ended',()=>{if(streamRef.current===stream)stopCamera();},{once:true});
       }
     }catch(e){setCameraProblem(tx('No se pudo abrir la cámara: ','Cannot open device camera: ')+parseError(e));}
+  }
+
+  async function toggleTorch(){
+    const track=streamRef.current?.getVideoTracks()[0];
+    if(mode!=='device'||!torchSupported||!track)return;
+    const next=!torchEnabled;
+    try{
+      await track.applyConstraints({advanced:[
+        {torch:next} as unknown as MediaTrackConstraintSet
+      ]});
+      setTorchEnabled(next);
+      setCameraProblem('');
+    }catch{
+      setCameraProblem(tx('Este dispositivo no permite controlar la linterna desde Chrome.',
+        'This device cannot control the flashlight through Chrome.'));
+      setTorchSupported(false);
+    }
   }
 
   async function startRemote(){
@@ -241,6 +267,16 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
             :<button type="button" className="sci-secondary" onClick={stopCamera}>
               {tx('Desconectar','Disconnect')}</button>}
         </div>
+        {mode==='device'&&webcamRunning&&torchSupported&&
+          <div className="camera-torch-control">
+            <button type="button" className="sci-secondary" aria-pressed={torchEnabled}
+              onClick={()=>void toggleTorch()}>
+              {torchEnabled?tx('Apagar luz auxiliar','Turn off flashlight'):
+                tx('Encender luz auxiliar (prueba doméstica)','Turn on flashlight (home test)')}
+            </button>
+            <small>{tx('Solo para probar con mascotas. No apuntar iluminación visible a fauna silvestre.',
+              'For home pet testing only. Avoid shining visible light directly at wildlife.')}</small>
+          </div>}
         {cameraProblem&&<p className="sci-warning" role="alert">{cameraProblem}</p>}
         {mode==='remote'&&<p className="sci-muted">{tx(
           'Requiere un gateway WHEP/WebRTC con HTTPS y CORS. La detección automática se ejecuta en este navegador mientras la pantalla permanezca abierta; todavía no funciona como servidor autónomo 24/7.',
