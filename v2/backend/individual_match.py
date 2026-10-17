@@ -7,6 +7,7 @@ No photos, local features, or biological records are persisted.
 import base64
 import io
 import json
+import threading
 from typing import Annotated
 
 import cv2
@@ -16,6 +17,7 @@ from fastapi.concurrency import run_in_threadpool
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 router = APIRouter(prefix="/api/individuals", tags=["experimental-reidentification"])
+_INFERENCE_SEMAPHORE = threading.BoundedSemaphore(1)
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_REFERENCES = 6
@@ -178,10 +180,15 @@ async def compare_individuals(
     photos = [await _photo(query)]
     for file in references:
         photos.append(await _photo(file))
+    if not _INFERENCE_SEMAPHORE.acquire(blocking=False):
+        raise HTTPException(429, "El comparador ya está analizando otra solicitud. Reintentá en unos momentos.")
     try:
-        return await run_in_threadpool(
-            compare_images, photos[0], photos[1:], [name.strip() for name in names],
-            sides, query_flank,
-        )
-    except cv2.error as exc:
-        raise HTTPException(503, "OpenCV no pudo completar la comparación.") from exc
+        try:
+            return await run_in_threadpool(
+                compare_images, photos[0], photos[1:], [name.strip() for name in names],
+                sides, query_flank,
+            )
+        except cv2.error as exc:
+            raise HTTPException(503, "OpenCV no pudo completar la comparación.") from exc
+    finally:
+        _INFERENCE_SEMAPHORE.release()
