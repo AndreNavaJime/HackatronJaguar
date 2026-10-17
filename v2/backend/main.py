@@ -36,11 +36,18 @@ app.include_router(study_report_router)
 app.include_router(sense_router)
 app.include_router(vegetation_router)
 # Same-origin Vite proxy serves /api calls in Codespaces; restrict external CORS.
+# Optional explicit HTTPS origins for a static frontend hosted separately on Render.
+# Never use wildcard CORS for research APIs or expose unpublished files via CORS.
+_extra_origins = [
+    origin.strip() for origin in os.getenv('PANTHERA_API_CORS_ORIGINS', '').split(',')
+    if origin.strip().startswith('https://') and
+    '/' not in origin.strip()[8:]
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['http://localhost:5173'],
+    allow_origins=['http://localhost:5173', *_extra_origins],
     allow_credentials=False,
-    allow_methods=['GET'],
+    allow_methods=['GET', 'POST', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
 )
 
