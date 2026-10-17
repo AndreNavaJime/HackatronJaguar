@@ -311,8 +311,8 @@ function App() {
         <details id="panthera-photo-details" className="method-details scan-photo-details">
           <summary>{language==='en'?'Photograph: automatic AI analysis and file check':'Fotografía: análisis automático y validación del archivo'}</summary>
           <p className="sci-muted">{language==='en'
-            ?'When an AI model is active, selecting a photo starts detection and exploratory fur-pattern analysis automatically. File validation is optional.'
-            :'Si el modelo IA está activo, seleccionar una foto inicia automáticamente la detección y el análisis exploratorio del pelaje. Validar el archivo es opcional.'}</p>
+            ?'Selecting a photo automatically explores its texture on Render. Wildlife detection additionally requires an enabled AI model; file validation is optional.'
+            :'Al seleccionar una foto se explora automáticamente su textura en Render. Con un modelo IA habilitado también se detecta fauna; la validación del archivo es opcional.'}</p>
         <div className="upload-layout">
           <div className="upload-controls">
             <label htmlFor="panthera-image">{t("Seleccionar fotografía (JPEG, PNG o WebP; máximo 12 MB)")}</label>
@@ -336,11 +336,11 @@ function App() {
           </div>
         </div>
         {selectedImage && <DetectionPanel file={selectedImage}
-          enabled={apiState === 'connected' && aiAvailable && !uploading} />}
-        {selectedImage && !aiAvailable && <p className="sci-warning" role="status">
+          enabled={apiState === 'connected' && !uploading} />}
+        {selectedImage && !aiAvailable && <p className="sci-muted" role="status">
           {language==='en'
-            ? 'Automatic image analysis cannot start: MegaDetector is not enabled on the connected server. The image has not been classified.'
-            : 'El análisis automático de fotos no puede comenzar: MegaDetector no está habilitado en el servidor. No se ha clasificado la imagen.'}
+            ? 'Render runs lightweight texture exploration only; animal/species detection requires a separately enabled AI model.'
+            : 'Render ejecuta únicamente una exploración ligera de texturas; la detección de animales o especies requiere activar un modelo de IA por separado.'}
         </p>}
         </details>
         <PantheraRosettesPanel />
