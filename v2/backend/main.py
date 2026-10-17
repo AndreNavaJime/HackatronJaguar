@@ -3,6 +3,8 @@ import hashlib
 import io
 import logging
 from importlib.util import find_spec
+import os
+import time
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
@@ -51,7 +53,8 @@ def capabilities():
     return {
         'modules': ['PantheraID', 'PantheraMONITORING', 'PantheraEDGE'],
         'image_intake': 'available',
-        'image_auto_analysis': 'available_if_megadetector_installed',
+        'image_auto_analysis': 'lightweight_texture_available',
+        'heavy_photo_ai': 'enabled' if (os.getenv('PANTHERA_ENABLE_HEAVY_IMAGE_AI') == '1' and find_spec('PytorchWildlife')) else 'disabled',
         'rosette_texture': 'exploratory_contours_not_reidentification',
         'animal_detection': 'optional_dependencies_installed' if find_spec('PytorchWildlife') else 'requires_pytorchwildlife',
         'individual_identification': 'not_validated',
@@ -144,11 +147,40 @@ async def detect(request: Request, threshold: float = Query(0.25, ge=0.1, le=0.9
 
 
 def _analyze_photo(image: Image.Image, threshold: float):
-    """Detect fauna and suggest pattern regions in one request; no permanent storage."""
-    output = detect_image(image, threshold)
-    output['rosette_patterns'] = analyze_patterns(image, output.get('detections', []))
-    return output
+    """Lightweight default; real MegaDetector only with explicit operator opt-in.
 
+    512 MB free Render instances cannot be assumed to fit PyTorch and weights.
+    The fallback is image texture exploration, NOT animal/species detection.
+    """
+    started = time.perf_counter()
+    heavy_enabled = (os.getenv('PANTHERA_ENABLE_HEAVY_IMAGE_AI') == '1'
+                     and find_spec('PytorchWildlife') is not None)
+    if heavy_enabled:
+        try:
+            result = detect_image(image, threshold)
+            result['rosette_patterns'] = analyze_patterns(image, result.get('detections', []))
+            result['animal_detection_performed'] = True
+            return result
+        except DetectorUnavailable as error:
+            logger.warning('MegaDetector unavailable; image texture only: %s', error)
+
+    patterns = analyze_patterns(image, [], allow_full_image=True)
+    # The preview is an actual CPU-processed image, not a fake detection.
+    preview = patterns['samples'][0]['annotated_crop'] if patterns['samples'] else ''
+    return {
+        'model': 'Contornos de textura exploratorios (sin detector de animales)',
+        'device': 'cpu', 'threshold': threshold,
+        'inference_seconds': round(time.perf_counter() - started, 3),
+        'counts': {'animal': 0, 'person': 0, 'vehicle': 0},
+        'detections': [], 'annotated_image': preview,
+        'animal_detection_performed': False,
+        'rosette_patterns': patterns,
+        'note': (
+            'Solo se exploraron regiones anulares de la fotografía. '
+            'No se ejecutó IA para detectar animales o determinar especie. '
+            'No se confirma ninguna roseta ni identidad.'
+        ),
+    }
 
 @app.post('/api/images/analyze')
 async def analyze_photo(request: Request, threshold: float = Query(0.25, ge=0.1, le=0.9)):
