@@ -1,0 +1,54 @@
+{
+  "platform": "PantheraLAB",
+  "module": "PantheraSCAN",
+  "schema": "pantherascan_rosetas_v1",
+  "test": "optional_jaguar_individual_comparison",
+  "timestamp": "2026-10-17T02:23:44.310004+00:00",
+  "simulation": false,
+  "scientifically_verified": false,
+  "identity_verified": false,
+  "review_required": true,
+  "candidate_type": "exploratory_similarity_only",
+  "real_colab_run": true,
+  "demo_anonymized": true,
+  "independent_research_validation": false,
+  "trial_note": "Real Colab comparison of a domestic dog query against a jaguar reference; distinct species. This is not an individual ID test.",
+  "original_filenames_removed": true,
+  "query_species_known_by_user": "domestic dog",
+  "reference_species_known_by_user": "jaguar",
+  "species_assumed_by_user": "manual mixed-species software smoke test; no AI taxonomic prediction",
+  "not_an_automated_species_prediction": true,
+  "model": {
+    "library": "WildlifeTools",
+    "feature_extractor": "BVRA/MegaDescriptor-T-224",
+    "weights_license": "CC-BY-NC-4.0",
+    "mode": "research_noncommercial",
+    "metric": "cosine_similarity",
+    "similarity_is_probability": false
+  },
+  "query": {
+    "filename": "consulta_canina_anonimizada.jpg",
+    "width": 1198,
+    "height": 1600
+  },
+  "reference_image_count": 1,
+  "reference_identity_count": 1,
+  "ranked_candidates": [
+    {
+      "label": "Jaguar-referencia-01",
+      "best_cosine_similarity": -0.034706,
+      "best_reference_filename": "referencia_jaguar_anonimizada.jpg",
+      "reference_images": 1
+    }
+  ],
+  "result_limitations": [
+    "different species: software smoke test only",
+    "one reference: no individual identification possible",
+    "same viewpoint recommended for future research",
+    "human verification required",
+    "cannot identify unseen individuals",
+    "not validated on local jaguar dataset"
+  ],
+  "saved_in_pantheralive": false,
+  "saved_in_cloud_by_pantherascan": false
+}

@@ -23,3 +23,14 @@
 .rosette-controls{display:flex;flex-wrap:wrap;gap:11px}
 .rosette-review>p{margin:0}
 @media(max-width:650px){.rosette-import,.rosette-review{grid-template-columns:1fr}.rosette-panel{padding:12px}.rosette-match{min-width:0}}
+
+/* Anonymized real Colab test is display-only and never enters scientific records. */
+.rosette-example{display:flex;align-items:flex-start;flex-direction:column;gap:10px;margin:12px 0}
+.rosette-example>button{max-width:100%;white-space:normal;text-align:left}
+.rosette-example-results{
+  width:100%;padding:13px 15px;border:1px solid #467466;
+  background:#0d302b;border-radius:11px;color:#dcf4e6;line-height:1.55
+}
+.rosette-example-results>strong{font-size:14px}
+.rosette-example-results p{margin:9px 0;font-size:13px}
+.rosette-example-results small{font-size:12px;color:#a8cbbc}

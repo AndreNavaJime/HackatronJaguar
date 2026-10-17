@@ -65,3 +65,33 @@ Nuevo cuaderno independiente:
 **Privacidad:** las fotografías se procesan dentro de la sesión temporal de Colab del usuario. El JSON exportado contiene nombres/códigos y puntuaciones, sin imágenes ni embeddings biométricos. PantheraSCAN solo guarda metadatos de la comparación en `sessionStorage`, no los publica en nube ni los incorpora automáticamente a fichas de PantheraMONITORING. Exportar los JSON antes de cerrar la pestaña.
 
 **Estado:** código experimental agregado en GitHub; requiere ejecución manual en Colab, comprobación de dependencias de tiempo de ejecución y compilación/publicación posterior del frontend; no se declara producción operativa.
+
+### Primer ensayo real documentado (16 de octubre de 2026, Costa Rica)
+
+La persona investigadora ejecutó el cuaderno en **GPU T4 (CUDA)** y obtuvo el mensaje
+`Características calculadas con WildlifeTools. Similitud coseno, NO probabilidad.`.
+El programa descargó `BVRA/MegaDescriptor-T-224`, comparó **una fotografía de Josefina
+(perra doméstica; consulta, 1198 × 1600 px)** con **una fotografía de jaguar
+(referencia)** y generó `resultado_pantherascan_rosetas.json`.
+
+**Resultado observado:** similitud coseno **-0.034706** y **1 referencia**.
+Es una inferencia real del pipeline, **no una validación de identidad individual**:
+se compararon animales de **especies diferentes** y no hay referencias suficientes
+para decidir identidades. El resultado **no equivale a -3,47 % ni a una probabilidad**.
+No se ejecutó identificación taxonómica. El JSON original incluía
+`species_assumed_by_user: Panthera onca` aun cuando la foto de consulta era de
+una perra; ese dato es una suposición del formato y **no evidencia biológica**.
+
+Se conserva una versión **anonimizada, solo metadatos**, de este resultado en
+`v2/frontend/public/examples/pantherascan-rosetas-colab-prueba-01.json`.
+No se publica el JSON original, los nombres originales de fotografías ni
+las fotografías. PantheraSCAN ofrece un botón **«Ver primera prueba real»**
+que muestra el valor sin incorporarlo al registro científico y sin poder
+asignarle una identidad. La prueba completa puede repetirse con fotografías
+autorizadas de jaguares de identidad conocida, en un diseño con positivos
+y negativos y revisión científica.
+
+**Estado:** cuaderno ejecutado exitosamente al menos una vez;
+el frontend con la visualización de este ejemplo requiere todavía
+compilación y despliegue. La biblioteca y el modelo de este ejemplo
+se mantienen exclusivamente para investigación no comercial.

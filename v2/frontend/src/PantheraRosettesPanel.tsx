@@ -59,12 +59,38 @@ export default function PantheraRosettesPanel(){
   const [records,setRecords]=React.useState<Comparison[]>(load);
   const [selected,setSelected]=React.useState('');
   const [message,setMessage]=React.useState('');
+  const [demo,setDemo]=React.useState<Comparison|null>(null);
+  const [demoLoading,setDemoLoading]=React.useState(false);
   const current=records.find(r=>r.id===selected)||records[0]||null;
   React.useEffect(()=>{saveSession(KEY,records);},[records]);
   const edit=(data:Partial<Comparison>)=>{
     if(!current)return;
     setRecords(all=>all.map(r=>r.id===current.id?{...r,...data}:r));
   };
+  async function toggleRealDemo(){
+    if(demo){setDemo(null);return;}
+    setDemoLoading(true);
+    setMessage('');
+    try{
+      // This locally served example contains only anonymized metadata,
+      // NOT photographs or a scientifically verified jaguar identification.
+      const response=await fetch('/examples/pantherascan-rosetas-colab-prueba-01.json');
+      if(!response.ok)throw new Error(tx(
+        'No se pudo cargar el ejemplo hasta que la nueva versión esté publicada.',
+        'The example could not load until the updated version is published.'));
+      const file=await response.json() as unknown;
+      const source=obj(file);
+      if(!source||source.demo_anonymized!==true||source.real_colab_run!==true)
+        throw new Error(tx('El ejemplo no tiene procedencia válida.',
+          'The example provenance is invalid.'));
+      const parsed=parseComparison(file);
+      if(parsed.candidates.length!==1||parsed.referenceCount!==1)
+        throw new Error(tx('La prueba original debía tener una referencia.',
+          'The original test was expected to have one reference.'));
+      setDemo(parsed);
+    }catch(e){setMessage(e instanceof Error?e.message:String(e));}
+    finally{setDemoLoading(false);}
+  }
   async function importFile(f:File){
     setMessage('');
     if(f.size>512*1024){setMessage(tx('El JSON supera el máximo de 512 KB.','The JSON exceeds 512 KB.'));return;}
@@ -102,6 +128,28 @@ export default function PantheraRosettesPanel(){
       <p className="sci-warning">{tx(
         'Solo investigación NO COMERCIAL. Los pesos de MegaDescriptor tienen licencia CC BY-NC 4.0. Las similitudes no son probabilidades ni identificaciones verificadas.',
         'NONCOMMERCIAL research only. MegaDescriptor weights are CC BY-NC 4.0. Similarity scores are not probabilities or verified identifications.')}</p>
+      <div className="rosette-example">
+        <button type="button" className="sci-secondary"
+          disabled={demoLoading} onClick={()=>void toggleRealDemo()}>
+          {demo
+            ?tx('Ocultar primera prueba real','Hide first real test')
+            :tx('Ver primera prueba real: Josefina vs. jaguar',
+              'View first real test: Josefina vs. jaguar')}
+        </button>
+        {demo&&<div className="rosette-example-results">
+          <strong>{tx('Ejecución real en Google Colab · Ejemplo anonimizado',
+            'Real Google Colab run · Anonymized example')}</strong>
+          <p>{tx('Consulta: Josefina (perra) · Referencia: jaguar',
+            'Query: Josefina (dog) · Reference: jaguar')}</p>
+          <p><b>{tx('Similitud coseno','Cosine similarity')}: {' '}
+            {demo.candidates[0].best_cosine_similarity.toFixed(6)}</b></p>
+          <p>{tx(
+            'Puntuación baja y cercana a cero. NO es una probabilidad, NO confirma identidad y NO evalúa el reconocimiento de rosetas entre jaguares.',
+            'Low score near zero. This is NOT a probability, does NOT verify identity and does NOT test rosette matching between jaguars.')}</p>
+          <small>{tx('No se publican fotografías ni nombres originales de archivos.',
+            'No photographs or original filenames are published.')}</small>
+        </div>}
+      </div>
       <div className="rosette-import">
         <a href={COLAB} target="_blank" rel="noopener noreferrer">
           {tx('Abrir comparación de rosetas en Colab ↗','Open rosette comparison in Colab ↗')}</a>
