@@ -105,6 +105,7 @@ function App() {
   const [evidenceDraft,setEvidenceDraft]=React.useState<VideoEvidenceBatch|null>(null);
   const [videoWorkflow,setVideoWorkflow]=React.useState<VideoWorkflowState>({hasResult:false,selectedCount:0});
   const [registryTab,setRegistryTab]=React.useState<'projects'|'stations'|'captures'|'individuals'>('projects');
+  const [activeStudyTitle,setActiveStudyTitle]=React.useState('');
   const [videoNextRequest,setVideoNextRequest]=React.useState(0);
   const [monitorNextRequest,setMonitorNextRequest]=React.useState(0);
   const onVideoWorkflow=React.useCallback((next:VideoWorkflowState)=>{
@@ -307,6 +308,9 @@ function App() {
     <main>
       <header className="app-header">
         <span className="header-location"><span className="header-location-mark" aria-hidden="true">◉</span> PANTHERALAB <span className="header-divider">/</span> {moduleLabel(section).toUpperCase()}</span>
+        {activeStudyTitle&&<span className="active-study-label" title={activeStudyTitle}>
+          {language==='en'?'Local study':'Estudio local'}: {activeStudyTitle}
+        </span>}
         <div className="app-header-actions"><span className="top-status">● {t('SISTEMA CIENTÍFICO')}</span>
           <div className="language-switch" role="group" aria-label="Idioma / Language">
             <button type="button" onClick={() => setLanguage('es')} aria-pressed={language==='es'} className={language==='es'?'selected':''}>ES</button>
@@ -433,6 +437,7 @@ function App() {
       <ScientificWorkspace section={section} onNavigate={setSection}
         pendingEvidence={evidenceDraft} onClearEvidence={()=>setEvidenceDraft(null)}
         monitoringNextRequest={monitorNextRequest} onRegistryTabChange={setRegistryTab}
+        onActiveStudyInfo={setActiveStudyTitle}
         />
       {/* One primary Next control for every module, including completed video and image analyses. */}
       <div className="workflow-global-dock" role="region"
