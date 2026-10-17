@@ -6,6 +6,8 @@ on:
     paths:
       - 'v2/frontend/**'
       - '.github/workflows/pantherasense-frontend-ci.yml'
+  pull_request:
+    branches: [pantherasense-integration]
   workflow_dispatch:
 
 permissions:
