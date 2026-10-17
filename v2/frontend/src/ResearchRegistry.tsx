@@ -269,7 +269,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
         const first=prepared[0];
         setTab('captures');setSelectedEvent(previous?.encounter_id||'');
         setEventDraft({...draft,thumbnail_data_url:first.data_url,
-          thumbnail_filename:'pantheraid_frame_'+first.sample+'.jpg',
+          thumbnail_filename:'pantherascan_frame_'+first.sample+'.jpg',
           evidence_frames:prepared.slice(1),
           source_analysis_id:pendingEvidence.analysisId,
           source_job_id:pendingEvidence.jobId,
@@ -283,7 +283,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
           analysis_threshold:pendingEvidence.motionThreshold,
           analysis_samples:pendingEvidence.totalSamples,
           video_duration_seconds:pendingEvidence.durationSeconds,
-          notes:previous?.notes||('PantheraID | '+pendingEvidence.fileName.slice(0,140)+
+          notes:previous?.notes||('PantheraSCAN | '+pendingEvidence.fileName.slice(0,140)+
             (pendingEvidence.sourceType==='image'
               ?' | fotografía inspeccionada; identificación manual pendiente.'
               :' | segundos del video: '+prepared.map(v=>v.time_seconds.toFixed(2)).join(', ')+
@@ -918,7 +918,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
                 </figure>)}</div>
             </div>}
           {eventDraft.source_analysis_id&&<div className="registry-source sci-wide">
-            <strong>{tx('Procedencia PantheraID','PantheraID provenance')}</strong>
+            <strong>{tx('Procedencia PantheraSCAN','PantheraSCAN provenance')}</strong>
             <p>{eventDraft.source_video_name} · {eventDraft.source_analysis_id}
               {' · '}{eventDraft.analysis_samples??'—'} {tx('muestras revisadas','sampled frames')}
               {' · '}{eventDraft.source_media_type==='image'
