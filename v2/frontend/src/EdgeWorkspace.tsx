@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import {EdgeEvent,Observation,apiJson,downloadFile,toCsv,loadSession,saveSession} from './scienceShared';
@@ -51,7 +52,7 @@ export default function EdgeWorkspace({events,onEvent,current,setCurrent,onUseEv
     setBusy(true);setNotice('');
     try{
       // Client-side only: prevents turning public FastAPI into an open URL proxy.
-      const response=await fetch(url.toString(),{method:'GET',mode:'cors',credentials:'omit',
+      const response=await apiFetch(url.toString(),{method:'GET',mode:'cors',credentials:'omit',
         headers:{'Accept':'application/json'}});
       if(!response.ok)throw new Error('HTTP '+response.status);
       const body=await response.text();
