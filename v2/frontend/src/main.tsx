@@ -365,7 +365,7 @@ function App() {
               :'Seleccioná una fotografía o fotograma y compará el pelaje con individuos conocidos.'}</p></div>
           <span className="tag">{language==='en'?'VIDEO + PHOTO':'VIDEO + FOTO'}</span>
         </div>
-        <nav className="scan-media-shortcuts" aria-label={language==='en'?'Choose media type':'Elegir tipo de archivo'}>
+        <section className="panel" aria-label="Scientific reference library" style={{marginBottom:16,padding:16}}>\n          <h3>{language==='zh'?'科研参考资料库':language==='en'?'Scientific reference library':'Biblioteca científica de referencia'}</h3>\n          <p>{language==='zh'?'在 PantheraMONITORING 中管理研究、个体记录和参考照片。此处不创建重复的数据库。':language==='en'?'Manage studies, known individuals and reference photographs in PantheraMONITORING. No duplicate database is created.':'Gestioná estudios, individuos conocidos y fotografías de referencia en PantheraMONITORING. No se crea una base de datos duplicada.'}</p>\n          <button type="button" onClick={()=>setSection('PantheraMONITORING')}>{language==='zh'?'打开科研资料库':language==='en'?'Open study library':'Abrir biblioteca del estudio'}</button>\n        </section>\n        <nav className="scan-media-shortcuts" aria-label={language==='en'?'Choose media type':'Elegir tipo de archivo'}>
           <a href="#panthera-photo-details" className="scan-media-shortcut">
             <span aria-hidden="true">📷</span>
             <span><strong>{language==='en'?'Photographs':'Fotografías'}</strong><small>{language==='en'?'Individual pattern comparison':'Comparación de patrones individuales'}</small></span>
