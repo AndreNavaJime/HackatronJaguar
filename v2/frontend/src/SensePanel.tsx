@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 
@@ -32,7 +33,7 @@ export default function SensePanel(){
   const [loading,setLoading]=React.useState(true);
   const refresh=React.useCallback(async(signal?:AbortSignal)=>{
     try{
-      const response=await fetch('/api/sense/latest',{cache:'no-store',signal});
+      const response=await apiFetch('/api/sense/latest',{cache:'no-store',signal});
       if(!response.ok)throw new Error('HTTP '+response.status);
       const result=await response.json() as Result;
       if(result.simulation!==true||!Array.isArray(result.history)){
