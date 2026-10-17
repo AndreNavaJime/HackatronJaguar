@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import type {EdgeEvent} from './scienceShared';
@@ -74,7 +75,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
     const controller=new AbortController();
     async function check(){
       try{
-        const response=await fetch('/api/live/capabilities',{cache:'no-store',signal:controller.signal});
+        const response=await apiFetch('/api/live/capabilities',{cache:'no-store',signal:controller.signal});
         if(!response.ok)throw new Error('HTTP '+response.status);
         const data=await response.json() as {wildlife_detector?:string};
         if(!controller.signal.aborted)setCapability(
@@ -149,7 +150,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
         context.drawImage(video,0,0,640,360);
         const frame=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/jpeg',.68));
         if(!frame||!active)return;
-        const response=await fetch('/api/live/wildlife-frame?threshold=0.30',{
+        const response=await apiFetch('/api/live/wildlife-frame?threshold=0.30',{
           method:'POST',body:frame,headers:{'Content-Type':'image/jpeg'},signal:controller.signal,
         });
         let payload:any=null;
