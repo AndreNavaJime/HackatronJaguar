@@ -200,16 +200,16 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
       'Wildlife detection available. SpeciesNet suggests species if its model is configured.');
   return <section className="sci-panel camera-sources" aria-label={tx('Centro de cámaras','Camera center')}>
     <div className="sci-panel-head">
-      <h3>{tx('PantheraLIVE · Captura selectiva de fauna','PantheraLIVE · Selective animal recording')}</h3>
+      <h3>{tx('PantheraLIVE · EDGE + Transmisión en vivo','PantheraLIVE · EDGE + Live streaming')}</h3>
       <span className="sci-tag">{tx('EN PRUEBAS','IN TESTING')}</span>
     </div>
     <div className="camera-modes" role="group" aria-label={tx('Tipo de cámara','Camera type')}>
       <button type="button" aria-pressed={mode==='remote'} className={mode==='remote'?'active':''}
         onClick={()=>{modeRef.current='remote';stopCamera();setMode('remote');}}>
-        {tx('Cámara de campo','Field camera')}</button>
+        {tx('LIVE · Cámara remota','LIVE · Remote camera')}</button>
       <button type="button" aria-pressed={mode==='device'} className={mode==='device'?'active':''}
         onClick={()=>{modeRef.current='device';stopCamera();setMode('device');}}>
-        {tx('Cámara local','Local camera')}</button>
+        {tx('EDGE · Cámara de este dispositivo','EDGE · On-device camera')}</button>
     </div>
     <div className="camera-source-body">
       <div className="camera-device-scene">
@@ -238,8 +238,9 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
         </div>
         {cameraProblem&&<p className="sci-warning" role="alert">{cameraProblem}</p>}
         {mode==='remote'&&<p className="sci-muted">{tx(
-          'Se requiere un gateway WHEP compatible, HTTPS y CORS.',
-          'Requires a WHEP-compatible gateway, HTTPS and CORS.')}</p>}
+          'Requiere un gateway WHEP/WebRTC con HTTPS y CORS. La detección automática se ejecuta en este navegador mientras la pantalla permanezca abierta; todavía no funciona como servidor autónomo 24/7.',
+          'Requires a WHEP/WebRTC gateway with HTTPS and CORS. Automatic detection runs in this browser while the page stays open; this is not yet a 24/7 autonomous server.'
+        )}</p>}
         {mode==='remote'&&<details className="method-details method-details-compact camera-advanced-server">
           <summary>{tx('Análisis de servidor (opcional, pendiente de modelo)',
             'Server analysis (optional, model not yet installed)')}</summary>
@@ -269,7 +270,8 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
         </details>}
       </div>
     </div>
-    {mode==='device'&&<LocalAnimalClips stream={webcamRunning?streamRef.current:null}
-      video={videoRef.current}/>}
+    <LocalAnimalClips key={mode} sourceMode={mode}
+      cameraId={mode==='remote'?'WHEP-CAMARA-REMOTA':'CAM-DISPOSITIVO-LOCAL'}
+      stream={webcamRunning?streamRef.current:null} video={videoRef.current}/>
   </section>;
 }
