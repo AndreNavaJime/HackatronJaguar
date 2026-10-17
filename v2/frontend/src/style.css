@@ -1378,3 +1378,40 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
   .scan-photo-feature{padding:16px 14px}
   .scan-photo-feature .upload-layout{margin:16px 0;gap:14px}
 }
+
+
+/* PantheraSCAN: photo-first research review and interactive video frame handoff. */
+.panthera-photo-report{margin:15px 0;padding:17px 18px;border:1px solid #36626c;border-radius:12px;background:#112635}
+.photo-report-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.photo-report-head h3{margin:0;font-size:17px}
+.photo-report-ai-off,.photo-report-ai-on{border:1px solid #7d7754;border-radius:99px;padding:5px 10px;color:#ecd3a4;font-size:11px;letter-spacing:.02em}
+.photo-report-ai-on{border-color:#25a992;color:#b3f6e4}
+.photo-report-next{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:13px 0 0}
+.photo-report-next p{margin:0;flex:1 1 280px;font-size:13px;line-height:1.65;color:#bbd3dd}
+.photo-report-next .action-button{text-decoration:none;text-align:center;padding:12px 16px}
+.photo-report-ai-result{margin-top:14px}
+.photo-experimental-details{margin-top:12px}
+.photo-experimental-details p{font-size:12px;color:#b8ced7}
+.photo-experimental-details figure{display:inline-flex;flex-direction:column;gap:8px;max-width:min(100%,370px);margin:10px 0}
+.photo-experimental-details img{max-width:100%;border-radius:8px}
+.photo-experimental-details figcaption{font-size:12px;color:#c0c9cf}
+.scan-photo-metadata{font-size:12px;color:#a4f0dd;line-height:1.5;margin:0}
+.frame-review-strip{border:1px solid #316c78;border-radius:13px;padding:15px;margin:20px 0;
+  background:linear-gradient(130deg,#15323f,#0d2736)}
+.frame-review-title{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.frame-review-title strong{color:#eafaf8;font-size:14px}
+.frame-review-title small,.frame-review-strip>small{font-size:11px;color:#b4ced4;line-height:1.5}
+.frame-review-grid{display:flex;gap:11px;overflow-x:auto;padding:8px 2px 12px}
+.frame-review-grid button{display:flex;flex-direction:column;gap:8px;min-width:120px;max-width:156px;
+  border:2px solid #406274;border-radius:9px;padding:7px;background:#081b2a;color:#d7e8ed;cursor:pointer;
+  text-align:left}
+.frame-review-grid button.frame-review-active{border-color:#05ddbd;background:#153d42;box-shadow:0 0 0 1px rgba(5,221,189,.2)}
+.frame-review-grid img{display:block;width:100%;height:86px;object-fit:cover;border-radius:5px}
+.frame-review-grid span{font-size:11px;line-height:1.4}
+.frame-analyze-action{margin-top:5px;max-width:100%;font-size:12px}
+@media(max-width:640px){
+  .panthera-photo-report{padding:13px}
+  .photo-report-next .action-button{width:100%}
+  .frame-review-strip{padding:12px}
+  .frame-review-grid button{min-width:104px}
+}
