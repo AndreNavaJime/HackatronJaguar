@@ -203,7 +203,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
 
   return <section className="video-panel lite-panel" aria-label={tx('Análisis exploratorio de video','Exploratory video analysis')}>
     <div className="panel-heading">
-      <div><span className="lite-kicker">{tx('PANTHERAID / ANÁLISIS EXPLORATORIO','PANTHERAID / EXPLORATORY ANALYSIS')}</span>
+      <div><span className="lite-kicker">{tx('PANTHERASCAN / ANÁLISIS EXPLORATORIO','PANTHERASCAN / EXPLORATORY ANALYSIS')}</span>
         <h3>{tx('Análisis de secuencias','Sequence analysis')}</h3>
         <p>{tx('Explorá registros de cámaras trampa mediante muestreo de fotogramas, análisis de variación visual y exportación de evidencias.',
           'Explore camera-trap recordings through frame sampling, visual-change analysis and evidence exports.')}</p>
@@ -357,7 +357,7 @@ export default function LiteVideoPanel({enabled,onRecordEvidence,onWorkflowState
               :frame.retained?tx('CAMBIO VISUAL · revisar','VISUAL CHANGE · review')
               :tx('SIN CAMBIO DETECTADO','NO CHANGE DETECTED')}</span>
             <small>{tx('Píxeles cambiados','Changed pixels')}: {pct(frame.motion_score)}</small>
-            <a className="download-link" download={'pantheraid_muestra_'+String(frame.sample).padStart(3,'0')+'.jpg'}
+            <a className="download-link" download={'pantherascan_muestra_'+String(frame.sample).padStart(3,'0')+'.jpg'}
               href={frame.image}>{tx('Descargar fotograma ↓','Download frame ↓')}</a>
             {onRecordEvidence&&<button type="button" className="sci-secondary"
               onClick={()=>continueReview([frame.sample])}>
