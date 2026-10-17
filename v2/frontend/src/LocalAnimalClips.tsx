@@ -353,7 +353,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
       {clipAlert}</p>}
     {status&&<p role="status" className="sci-notice">{status}</p>}
     {error&&<p role="alert" className="sci-warning">{error}</p>}
-    <div className="local-animal-inbox-head"><strong>{tx('Bandeja de videos locales','Local video inbox')}</strong>
+    <div id="panthera-live-clip-inbox" className="local-animal-inbox-head"><strong>{tx('Bandeja de videos locales','Local video inbox')}</strong>
       <span>{pending} {tx('pendientes','pending')} · {clips.length}/{MAX_CLIPS}</span></div>
     {clips.length>=MAX_CLIPS&&<p className="sci-warning" role="status">{tx(
       'Bandeja completa: se pausará la captura de nuevos eventos. Descargá y descartá clips revisados para liberar espacio.',
@@ -390,8 +390,8 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
           </div>
         </article>)}</div>}
     <p className="sci-muted">{tx(
-      'Los avisos de clips aparecen automáticamente en la app; Chrome puede solicitar permiso una sola vez para avisos del sistema al conectar la cámara. La página debe permanecer abierta. Los videos siguen en este dispositivo, no en Render ni Supabase.',
-      'Clip alerts appear automatically inside the app. Chrome may request one-time permission for device alerts on camera connection. Keep this page open. Videos remain on this device, not Render or Supabase.'
+      'Los videos se graban en segmentos sucesivos si un animal permanece visible, o en eventos separados si vuelve a aparecer. El contador rojo indica clips pendientes. En Android, el punto sobre el ícono instalado depende de las notificaciones permitidas y de la configuración del teléfono. La app debe permanecer abierta para grabar; los videos siguen guardados aquí, no en Render ni Supabase.',
+      'Videos are stored as successive segments if an animal stays in view, or as separate events if it returns. The red number shows clips awaiting review. On Android, the installed-icon notification dot depends on notification permission and device settings. Keep the app open to record; clips stay on this device, not Render or Supabase.'
     )}</p>
   </section>;
 }
