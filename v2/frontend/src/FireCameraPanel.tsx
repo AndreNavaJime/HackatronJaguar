@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import type {CameraFireCandidate} from './cameraEvents';
@@ -45,7 +46,7 @@ export default function FireCameraPanel({onEvent}:Props){
   },[stop]);
   React.useEffect(()=>{
     const ctl=new AbortController();
-    fetch('/api/live/capabilities',{cache:'no-store',signal:ctl.signal})
+    apiFetch('/api/live/capabilities',{cache:'no-store',signal:ctl.signal})
       .then(async r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
       .then((c:{fire_detector?:string})=>{if(!ctl.signal.aborted)setReadiness(
         c.fire_detector==='configured'?'ready':'missing');})
@@ -96,7 +97,7 @@ export default function FireCameraPanel({onEvent}:Props){
         ctx.drawImage(video.current,0,0,640,360);
         const blob=await new Promise<Blob|null>(done=>frame.toBlob(done,'image/jpeg',.7));
         if(!blob||!alive)return;
-        const resp=await fetch('/api/fire/frame',{method:'POST',body:blob,
+        const resp=await apiFetch('/api/fire/frame',{method:'POST',body:blob,
           headers:{'Content-Type':'image/jpeg'},signal:controller.signal});
         const data=await resp.json();
         if(!resp.ok)throw Error(typeof data?.detail==='string'?data.detail:'HTTP '+resp.status);
