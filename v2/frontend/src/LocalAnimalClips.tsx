@@ -1,7 +1,7 @@
 import React from 'react';
 import {useLanguage} from './language';
 import {addAnimalClip,deleteAnimalClip,listAnimalClips,localStudyId,setAnimalClipState,
-  MAX_CLIPS,type AnimalClip} from './animalClipStore';
+  MAX_CLIPS,countPendingAnimalClips,type AnimalClip} from './animalClipStore';
 import './LocalAnimalClips.css';
 import {notifyClipReady} from './clipNotifications';
 import {AdaptiveLightFrame,type LightCondition} from './adaptiveLightFrame';
@@ -21,8 +21,9 @@ const STRONG_ANIMAL_SCORE=.78;
 const CONFIRM_WITHIN_MS=6000;
 const SILENCE_MS=4500;
 const MAX_DURATION_MS=19000;
-const REARM_MS=6000;
-const REST_MS=6500;
+// Minimize missed returns. A continuous animal is recorded in successive
+// short segments instead of silently giving up after one 19-second clip.
+const NEXT_CLIP_COOLDOWN_MS=1400;
 
 function recordingMime():string{
   if(typeof MediaRecorder==='undefined')return '';
@@ -49,7 +50,6 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
   const [dismissedStart,setDismissedStart]=React.useState(false);
   const detectorRef=React.useRef<Detector|null>(null);
   const captureRef=React.useRef<Capture|null>(null);
-  const readyRef=React.useRef(true);
   const lastAnimalRef=React.useRef(0);
   const lastClipRef=React.useRef(0);
   const mountedRef=React.useRef(true);
@@ -96,7 +96,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
     if(!running||!stream?.active||!video||!detectorRef.current)return;
     let active=true,timer:number|undefined;
     const detector=detectorRef.current;
-    readyRef.current=true;lastAnimalRef.current=0;
+    lastAnimalRef.current=0;
     animalHistory.current=[];
     setFramesInspected(0);setLastObservation('');setLightCondition('normal');setLightBrightness(null);
     const startClip=(prediction:Prediction)=>{
@@ -107,7 +107,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
       const cap:Capture={recorder:rec,parts:[],discard:false,started:Date.now(),
         animalClass:'animal',confidence:prediction.score,
         studyId:localStudyId(),mime};
-      captureRef.current=cap;readyRef.current=false;
+      captureRef.current=cap;
       rec.ondataavailable=e=>{if(e.data.size>0)cap.parts.push(e.data);};
       rec.onerror=()=>{cap.discard=true;setError(tx('La grabación de este evento falló.',
         'Recording failed for this event.'));};
@@ -126,7 +126,7 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
             'New possible-animal clip. Review it in your local inbox.'));
           setClipAlert(tx('Nuevo video de posible animal pendiente de revisión.',
             'New possible-animal video awaiting review.'));
-          void notifyClipReady();
+          void countPendingAnimalClips().then(count=>notifyClipReady(count)).catch(()=>{});
           return refresh();
         }).catch(e=>{
           if(mountedRef.current)setError(tx('No se pudo guardar el video en este dispositivo: ',
@@ -214,19 +214,21 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
           lastAnimalRef.current=now;
           if(captureRef.current){
             setStatus(tx('Grabando posible animal…','Recording possible animal…'));
-          }else if(readyRef.current&&now-lastClipRef.current>REST_MS&&clipCountRef.current<MAX_CLIPS){
+          }else if(!captureRef.current&&now-lastClipRef.current>=NEXT_CLIP_COOLDOWN_MS&&
+            clipCountRef.current<MAX_CLIPS){
             startClip(animal);
           }
         }else{
           const cap=captureRef.current;
           if(cap&&now-lastAnimalRef.current>SILENCE_MS){
             lastClipRef.current=now;finish();
-          }else if(!cap&&lastAnimalRef.current&&now-lastAnimalRef.current>REARM_MS){
-            readyRef.current=true;
           }
         }
         const cap=captureRef.current;
-        if(cap&&now-cap.started>MAX_DURATION_MS){lastClipRef.current=now;finish();}
+        if(cap&&now-cap.started>MAX_DURATION_MS){
+          lastClipRef.current=now;
+          finish(); // Split a continuous visit into another clip if the animal remains.
+        }
       }catch(e){
         if(active){
           setError(tx('Detección detenida: ','Detection stopped: ')+(e instanceof Error?e.message:String(e)));
@@ -353,6 +355,10 @@ export default function LocalAnimalClips({stream,video,sourceMode,cameraId}:Prop
     {error&&<p role="alert" className="sci-warning">{error}</p>}
     <div className="local-animal-inbox-head"><strong>{tx('Bandeja de videos locales','Local video inbox')}</strong>
       <span>{pending} {tx('pendientes','pending')} · {clips.length}/{MAX_CLIPS}</span></div>
+    {clips.length>=MAX_CLIPS&&<p className="sci-warning" role="status">{tx(
+      'Bandeja completa: se pausará la captura de nuevos eventos. Descargá y descartá clips revisados para liberar espacio.',
+      'Inbox is full: new events will not be saved. Download and discard reviewed clips to free space.'
+    )}</p>}
     {!clips.length?<p className="sci-muted">{tx(
       'No hay clips. Conectá la cámara para comenzar la detección y grabación selectiva.',
       'No clips yet. Connect the camera to begin selective detection and recording.')}</p>:
