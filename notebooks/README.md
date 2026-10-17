@@ -47,3 +47,21 @@ La rama experimental `pantherasense-integration` incorpora el componente `v2/fro
 
 **Estado del despliegue (16-oct-2026):** el código experimental ya contiene el panel, pero Vercel devolvió `402 api-deployments-free-per-day` y bloqueó una nueva publicación. El enlace de vista previa existente puede servir una versión anterior hasta que haya un despliegue READY del commit actual. No confundir código guardado en GitHub con una aplicación ya publicada.
 
+
+
+## PantheraSCAN · comparación opcional de rosetas (investigación NO COMERCIAL)
+
+Nuevo cuaderno independiente:
+[PantheraSCAN_Rosetas_Colab.ipynb](https://colab.research.google.com/github/AndreNavaJime/HackatronJaguar/blob/pantherasense-integration/notebooks/PantheraSCAN_Rosetas_Colab.ipynb).
+
+**Objetivo:** comparar la similitud visual de una fotografía de consulta contra imágenes de referencia aportadas y etiquetadas por el investigador; no requiere bases de datos de ONG y **no certifica identidades**.
+
+**Cómo probarlo:** abrir el cuaderno en Google Colab; ejecutar las celdas; subir 1 fotografía de consulta y 1–30 fotografías de referencia; ingresar el nombre/código conocido de cada referencia; aceptar explícitamente las condiciones **de investigación no comercial** antes de descargar el modelo; obtener ranking de similitud coseno y descargar `resultado_pantherascan_rosetas.json`. Finalmente, en la rama experimental publicada de la app, abrir **PantheraSCAN → Opcional · Comparar rosetas**, importar JSON, anotar candidato/revisor/dudas, exportar `PantheraSCAN_revision_rosetas.json`. Si la app aún no se publica, el JSON del cuaderno puede conservarse para importación posterior.
+
+**Implementación:** código MIT de [WildlifeTools](https://github.com/WildlifeDatasets/wildlife-tools) (dataset, `DeepFeatures`, `CosineSimilarity`) y pesos [BVRA/MegaDescriptor-T-224](https://huggingface.co/BVRA/MegaDescriptor-T-224) de licencia **CC BY-NC 4.0**. No se incluyen pesos en el repositorio, ni se cargan en Vercel ni en Render. **No habilitar para venta, uso comercial ni servicio productivo** sin una licencia de pesos diferente o permiso correspondiente.
+
+**Limitaciones:** el ranking depende de la calidad de fotos, de rosetas visibles, puntos de vista similares y de la galería del investigador; si no existe una foto de un individuo conocido comparable no es posible identificarlo. Puntuaciones coseno no son probabilidades (0,91 NO significa 91 % de confianza) ni se han calibrado sobre nuestros datos. El cuaderno asume manualmente que las fotos son de jaguar, pero no ejecuta SpeciesNet. La confirmación de identidad queda fuera de este prototipo y requiere revisión visual y validación de un protocolo científico.
+
+**Privacidad:** las fotografías se procesan dentro de la sesión temporal de Colab del usuario. El JSON exportado contiene nombres/códigos y puntuaciones, sin imágenes ni embeddings biométricos. PantheraSCAN solo guarda metadatos de la comparación en `sessionStorage`, no los publica en nube ni los incorpora automáticamente a fichas de PantheraMONITORING. Exportar los JSON antes de cerrar la pestaña.
+
+**Estado:** código experimental agregado en GitHub; requiere ejecución manual en Colab, comprobación de dependencias de tiempo de ejecución y compilación/publicación posterior del frontend; no se declara producción operativa.
