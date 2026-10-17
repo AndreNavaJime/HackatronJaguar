@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import {apiJson, downloadFile, EdgeEvent} from './scienceShared';
@@ -59,7 +60,7 @@ export default function AutoCapturesPanel({onEvent,onFireVideo}:Props){
     const controller=new AbortController();
     async function check(){
       try{
-        const response=await fetch('/api/capabilities',{cache:'no-store',signal:controller.signal});
+        const response=await apiFetch('/api/capabilities',{cache:'no-store',signal:controller.signal});
         if(!response.ok)throw new Error('HTTP '+response.status);
         const capabilities=await response.json() as {video_ai?:string};
         if(!controller.signal.aborted)setAiReady(
@@ -87,7 +88,7 @@ export default function AutoCapturesPanel({onEvent,onFireVideo}:Props){
     let failedPolls=0;
     async function poll(){
       try{
-        const next=await readJson(await fetch('/api/videos/jobs/'+encodeURIComponent(jobId),{cache:'no-store'})) as Job;
+        const next=await readJson(await apiFetch('/api/videos/jobs/'+encodeURIComponent(jobId),{cache:'no-store'})) as Job;
         if(!active)return;
         failedPolls=0;setJob(next);
         if(next.state==='completed'){
@@ -129,7 +130,7 @@ export default function AutoCapturesPanel({onEvent,onFireVideo}:Props){
     try{
       const params=new URLSearchParams({mode:'megadetector',sampling_strategy:'spread',
         threshold:threshold.toFixed(2),sample_seconds:'1',max_samples:String(sampleCount)});
-      const start=await readJson(await fetch('/api/videos/uploads?'+params.toString(),{
+      const start=await readJson(await apiFetch('/api/videos/uploads?'+params.toString(),{
         method:'POST',headers:{'X-Video-Name':encodeURIComponent(file.name),'X-Video-Size':String(file.size)},
       })) as {upload_id:string;chunk_max_bytes?:number};
       uploadId=start.upload_id;
@@ -137,20 +138,20 @@ export default function AutoCapturesPanel({onEvent,onFireVideo}:Props){
       let offset=0;const limit=Math.min(CHUNK_SIZE,start.chunk_max_bytes||CHUNK_SIZE);
       while(offset<file.size){
         const end=Math.min(file.size,offset+limit);
-        const reply=await readJson(await fetch(
+        const reply=await readJson(await apiFetch(
           '/api/videos/uploads/'+encodeURIComponent(uploadId)+'/chunks?offset='+offset,
           {method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:file.slice(offset,end)}
         )) as {received_bytes:number};
         if(reply.received_bytes!==end)throw new Error(tx('Un bloque llegó incompleto.','A chunk was incomplete.'));
         offset=end;setBytes(offset);
       }
-      const ready=await readJson(await fetch(
+      const ready=await readJson(await apiFetch(
         '/api/videos/uploads/'+encodeURIComponent(uploadId)+'/complete',{method:'POST'}
       )) as {job_id:string};
       if(!ready.job_id)throw new Error(tx('El análisis no comenzó.','Analysis was not started.'));
       setJobId(ready.job_id);setState('processing');
     }catch(error){
-      if(uploadId)try{await fetch('/api/videos/uploads/'+encodeURIComponent(uploadId),{method:'DELETE'});}catch{/* expires */}
+      if(uploadId)try{await apiFetch('/api/videos/uploads/'+encodeURIComponent(uploadId),{method:'DELETE'});}catch{/* expires */}
       setState('failed');setMessage(error instanceof Error?error.message:String(error));
     }
   }
@@ -163,7 +164,7 @@ export default function AutoCapturesPanel({onEvent,onFireVideo}:Props){
       'Wait for the upload or processing to finish before deleting.'));return;}
     setAction(x=>x+1);setMessage('');
     try{
-      const response=await fetch('/api/videos/jobs/'+encodeURIComponent(jobId),{method:'DELETE'});
+      const response=await apiFetch('/api/videos/jobs/'+encodeURIComponent(jobId),{method:'DELETE'});
       if(!response.ok&&response.status!==404)await readJson(response);
       setJobId('');setFile(null);setResult(null);setJob(null);setReviews({});
       setRevealed({});setShowPlayer(false);setPermission(false);setState('idle');
