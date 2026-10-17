@@ -5,6 +5,7 @@ import type {EdgeEvent} from './scienceShared';
 import './CameraSourcesPanel.css';
 import {connectWhep} from './whep';
 import LocalAnimalClips from './LocalAnimalClips';
+import {requestClipAlertsOnCameraConnect} from './clipNotifications';
 
 type Props={
   enabled:boolean;
@@ -91,6 +92,9 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   },[mode]);
 
   async function startCamera(){
+    // The camera button is the user's activation gesture. Browser notification
+    // permission may be requested once here, not with an extra UI toggle.
+    void requestClipAlertsOnCameraConnect();
     stopCamera();setCameraProblem('');
     if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){
       setCameraProblem(tx('El acceso a cámara requiere HTTPS o localhost y un navegador compatible.',
@@ -118,6 +122,7 @@ export default function CameraSourcesPanel({enabled,onEvent}:Props){
   }
 
   async function startRemote(){
+    void requestClipAlertsOnCameraConnect();
     stopCamera();setCameraProblem('');
     try{
       const remote=await connectWhep(whepUrl.trim());
