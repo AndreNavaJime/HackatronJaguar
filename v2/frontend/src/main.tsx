@@ -86,10 +86,23 @@ function App() {
   const { language, setLanguage, t } = useLanguage();
   const moduleLabel=(name:string)=>name==='PantheraID'?'PantheraSCAN':
     name==='Informes'?(language==='en'?'Scientific reports':'Informes científicos'):t(name);
-  const [section, setSection] = React.useState('Resumen');
+  const [section, setSection] = React.useState(()=>{
+    try{return new URLSearchParams(window.location.search).get('tab')==='PantheraLIVE'
+      ?'PantheraLIVE':'Resumen';}catch{return 'Resumen';}
+  });
   const [pendingLiveClips,setPendingLiveClips]=React.useState(0);
   React.useEffect(()=>watchPendingLiveClips(setPendingLiveClips),[]);
   React.useEffect(()=>{void applyPendingLiveBadge(pendingLiveClips);},[pendingLiveClips]);
+  React.useEffect(()=>{
+    const openInbox=(event:MessageEvent)=>{
+      if(event.data?.type!=='PANTHERALIVE_REVIEW_CLIPS')return;
+      setSection('PantheraLIVE');
+      window.setTimeout(()=>document.getElementById('panthera-live-clip-inbox')
+        ?.scrollIntoView({behavior:'smooth',block:'start'}),200);
+    };
+    navigator.serviceWorker?.addEventListener('message',openInbox);
+    return ()=>navigator.serviceWorker?.removeEventListener('message',openInbox);
+  },[]);
   const [showCredits,setShowCredits]=React.useState(false);
   const [apiState, setApiState] = React.useState<ApiState>('checking');
   const [aiAvailable, setAiAvailable] = React.useState(false);
