@@ -1,0 +1,38 @@
+/* Private, institution-scoped reference library. Keeps cloud actions unavailable without credentials. */
+.cloud-library-panel{margin:16px 0 26px;border:1px solid #2c797c;border-radius:14px;padding:20px;
+ background:linear-gradient(130deg,#102e38,#102333)}
+.cloud-library-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cloud-library-header h3{font-size:clamp(18px,2.4vw,23px);margin:7px 0 10px;color:#effcfa}
+.cloud-library-header p{font-size:12px;color:#b8d0d5;line-height:1.6;margin:0 0 12px;max-width:680px}
+.cloud-library-note{padding:14px;margin:6px 0 0;border:1px solid #49616b;border-radius:10px;font-size:12px;line-height:1.6}
+.cloud-library-panel label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#d0e3e8;font-weight:600}
+.cloud-library-panel input,.cloud-library-panel select{min-width:0;width:100%;font:inherit;font-size:13px;
+ color:#edf8fa;background:#0e2937;border:1px solid #456a72;border-radius:8px;padding:10px}
+.cloud-library-panel input[type=file]{padding:10px;border-style:dashed}
+.cloud-library-panel input:focus-visible,.cloud-library-panel select:focus-visible{outline:2px solid #2cdbbd;outline-offset:2px}
+.cloud-library-auth,.cloud-library-selects{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:14px 0}
+.cloud-library-auth>label,.cloud-library-selects>label{flex:1 1 190px}
+.cloud-library-forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.cloud-library-forms label{gap:10px}
+.cloud-library-forms button{align-self:start}
+.cloud-library-stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.cloud-library-stats span{font-size:12px;color:#dbf6e9;background:#163d3b;border-radius:8px;padding:9px 12px}
+.cloud-library-import{margin:15px 0}
+.cloud-library-import>p{font-size:12px;line-height:1.5;color:#bdd0d4}
+.cloud-library-import>label{margin:12px 0}
+.cloud-library-individuals{margin:15px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}
+.cloud-library-individuals>div{padding:12px;border:1px solid #395d67;border-radius:9px;background:#0d2633}
+.cloud-library-individuals strong{font-size:13px;color:#f5fdfb;display:block}
+.cloud-library-individuals small{font-size:11px;color:#b0cacf;margin-top:6px;display:block;line-height:1.45}
+.cloud-reference-picker{margin:16px 0}
+.cloud-reference-picker>summary{font-weight:600;color:#b7eee3}
+.cloud-reference-inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
+.cloud-reference-inputs label{display:flex;flex-direction:column;gap:7px;font-size:12px}
+.cloud-reference-choices{max-height:220px;overflow-y:auto;border:1px solid #315965;border-radius:8px;padding:9px;display:grid;gap:6px}
+.cloud-reference-option{display:flex!important;flex-direction:row!important;align-items:center!important;gap:10px!important;
+  background:#112c39;padding:8px;border-radius:7px;font-size:12px!important}
+.cloud-reference-option input{flex:0 0 auto;width:17px;height:17px;accent-color:#16b6a0}
+.cloud-reference-option span{overflow-wrap:anywhere;color:#deebed}
+.cloud-reference-picker>p.sci-muted{font-size:11px;line-height:1.55;margin:11px 0}
+@media(max-width:650px){.cloud-library-panel{padding:14px}
+  .cloud-library-auth .action-button,.cloud-library-selects .sci-secondary{width:100%}}
