@@ -12,6 +12,7 @@ import InstallControl from './InstallControl';
 import { registerPantheraPwa } from './registerPwa';
 import { LanguageProvider, useLanguage } from './language';
 
+// Keep the PantheraID section identifier to avoid breaking existing research workflows.
 const sections = ['Resumen', 'PantheraID', 'PantheraMONITORING', 'PantheraLIVE', 'PantheraSENSE', 'PantheraSAT', 'PantheraFIRE'];
 function ModuleIcon({section}:{section:string}){
   const paths:Record<string,React.ReactNode>={
@@ -78,6 +79,7 @@ function photoPreviewJpeg(file:File):Promise<string>{
 
 function App() {
   const { language, setLanguage, t } = useLanguage();
+  const moduleLabel=(name:string)=>name==='PantheraID'?'PantheraSCAN':t(name);
   const [section, setSection] = React.useState('Resumen');
   const [showCredits,setShowCredits]=React.useState(false);
   const [apiState, setApiState] = React.useState<ApiState>('checking');
@@ -226,6 +228,7 @@ function App() {
     if(section==='PantheraID'){
       if(videoWorkflow.hasResult){setVideoNextRequest(n=>n+1);return;}
       if(imageResult){void continueWithPhoto();return;}
+      if(selectedImage)document.getElementById('panthera-photo-details')?.setAttribute('open','');
       document.getElementById(selectedImage?'panthera-image':'lite-video')
         ?.scrollIntoView({behavior:'smooth',block:'center'});
       return;
@@ -248,7 +251,7 @@ function App() {
       <nav aria-label="Navegación principal">
         {sections.map(s => <button type="button" key={s} className={(section===s?'active':'')+(s==='PantheraFIRE'?' nav-pantherafire':'')} aria-current={section===s?'page':undefined}
           onClick={() => setSection(s)}>
-          <span className="nav-symbol" aria-hidden="true"><ModuleIcon section={s}/></span><span className="nav-text">{t(s)}</span>
+          <span className="nav-symbol" aria-hidden="true"><ModuleIcon section={s}/></span><span className="nav-text">{moduleLabel(s)}</span>
           <span className="nav-arrow" aria-hidden="true">↗</span>
         </button>)}
       </nav>
@@ -260,7 +263,7 @@ function App() {
     </aside>
     <main>
       <header className="app-header">
-        <span className="header-location"><span className="header-location-mark" aria-hidden="true">◉</span> PANTHERALAB <span className="header-divider">/</span> {t(section).toUpperCase()}</span>
+        <span className="header-location"><span className="header-location-mark" aria-hidden="true">◉</span> PANTHERALAB <span className="header-divider">/</span> {moduleLabel(section).toUpperCase()}</span>
         <div className="app-header-actions"><span className="top-status">● {t('SISTEMA CIENTÍFICO')}</span>
           <div className="language-switch" role="group" aria-label="Idioma / Language">
             <button type="button" onClick={() => setLanguage('es')} aria-pressed={language==='es'} className={language==='es'?'selected':''}>ES</button>
@@ -268,12 +271,12 @@ function App() {
           </div>
           <InstallControl /></div>
       </header>
-      <section className="hero-stage" aria-label="Introducción a PantheraID">
+      <section className="hero-stage" aria-label="Introducción a PantheraLAB">
         <div className="hero-copy">
           <p className="hero-eyebrow"><span className="hero-eyebrow-line" /> {t('OBSERVAR · ANALIZAR · CONSERVAR')}</p>
-          <h1>{t(section==='Resumen'?'Inteligencia para la vida silvestre':section)}</h1>
+          <h1>{section==='Resumen'?t('Inteligencia para la vida silvestre'):moduleLabel(section)}</h1>
           <p className="lead">{t('Tecnología aplicada a cámaras trampa, evidencia científica y monitoreo de fauna.')}</p>
-          <div className="hero-chips"><span>◆ PANTHERAID 2.0</span><span>◈ {t('INVESTIGACIÓN')}</span><span>◉ COSTA RICA</span></div>
+          <div className="hero-chips"><span>◆ PANTHERASCAN / PANTHERALAB</span><span>◈ {t('INVESTIGACIÓN')}</span><span>◉ COSTA RICA</span></div>
         </div>
         <div className="hero-orbit" aria-hidden="true">
           <div className="hero-orbit-outer" />
@@ -288,19 +291,37 @@ function App() {
       </section>
       <section className="panel upload-panel" style={{display:section==='PantheraID'?undefined:'none'}}>
         <div className="panel-heading">
-          <div><h2>{t("PantheraID · Multimedia de cámaras trampa")}</h2><p>{t("Organización de evidencia multimedia y análisis exploratorio de cámaras trampa.")}</p></div>
-          <span className="tag">{t("IMAGEN + VIDEO")}</span>
+          <div><h2>PantheraSCAN · {language==='en'?'Wildlife evidence screening':'Exploración de evidencia de fauna'}</h2>
+            <p>{language==='en'
+              ?'Review camera-trap videos, screen frames and prepare evidence for researchers. Animal detection requires an AI-enabled server.'
+              :'Revisá videos de cámaras trampa, seleccioná fotogramas y prepará evidencia. La detección automática requiere un servidor con IA activa.'}</p></div>
+          <span className="tag">{language==='en'?'VIDEO + PHOTO':'VIDEO + FOTO'}</span>
         </div>
+        <div className="scan-module-links">
+          <a href="https://colab.research.google.com/github/AndreNavaJime/HackatronJaguar/blob/pantherasense-integration/notebooks/PantheraLAB_IA_Real_Colab.ipynb"
+            target="_blank" rel="noopener noreferrer">{language==='en'?'Try experimental AI in Colab ↗':'Probar IA experimental en Colab ↗'}</a>
+          <button type="button" onClick={()=>setSection('PantheraMONITORING')}>
+            {language==='en'?'Review Colab results in MONITORING →':'Revisar resultados de Colab en MONITORING →'}
+          </button>
+        </div>
+        <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable}
+          onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
+          onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
+        <details id="panthera-photo-details" className="method-details scan-photo-details">
+          <summary>{language==='en'?'Optional: upload a photograph and check the file':'Opcional: cargar fotografía y validar el archivo'}</summary>
+          <p className="sci-muted">{language==='en'
+            ?'This checks the file only; it does not detect animals or identify species.'
+            :'Esta función solo revisa el archivo: no detecta animales ni identifica especies.'}</p>
         <div className="upload-layout">
           <div className="upload-controls">
             <label htmlFor="panthera-image">{t("Seleccionar fotografía (JPEG, PNG o WebP; máximo 12 MB)")}</label>
             <input id="panthera-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
             <button className="action-button" disabled={!selectedImage || uploading || apiState !== 'connected'} onClick={() => void inspectImage()}>
-              {t(uploading ? 'Enviando…' : 'Inspeccionar fotografía')}
+              {uploading?(language==='en'?'Validating…':'Validando…'):(language==='en'?'Validate photo file (no AI)':'Validar archivo de foto (sin IA)')}
             </button>
             {imageError && <p role="alert" className="upload-error">{imageError}</p>}
             {imageResult && <div className="image-result" role="status">
-              <strong>✓ {t('Fotografía verificada')}</strong>
+              <strong>✓ {language==='en'?'File validated — no animal analysis':'Archivo validado — sin análisis de fauna'}</strong>
               <dl><dt>{t("Formato")}</dt><dd>{imageResult.format}</dd><dt>{t("Dimensiones")}</dt><dd>{imageResult.width} × {imageResult.height} px</dd><dt>{t("Tamaño")}</dt><dd>{(imageResult.size_bytes / 1024 / 1024).toFixed(2)} MB</dd><dt>{t("Almacenada")}</dt><dd>{t("No")}</dd></dl>
               <p>{language==='en'?'File validation completed. Species identification was not performed.':'Validación del archivo completada. No se ha realizado identificación de especies.'}</p>
               <p className="sci-muted">{language==='en'
@@ -313,9 +334,8 @@ function App() {
             {selectedImage && <small>{selectedImage.name}</small>}
           </div>
         </div>
-        <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable}
-          onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
-          onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
+
+        </details>
         <details className="method-details ai-method-details">
           <summary>{language==='en'?'Automatic detection · MegaDetector V6':'Detección automática · MegaDetector V6'}
             <span className="method-status">{aiAvailable
@@ -327,7 +347,7 @@ function App() {
             : (language==='en'?'Automated detection requires additional model dependencies and processing resources. The sequence analysis above remains available using OpenCV.':'La detección automática requiere dependencias y capacidad de procesamiento adicionales. El análisis de secuencias anterior está disponible con OpenCV.')}</p>
         </details>
         {aiAvailable && <VideoPanel enabled={apiState === 'connected'} />}
-        {aiAvailable && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
+        {aiAvailable && selectedImage && <DetectionPanel file={selectedImage} enabled={apiState === 'connected' && !uploading} />}
         <details className="method-details method-details-compact">
           <summary>{language==='en'?'Evidence management and data retention':'Gestión de evidencia y conservación de datos'}</summary>
           <p>{language==='en'?'Image inspection does not perform species recognition or save images to Supabase. Video analysis uses temporary files that expire on the processing server. Biological identification requires independent scientific review.':'La inspección de fotografías no reconoce especies ni guarda imágenes en Supabase. El análisis de video utiliza archivos temporales que caducan en el servidor de procesamiento. La identificación biológica exige revisión científica independiente.'}</p>
@@ -343,8 +363,8 @@ function App() {
         <div className="workflow-global-copy">
           <span>{language==='en'?'SCIENTIFIC WORKFLOW':'FLUJO CIENTÍFICO'}</span>
           <strong>{section==='PantheraID'
-            ?language==='en'?'Multimedia analysis':'Análisis multimedia'
-            :t(section)}</strong>
+            ?language==='en'?'Evidence screening':'Exploración de evidencia'
+            :moduleLabel(section)}</strong>
         </div>
         <button type="button" className="workflow-next-button workflow-global-next"
           disabled={section==='PantheraID'&&preparingEvidence}
