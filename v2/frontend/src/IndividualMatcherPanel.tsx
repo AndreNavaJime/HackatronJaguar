@@ -1,3 +1,4 @@
+import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
 import FlankCropPicker,{cropSelectedFile,type ImageRegion} from './FlankCropPicker';
@@ -89,7 +90,7 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
       form.append('labels',JSON.stringify(refs.map(r=>r.label.trim())));
       form.append('flanks',JSON.stringify(refs.map(r=>r.flank)));
       form.append('query_flank',side);
-      const response=await fetch('/api/individuals/compare',{
+      const response=await apiFetch('/api/individuals/compare',{
         method:'POST',body:form,signal:active.signal
       });
       const raw=await response.text();
