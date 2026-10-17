@@ -1415,3 +1415,12 @@ nav button:has(.nav-text){overflow-wrap:anywhere}
   .frame-review-strip{padding:12px}
   .frame-review-grid button{min-width:104px}
 }
+
+
+/* Scientific workflow: lead photo uploads toward actual matched-image review. */
+.scan-compare-next{display:inline-flex;align-items:center;justify-content:center;
+  font-size:12px;line-height:1.45;text-decoration:none;margin-top:10px;
+  border-radius:9px;padding:10px 14px;max-width:100%;text-align:center}
+.scan-photo-technical{margin:14px 0 24px}
+.scan-photo-technical>.detector-panel{margin:12px 0 0}
+@media(max-width:620px){.scan-compare-next{width:100%}}

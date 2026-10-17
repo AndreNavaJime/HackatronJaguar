@@ -285,19 +285,19 @@ export default function AIResultsPanel({onOpenComparison}:{onOpenComparison?:()=
           <div>
             <h4>{tx('Evidencia visual local (opcional)','Local visual evidence (optional)')}</h4>
             <p className="sci-muted">{tx(
-              'Seleccioná una foto original y una máscara descargadas de Colab. Son archivos locales y NO se comprueba que correspondan al JSON.',
-              'Select an original image and a mask downloaded from Colab. Files stay local and are NOT checked against the JSON.')}</p>
-            <label className="ai-review-image-input">{tx('Fotografía / comparativa','Photo / comparison')}
+              'Estas imágenes solo sirven para revisar un informe importado; subirlas aquí no ejecuta una comparación.',
+              'Images here only help review an imported report; uploading them does not run a comparison.')}</p>
+            <label className="ai-review-image-input">{tx('Imagen de evidencia (solo vista previa)','Evidence image (preview only)')}
               <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>
                 selectLocalImage(e.target.files?.[0]||null,setPhoto)}/></label>
-            <label className="ai-review-image-input">{tx('Máscara o imagen SAM 2','SAM 2 mask or image')}
+            <label className="ai-review-image-input">{tx('Máscara de evidencia (solo vista previa)','Evidence mask (preview only)')}
               <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>
                 selectLocalImage(e.target.files?.[0]||null,setMask)}/></label>
             <div className="ai-review-images">
               {photoUrl&&<figure><img src={photoUrl} alt={tx('Imagen científica seleccionada','Selected scientific image')}/><figcaption>{tx('Foto seleccionada','Selected photo')}</figcaption></figure>}
               {maskUrl&&<figure><img src={maskUrl} alt={tx('Máscara seleccionada','Selected mask')}/><figcaption>{tx('Máscara / SAM 2','Mask / SAM 2')}</figcaption></figure>}
-              {!photoUrl&&!maskUrl&&<p className="sci-muted">{tx('No se cargaron imágenes; el informe JSON es suficiente para ver las estadísticas.',
-                'No images loaded; the JSON report is sufficient for viewing statistics.')}</p>}
+              {!photoUrl&&!maskUrl&&<p className="sci-muted">{tx('No se adjuntaron imágenes de evidencia.',
+                'No evidence images attached.')}</p>}
             </div>
           </div>
         </div>
@@ -307,7 +307,7 @@ export default function AIResultsPanel({onOpenComparison}:{onOpenComparison?:()=
             <label>{tx('ID de cámara (si se conoce)','Camera ID (if known)')}
               <input value={current.cameraId} maxLength={100}
                 onChange={e=>update(current.id,{cameraId:e.target.value,decision:'pending'})}
-                placeholder={tx('No suministrado por Colab','Not supplied by Colab')}/></label>
+                placeholder={tx('No indicado en el informe','Not specified in the report')}/></label>
             <label>{tx('Investigador responsable','Reviewer')}
               <input value={current.reviewer} maxLength={120}
                 onChange={e=>update(current.id,{reviewer:e.target.value,decision:'pending'})}

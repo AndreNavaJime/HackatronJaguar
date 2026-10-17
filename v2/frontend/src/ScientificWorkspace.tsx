@@ -89,7 +89,8 @@ export default function ScientificWorkspace({section,onNavigate,pendingEvidence,
       <AIResultsPanel onOpenComparison={()=>{
           onNavigate('PantheraID');
           requestAnimationFrame(()=>window.setTimeout(()=>
-            document.getElementById('panthera-individual-compare')?.scrollIntoView({behavior:'smooth',block:'start'}),120));
+            (document.getElementById('panthera-individual-compare')||
+             document.getElementById('panthera-photo-details'))?.scrollIntoView({behavior:'smooth',block:'start'}),120));
         }} />
       <ResearchRegistry data={research} setData={setResearch} pendingEdge={incoming}
         onClearEdge={()=>setIncoming(null)} pendingEvidence={pendingEvidence}

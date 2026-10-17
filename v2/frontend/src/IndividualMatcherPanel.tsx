@@ -140,18 +140,16 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
         <span className="scan-feature-kicker">PANTHERASCAN / {tx('COMPARACIÓN INDIVIDUAL','INDIVIDUAL COMPARISON')}</span>
         <h3>{tx('Comparar jaguares por su patrón de pelaje','Compare jaguars by their coat patterns')}</h3>
         <p>{tx(
-          'Subí fotografías de individuos de referencia y comparalas con la foto seleccionada arriba. El sistema propone coincidencias de rasgos locales mediante SIFT + RANSAC.',
-          'Add known-individual reference photos and compare them with the photo selected above. The system proposes local-feature correspondences using SIFT + RANSAC.'
+          'Agregá fotos de referencia para buscar coincidencias con la imagen seleccionada.',
+          'Add reference photos to search for matches with the selected image.'
         )}</p>
       </div><span className="sci-tag">OpenCV · SIFT</span>
     </div>
     <p className="individual-matcher-warning">{tx(
-      'EXPERIMENTAL · Sin identificación automática verificada. Utilizá fotografías recortadas al flanco, de ángulos comparables y con códigos conocidos. Una coincidencia no es una probabilidad ni confirma un individuo nuevo.',
-      'EXPERIMENTAL · No verified automatic identity. Use cropped flanks from comparable viewpoints with known reference codes. A match is not a probability or proof of a new individual.'
+      'Comparación exploratoria. Los resultados deben ser revisados por un investigador; no confirman identidades.',
+      'Exploratory comparison. Results require researcher review and do not verify identities.'
     )}</p>
-    <div className="individual-matcher-steps">
-      <span>{tx('1. Foto de consulta','1. Query photo')}</span><span>{tx('2. Referencias','2. References')}</span><span>{tx('3. Comparación','3. Matching')}</span><span>{tx('4. Revisión','4. Review')}</span>
-    </div>
+
     <div className="individual-match-query">
       <div><strong>{tx('Fotografía de consulta','Query photograph')}</strong><small>{photo?photo.name:tx('Elegí primero una foto arriba, en Fotografías.','Select a photo above under Photographs first.')}</small></div>
       <label>{tx('Costado de la consulta','Query flank')}
@@ -215,7 +213,10 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
         <h4>{tx('Coincidencias propuestas','Candidate correspondences')}</h4>
         <span className="sci-tag">{tx('REVISIÓN PENDIENTE','REVIEW REQUIRED')}</span>
       </div>
-      <p className="sci-muted">{result.method} · {result.reference_count} {tx('referencias','references')} · {result.query_keypoints} {tx('puntos locales en consulta','local keypoints in query')}</p>
+      <details className="method-details method-details-compact">
+        <summary>{tx('Detalles técnicos del análisis','Analysis technical details')}</summary>
+        <p className="sci-muted">{result.method} · {result.reference_count} {tx('referencias','references')} · {result.query_keypoints} {tx('puntos locales en consulta','local keypoints in query')}</p>
+      </details>
       <p className="individual-matcher-warning">{withEvidence.length
         ?tx('Se encontraron correspondencias geométricamente consistentes. NO confirman la identidad.','Geometrically consistent features found. Identity is NOT confirmed.')
         :tx('No hubo coincidencias con evidencia suficiente. Esto NO demuestra que sea un individuo nuevo.','No matches with sufficient evidence. This does NOT prove a new individual.')}</p>
@@ -265,8 +266,13 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
         <button className="action-button" type="button" onClick={exportReport}>
           {tx('Descargar comparación y revisión · JSON ↓','Download comparison and review · JSON ↓')}
         </button>
-        <p className="sci-muted">{result.note} {tx('La comparación y la revisión permanecen en esta pantalla hasta cerrarla; el servidor no almacena fotografías.',
-          'Matching and review remain in this page until it is closed; the server stores no photos.')}</p>
+        <details className="method-details method-details-compact">
+          <summary>{tx('Limitaciones y privacidad','Limitations and privacy')}</summary>
+          <p className="sci-muted">{result.note} {tx(
+            'La revisión queda en esta pantalla y el servidor no conserva las fotografías.',
+            'Review remains on this page; the server does not retain photos.'
+          )}</p>
+        </details>
       </div>
     </div>}
   </section>;
