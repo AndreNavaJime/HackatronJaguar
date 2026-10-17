@@ -407,7 +407,7 @@ function App() {
           <summary>{language==='en'?'Optional technical image inspection':'Inspección técnica opcional'}</summary>
           <DetectionPanel file={selectedImage} animalAIEnabled={false}
             enabled={apiState === 'connected' && !uploading} />
-        </details>
+        </details>}
         <details className="method-details method-details-compact">
           <summary>{language==='en'?'Advanced experimental comparison':'Comparación experimental avanzada'}</summary>
           <PantheraRosettesPanel />
