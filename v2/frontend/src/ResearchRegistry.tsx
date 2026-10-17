@@ -1,6 +1,7 @@
 import {apiFetch} from './apiClient';
 import React from 'react';
 import {useLanguage} from './language';
+import CloudLibraryPanel from './CloudLibraryPanel';
 import {downloadFile} from './scienceShared';
 import {ResearchData,Study,Deployment,Individual,Encounter,Sighting,uid,projectPackage} from './researchData';
 import type {VideoEvidenceBatch} from './videoWorkspaceDb';
@@ -785,6 +786,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       <div className="sci-panel-head"><h3>{tx('Catálogo de individuos','Individual catalogue')}</h3>
         <button type="button" className="sci-secondary" onClick={()=>setIndividualDraft(initialIndividual(activeId))}>
           + {tx('Nueva ficha','New profile')}</button></div>
+      <CloudLibraryPanel />
       {!study?<p className="sci-warning">{tx('Primero creá un estudio.','Create a study first.')}</p>:<>
         <p className="sci-muted">{tx('Un individuo puede asociarse con múltiples capturas. La identidad solo se marca verificada después de revisión humana.',
           'An individual can be linked to many captures. Mark identity verified only after human evidence review.')}</p>
