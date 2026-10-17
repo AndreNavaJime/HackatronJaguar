@@ -1,0 +1,47 @@
+name: PantheraSCAN frame-to-photo public smoke
+
+on:
+  push:
+    branches: [test/pantherascan-frames-public-smoke-20261017]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Confirm new public UI bundle and live API without Colab
+        run: |
+          python - <<'PY'
+          import re,time,json,urllib.request
+          front='https://pantherascan-ciencia.onrender.com'
+          backend='https://pantherasense-backend-test.onrender.com'
+          def get(url):
+              req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'PantheraSCAN-Live-Frame-Smoke'})
+              with urllib.request.urlopen(req,timeout=75) as response:
+                  return response.status,response.read().decode('utf-8','replace')
+          for attempt in range(18):
+              status,html=get(front+'/?ci='+str(attempt))
+              assert status==200 and '<html' in html.lower()
+              matched=re.search(r'src="([^"]*assets/index-[^"]+\.js)"',html)
+              assert matched,html[:300]
+              url=matched.group(1)
+              status,js=get(front+url if url.startswith('/') else front+'/'+url)
+              assert status==200
+              if ('Fotogramas preparados para comparar' in js
+                  and 'Examinar pelaje de este fotograma' in js
+                  and 'Comparación de patrones individuales' in js):
+                  break
+              print('Previous bundle still cached or deploying, attempt',attempt+1,flush=True)
+              time.sleep(15)
+          else:
+              raise AssertionError('New frame-to-photo UI not found in public bundle')
+          status,body=get(backend+'/api/capabilities')
+          assert status==200
+          caps=json.loads(body)
+          assert caps.get('individual_comparison')=='opencv_sift_experimental_available',caps
+          assert caps.get('heavy_photo_ai')=='disabled',caps
+          print('PASS: public Render frontend has photo-first frame review, individual comparison and honest AI state.')
+          PY
