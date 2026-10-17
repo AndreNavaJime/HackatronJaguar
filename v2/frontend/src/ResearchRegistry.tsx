@@ -15,7 +15,7 @@ type Props={data:ResearchData;setData:React.Dispatch<React.SetStateAction<Resear
   pendingEvidence?:VideoEvidenceBatch|null;onClearEvidence?:()=>void;
   reportsOnly?:boolean;
   nextRequest?:number;onWorkflowTabChange?:(tab:'projects'|'stations'|'captures'|'individuals')=>void;
-  onNavigate?:(section:string)=>void};
+  onNavigate?:(section:string)=>void;onActiveStudyChange?:(studyId:string)=>void};
 function recoverDraft<T>(key:string,idField:string,fallback:()=>T):T{
   try{
     const text=sessionStorage.getItem(key);
@@ -91,7 +91,7 @@ const initialSighting=(encounter_id:string):Sighting=>({
   behavior:'',reviewer:'',notes:''});
 
 export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,pendingEvidence,onClearEvidence,
-  reportsOnly=false,nextRequest=0,onWorkflowTabChange,onNavigate}:Props){
+  reportsOnly=false,nextRequest=0,onWorkflowTabChange,onNavigate,onActiveStudyChange}:Props){
   const {language}=useLanguage();const tx=(es:string,en:string)=>language==='en'?en:es;
   const [tab,setTab]=React.useState<Tab>(()=>{
     try{const value=sessionStorage.getItem('pantheralab_registry_tab_v1');
@@ -151,6 +151,7 @@ export default function ResearchRegistry({data,setData,pendingEdge,onClearEdge,p
       catch{/* optional */}
   },[selectedStudy]);
   const activeId=data.studies.some(s=>s.study_id===selectedStudy)?selectedStudy:data.studies[0]?.study_id||'';
+  React.useEffect(()=>{onActiveStudyChange?.(activeId);},[activeId,onActiveStudyChange]);
   const study=data.studies.find(s=>s.study_id===activeId);
   const stations=data.deployments.filter(d=>d.study_id===activeId);
   const people=data.individuals.filter(i=>i.study_id===activeId);
