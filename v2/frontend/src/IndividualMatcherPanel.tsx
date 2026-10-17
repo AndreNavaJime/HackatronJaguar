@@ -1,9 +1,10 @@
 import React from 'react';
 import {useLanguage} from './language';
+import FlankCropPicker,{cropSelectedFile,type ImageRegion} from './FlankCropPicker';
 import './IndividualMatcherPanel.css';
 
 type Flank='left'|'right'|'unknown';
-type Reference={id:number;file:File;label:string;flank:Flank};
+type Reference={id:number;file:File;label:string;flank:Flank;crop:ImageRegion|null};
 type Candidate={label:string;reference_index:number;reference_flank:Flank;
   status:'candidate_for_review'|'insufficient_evidence'|'incompatible_flank';
   tentative_matches:number;coherent_matches:number;spread_fraction:number;
@@ -31,6 +32,7 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
   const tx=(es:string,en:string)=>language==='en'?en:es;
   const [refs,setRefs]=React.useState<Reference[]>([]);
   const [side,setSide]=React.useState<Flank>('unknown');
+  const [queryCrop,setQueryCrop]=React.useState<ImageRegion|null>(null);
   const [result,setResult]=React.useState<MatchResult|null>(null);
   const [loading,setLoading]=React.useState(false);
   const [error,setError]=React.useState('');
@@ -42,7 +44,7 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
 
   React.useEffect(()=>{
     controller.current?.abort();controller.current=null;
-    setResult(null);setError('');setLoading(false);setReviewChoice('');setConfirmReview(false);
+    setResult(null);setError('');setLoading(false);setReviewChoice('');setConfirmReview(false);setQueryCrop(null);
     return ()=>controller.current?.abort();
   },[photo]);
   const invalidate=()=>{controller.current?.abort();controller.current=null;
@@ -59,7 +61,7 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
     invalidate();
     setRefs(previous=>{
       const start=previous.reduce((a,x)=>Math.max(a,x.id),0);
-      return [...previous,...list.map((file,i)=>({id:start+i+1,file,label:'',flank:'unknown' as Flank}))];
+      return [...previous,...list.map((file,i)=>({id:start+i+1,file,label:'',flank:'unknown' as Flank,crop:null}))];
     });
   }
   function changeReference(id:number,patch:Partial<Reference>){
@@ -76,8 +78,14 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
     setLoading(true);
     try{
       const form=new FormData();
-      form.append('query',photo,photo.name);
-      for(const ref of refs)form.append('references',ref.file,ref.file.name);
+      const croppedQuery=await cropSelectedFile(photo,queryCrop);
+      if(active.signal.aborted)return;
+      form.append('query',croppedQuery,croppedQuery.name);
+      for(const ref of refs){
+        const cropped=await cropSelectedFile(ref.file,ref.crop);
+        if(active.signal.aborted)return;
+        form.append('references',cropped,cropped.name);
+      }
       form.append('labels',JSON.stringify(refs.map(r=>r.label.trim())));
       form.append('flanks',JSON.stringify(refs.map(r=>r.flank)));
       form.append('query_flank',side);
@@ -113,8 +121,8 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
       analyzed_at:new Date().toISOString(),
       scientific_validation:false,identity_verified:false,
       photos_saved_to_cloud:false,method:result.method,
-      query_filename:photo?.name||'',query_flank:side,
-      references:refs.map((r,i)=>({index:i,filename:r.file.name,label:r.label,flank:r.flank})),
+      query_filename:photo?.name||'',query_flank:side,query_crop:queryCrop,
+      references:refs.map((r,i)=>({index:i,filename:r.file.name,label:r.label,flank:r.flank,crop:r.crop})),
       ranked_candidates:result.candidates.map(({evidence_image,...c})=>c),
       review:{reviewer:reviewer.trim(),decision:reviewChoice||'pending',
         reviewed_by_human:confirmReview&&!!reviewer.trim(),notes:reviewNotes.trim(),
@@ -150,6 +158,9 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
         </select>
       </label>
     </div>
+    {photo&&<FlankCropPicker file={photo} value={queryCrop} language={language}
+      title={tx('Seleccioná el costado de la foto de consulta','Select the query photo flank')}
+      onChange={crop=>{invalidate();setQueryCrop(crop);}}/>}
     <div className="individual-match-upload">
       <label htmlFor="panthera-match-references">{tx('Agregar referencias del catálogo (máximo 6 imágenes)','Add reference photos (maximum 6 images)')}</label>
       <input id="panthera-match-references" type="file" accept="image/jpeg,image/png,image/webp" multiple
@@ -164,6 +175,8 @@ export default function IndividualMatcherPanel({photo,enabled}:{photo:File|null;
           <button type="button" onClick={()=>removeReference(r.id)}>{tx('Quitar','Remove')} ×</button>
         </div>
         <small title={r.file.name}>{r.file.name}</small>
+        <FlankCropPicker file={r.file} value={r.crop} language={language}
+          onChange={crop=>changeReference(r.id,{crop})}/>
         <div className="individual-match-ref-fields">
           <label>{tx('Código del individuo','Individual code')}
             <input value={r.label} maxLength={80} placeholder="JAG-001"
