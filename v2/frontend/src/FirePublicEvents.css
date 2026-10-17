@@ -1,0 +1,22 @@
+.nasa-fire-events{display:grid;gap:12px;margin:14px 0 16px}
+.nasa-fire-events .sci-panel-head{align-items:flex-start}
+.nasa-fire-events .sci-panel-head h3{margin:5px 0 0}
+.nasa-fire-events>p{margin:0;line-height:1.55}
+.nasa-fire-controls{display:grid;grid-template-columns:minmax(160px,1.4fr) minmax(140px,1fr) auto;align-items:end;gap:10px}
+.nasa-fire-controls button{min-height:42px}
+.nasa-fire-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  padding:11px;border:1px solid rgba(230,160,107,.25);border-radius:9px;background:rgba(247,157,84,.05)}
+.nasa-fire-meta strong{font-size:12px}
+.nasa-fire-meta small{font-size:11px;color:#c4c7d1}
+.nasa-fire-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:9px;max-height:390px;overflow-y:auto;padding-right:3px}
+.nasa-fire-entry{border:1px solid rgba(235,165,105,.24);border-radius:9px;padding:12px;display:grid;gap:8px;
+  background:rgba(23,30,40,.7);align-content:start}
+.nasa-fire-entry-head{display:grid;gap:5px}
+.nasa-fire-entry-head strong{font-size:13px;overflow-wrap:anywhere}
+.nasa-fire-entry .fire-pill{justify-self:start;white-space:normal;font-size:10px;line-height:1.2}
+.nasa-fire-entry small{font-size:11px;color:#b7beca}
+.nasa-fire-entry a{font-size:12px;color:#f2bc8b;overflow-wrap:anywhere}
+.nasa-fire-links{display:flex;flex-wrap:wrap;gap:14px}
+.nasa-fire-links a{font-size:12px}
+@media(max-width:760px){.nasa-fire-controls{grid-template-columns:1fr 1fr}.nasa-fire-controls button{grid-column:1/-1}}
+@media(max-width:475px){.nasa-fire-controls{grid-template-columns:1fr}.nasa-fire-controls button{grid-column:auto}}
