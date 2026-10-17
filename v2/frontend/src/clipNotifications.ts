@@ -2,8 +2,10 @@
  * in-app clip alerts always work regardless of browser notification support.
  * No remote push notifications are installed or implied here.
  */
-const WORKER_URL='/pantheralive-alert-sw.js';
-const WORKER_SCOPE='/pantheralive-alerts/';
+// Use the installed PantheraLAB PWA's own worker, so Android can associate
+// notification dots with the HOME SCREEN app (not a separate scoped worker).
+const WORKER_URL='/sw.js';
+const WORKER_SCOPE='/';
 
 export async function requestClipAlertsOnCameraConnect():Promise<void>{
   if(!window.isSecureContext||typeof Notification==='undefined')return;
@@ -31,8 +33,9 @@ export async function notifyClipReady(pending=1):Promise<void>{
   try{
     if('serviceWorker' in navigator){
       const worker=await navigator.serviceWorker.register(WORKER_URL,{scope:WORKER_SCOPE});
-      if(worker.active){
-        await worker.showNotification(title,options);
+      const active=await navigator.serviceWorker.ready;
+      if(worker.active||active.active){
+        await active.showNotification(title,options);
         return;
       }
     }
