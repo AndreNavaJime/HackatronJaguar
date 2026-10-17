@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from detection import DetectorUnavailable, detect_image
+from rosette_patterns import analyze_patterns
 from live_ai import (capabilities as live_capabilities, wildlife_frame, fire_frame,
                      LiveModelUnavailable)
 from video_api import router as video_router
@@ -50,6 +51,8 @@ def capabilities():
     return {
         'modules': ['PantheraID', 'PantheraMONITORING', 'PantheraEDGE'],
         'image_intake': 'available',
+        'image_auto_analysis': 'available_if_megadetector_installed',
+        'rosette_texture': 'exploratory_contours_not_reidentification',
         'animal_detection': 'optional_dependencies_installed' if find_spec('PytorchWildlife') else 'requires_pytorchwildlife',
         'individual_identification': 'not_validated',
         'video_analysis': 'lite_available' if find_spec('cv2') else 'requires_opencv',
@@ -138,3 +141,26 @@ async def detect(request: Request, threshold: float = Query(0.25, ge=0.1, le=0.9
     except Exception as error:
         logger.exception('Falló la inferencia de MegaDetector')
         raise HTTPException(status_code=500, detail=f'Falló la inferencia de MegaDetector ({type(error).__name__}). Revisá la terminal de Python.') from error
+
+
+def _analyze_photo(image: Image.Image, threshold: float):
+    """Detect fauna and suggest pattern regions in one request; no permanent storage."""
+    output = detect_image(image, threshold)
+    output['rosette_patterns'] = analyze_patterns(image, output.get('detections', []))
+    return output
+
+
+@app.post('/api/images/analyze')
+async def analyze_photo(request: Request, threshold: float = Query(0.25, ge=0.1, le=0.9)):
+    _, image, _, _ = await _read_image(request)
+    try:
+        return await run_in_threadpool(_analyze_photo, image, threshold)
+    except DetectorUnavailable as error:
+        logger.warning('Modelo IA no disponible para fotografías: %s', error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except Exception as error:
+        logger.exception('Falló el análisis automático de fotografía')
+        raise HTTPException(
+            status_code=500,
+            detail='No se completó el análisis. Revisá la disponibilidad de IA en el servidor.'
+        ) from error
