@@ -77,3 +77,10 @@
   .live-event-actions{width:100%}
   .live-event-actions button{flex:1 1 95px}
 }
+
+
+.camera-torch-control{display:grid;gap:6px;margin:10px 0;padding:11px 12px;
+  border:1px solid #416565;border-radius:10px;background:#132d36}
+.camera-torch-control button{justify-self:start}
+.camera-torch-control small{font-size:11px;line-height:1.5;color:#b4d1cc}
+@media(max-width:600px){.camera-torch-control button{width:100%;white-space:normal}}
