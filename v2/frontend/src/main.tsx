@@ -7,7 +7,7 @@ import IndividualMatcherPanel from './IndividualMatcherPanel';
 import VideoPanel from './VideoPanel';
 import LiteVideoPanel from './LiteVideoPanel';
 import {createAnalysisId} from './videoWorkspaceDb';
-import type {VideoEvidenceBatch} from './videoWorkspaceDb';
+import type {VideoEvidenceBatch,VideoFrameEvidence} from './videoWorkspaceDb';
 import type {VideoWorkflowState} from './LiteVideoPanel';
 import ScientificWorkspace from './ScientificWorkspace';
 import PantheraRosettesPanel from './PantheraRosettesPanel';
@@ -90,6 +90,10 @@ function App() {
   const [liteAvailable, setLiteAvailable] = React.useState(false);
   const [apiMessage, setApiMessage] = React.useState('Verificando disponibilidad del servicio…');
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
+  const [frameBatch,setFrameBatch]=React.useState<VideoFrameEvidence[]>([]);
+  const [frameSource,setFrameSource]=React.useState('');
+  const [activeFrame,setActiveFrame]=React.useState<number|null>(null);
+  const frameLoading=React.useRef(0);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [imageResult, setImageResult] = React.useState<ImageResult | null>(null);
   const [imageError, setImageError] = React.useState('');
@@ -146,11 +150,37 @@ function App() {
   }, [selectedImage]);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    frameLoading.current++;
+    setFrameBatch([]);setFrameSource('');setActiveFrame(null);
     const file = event.target.files?.[0] ?? null;
     setSelectedImage(file);
     setImageResult(null);
     setImageEvidenceId('');
     setImageError('');
+  }
+
+  async function activateFrame(frame:VideoFrameEvidence,source:string){
+    const request=++frameLoading.current;
+    try{
+      // Browser-generated gallery JPEG; no second download from Render.
+      const blob=await (await fetch(frame.image)).blob();
+      if(blob.size>12*1024*1024)throw new Error('El fotograma es demasiado grande.');
+      if(request!==frameLoading.current)return;
+      setSelectedImage(new File([blob],
+        'fotograma_'+String(frame.sample).padStart(3,'0')+'.jpg',
+        {type:blob.type||'image/jpeg'}));
+      setActiveFrame(frame.sample);setFrameSource(source);
+      setImageResult(null);setImageError('');setImageEvidenceId('');
+      document.getElementById('panthera-photo-details')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(error){
+      if(request===frameLoading.current)setImageError(
+        error instanceof Error?error.message:'No se pudo preparar el fotograma.');
+    }
+  }
+  function useSelectedFrames(frames:VideoFrameEvidence[],source:string){
+    if(!frames.length)return;
+    setFrameBatch(frames);setFrameSource(source);
+    void activateFrame(frames[0],source);
   }
 
   // Validate metadata automatically; scientific registration no longer requires a second button.
@@ -326,6 +356,22 @@ function App() {
           <p className="sci-muted">{language==='en'
             ?'Select a clear animal flank; matching is available below. Automatic detection requires an enabled AI model.'
             :'Seleccioná un buen costado del animal; la comparación está disponible abajo. La detección automática requiere un modelo de IA activo.'}</p>
+        {frameBatch.length>0&&<div className="frame-review-strip" aria-label={language==='en'?'Selected video frames':'Fotogramas seleccionados'}>
+          <div className="frame-review-title">
+            <strong>{language==='en'?'Video frames ready for analysis':'Fotogramas preparados para comparar'}</strong>
+            <small>{frameSource} · {frameBatch.length} {language==='en'?'frames':'fotogramas'}</small>
+          </div>
+          <div className="frame-review-grid">
+            {frameBatch.map(frame=><button type="button" key={frame.sample}
+              aria-pressed={activeFrame===frame.sample}
+              className={activeFrame===frame.sample?'frame-review-active':''}
+              onClick={()=>void activateFrame(frame,frameSource)}>
+              <img src={frame.image} alt={language==='en'?'Frame '+frame.sample:'Fotograma '+frame.sample} loading="lazy"/>
+              <span>{language==='en'?'Frame':'Fotograma'} {frame.sample} · {frame.time_seconds.toFixed(1)}s</span>
+            </button>)}
+          </div>
+          <small>{language==='en'?'Choose a frame to examine its flank and match it against known individuals.':'Elegí un fotograma para recortar su costado y compararlo con individuos conocidos.'}</small>
+        </div>}
         <div className="upload-layout">
           <div className="upload-controls">
             <label htmlFor="panthera-image">{language==='en'?'Select photo (max 12 MB)':'Seleccionar fotografía (máximo 12 MB)'}</label>
@@ -361,6 +407,7 @@ function App() {
             <p>{language==='en'?'Camera-trap video sampling and visual change analysis':'Muestreo de videos de cámaras trampa y análisis de cambios visuales'}</p>
           </header>
         <LiteVideoPanel enabled={apiState === 'connected' && liteAvailable}
+          onAnalyzeFrames={useSelectedFrames}
           onWorkflowState={onVideoWorkflow} nextRequest={videoNextRequest}
           onRecordEvidence={item=>{setEvidenceDraft(item);setSection('PantheraMONITORING');}} />
         </div>
