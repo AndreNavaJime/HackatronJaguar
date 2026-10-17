@@ -29,7 +29,8 @@ function recordingMime():string{
   return '';
 }
 export default function LocalAnimalClips({stream,video}:Props){
-  const {language}=useLanguage(),tx=(es:string,en:string)=>language==='en'?en:es;
+  const {language}=useLanguage();
+  const tx=React.useCallback((es:string,en:string)=>language==='en'?en:es,[language]);
   const [loading,setLoading]=React.useState(false);
   const [running,setRunning]=React.useState(false);
   const [status,setStatus]=React.useState('');
